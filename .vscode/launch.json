@@ -8,7 +8,7 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/caleb/SCXRPIUS/Apollo",
+      "cwd": "c:/Users/caleb/SCXRPIUS/Apollo/output",
       "program": "c:/Users/caleb/SCXRPIUS/Apollo/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",

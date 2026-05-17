@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "headers/token.h"
+#include "../headers/token.h"
 
 
 
@@ -100,6 +100,6 @@ void compile_parse(Lexer* lexer){
     //Checks the end of the file.
     consume(&parser, TOKEN_EOF, "Unexpected trailing syntax tokens encountered after main entry block.");
 
-    printf("SUCCESSFUL.");
+    printf("SUCCESSFUL.\n");
 
 }

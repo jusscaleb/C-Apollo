@@ -2,3 +2,4 @@ output/
 *.exe
 .vscode
 *.ll
+run/

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "headers/token.h"
+#include "../headers/token.h"
 
 
 //intitialize the output file.
@@ -62,5 +62,6 @@ void gen_function_end(CodegenContext* context, bool is_main){
     (is_main) ? fprintf(context->file, "ret i32 0\n") : fprintf(context->file,  "    ret void\n");
 
     fprintf(context->file, "}\n");
+    fclose(context->file);
 
 }
