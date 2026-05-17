@@ -1,5 +1,7 @@
+/*Coordinator*/
+
 #include <stdio.h>
-#include "token.h"
+#include "headers/token.h"
 
 // Link our global parser orchestration entrypoint
 void compile_parse(Lexer* lexer);

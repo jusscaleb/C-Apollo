@@ -1,11 +1,12 @@
 /*
 Where the tokens used in the compiler are stored.
 */
-
-#include <stdio.h>
-
 #ifndef APOLLO_TOKEN_H
 #define APOLLO_TOKEN_H
+
+#include <stdio.h>
+#include "defs.h"
+
 
 
 /*-------------TOKEN TYPES-------------*/

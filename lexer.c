@@ -1,12 +1,13 @@
+/* Character Grouper */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
-#include "token.h"
+#include "headers/token.h"
 
 
-typedef bool set;
+
 
 //Defining the TokenNames in token.h
 const char* TokenNames[] = {
