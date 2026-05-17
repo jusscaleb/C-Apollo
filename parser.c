@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+//#include <string.h>
+//#include <ctype.h>
 #include <stdbool.h>
 #include "token.h"
 
@@ -10,7 +10,6 @@
 static void advance(Parser* parser){
     parser->previous = parser->current;
     parser->current = next_token(parser->lexer);
-    
 }
 
 //consume() checks if given token matches expected token.
@@ -83,5 +82,7 @@ void compile_parse(Lexer* lexer){
 
     //Checks the end of the file.
     consume(&parser, TOKEN_EOF, "Unexpected trailing syntax tokens encountered after main entry block.");
+
+    printf("SUCCESSFUL.");
 
 }

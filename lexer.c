@@ -29,9 +29,9 @@ void lex_error(int line, const char* message) {
 *If not it is a user-defined keyword
 */
 static TokenType check_keyword(const char* start, int length){
-    if(length == 3 && strncmp(start, "fxn", 3)) return TOKEN_FXN;
-    if(length == 3 && strncmp(start, "run", 3)) return TOKEN_RUN;
-    if(length == 3 && strncmp(start, "void", 4)) return TOKEN_VOID;
+    if(length == 3 && strncmp(start, "fxn", 3) == 0) return TOKEN_FXN;
+    if(length == 3 && strncmp(start, "run", 3) == 0) return TOKEN_RUN;
+    if(length == 4 && strncmp(start, "void", 4) == 0) return TOKEN_VOID;
 
     return TOKEN_IDENTIFIER;
 }
@@ -39,11 +39,8 @@ static TokenType check_keyword(const char* start, int length){
 
 Token next_token(Lexer* lexer){
     //Loops through to consume and ignore spaces, tabs and carriage returns.
-    set skip =*lexer->current == ' ' || *lexer->current == '\r' || *lexer->current == '\t' || *lexer->current == '\n';
-    set newLine = *lexer->current == '\n';
-
-    while(skip){
-        if(newLine){lexer->line++;} //move to the next line.
+    while(*lexer->current == ' ' || *lexer->current == '\r' || *lexer->current == '\t' || *lexer->current == '\n'){
+        if(*lexer->current == '\n'){lexer->line++;} //move to the next line.
         lexer->current++; //move pointer one character forward.
 
     }
@@ -63,25 +60,25 @@ Token next_token(Lexer* lexer){
 
     //using a switch to check single characters
     switch(c){
-        case ')':
+        case '}':
         {
             Token token = {TOKEN_RBRACE, start, 1, lexer->line};
             return token;
         }
 
-        case '(':
+        case '{':
         {
             Token token = {TOKEN_LBRACE, start, 1, lexer->line};
             return token;
         }
 
-        case '{':
+        case '(':
         {
             Token token = {TOKEN_LPARETH, start, 1, lexer->line};
             return token;
         }
 
-        case '}':
+        case ')':
         {
             Token token = {TOKEN_RPARETH, start, 1, lexer->line};
             return token;
@@ -109,7 +106,7 @@ Token next_token(Lexer* lexer){
     }
 
     //HANDLE STRINGS
-    if(*lexer->current == '"'){
+    if( c == '"'){
         //Loops until it reaches closing quotes or \0.
         while(*lexer->current != '"' && *lexer->current != '\0'){
             if(*lexer->current == '\n')lexer->line++;
