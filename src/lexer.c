@@ -12,7 +12,7 @@ const char* TokenNames[] = {
     "EOF", "FXN", "RUN", "VOID", "IDENTIFIER", 
     "STRING", "ARROW", "LPAREN", "RPAREN", 
     "LBRACE", "RBRACE", "SEMICOLON", "ARROW", "INT",
-     "DOUB","FLOAT", "ADD",
+     "DOUB","FLOAT", "ADD", "MUL", "SUB", "DIV", "MOD",
 };
 
 
@@ -100,12 +100,31 @@ Token next_token(Lexer* lexer){
                     return token;
                 }
 
-                lex_error(lexer->line, "Syntax Error: expected '>' after '-'.");
+                Token token = {TOKEN_SUB, start, 1, lexer->line};
+                return token;
             }
         
         case '+':
             Token token = {TOKEN_ADD, start, 1, lexer->line};
             return token;
+
+        case '*':
+        {
+            Token token = {TOKEN_MUL, start, 1, lexer->line};
+            return token;
+        }
+
+        case '/':
+        {
+            Token token = {TOKEN_DIV, start, 1, lexer->line};
+            return token;
+        }
+
+        case '%':
+        {
+            Token token = {TOKEN_MOD, start, 1, lexer->line};
+            return token;
+        }
 
     }
 

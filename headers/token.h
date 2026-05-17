@@ -28,7 +28,11 @@ typedef enum{
     TOKEN_INT,
     TOKEN_DOUB,
     TOKEN_FLOAT,
-    TOKEN_ADD
+    TOKEN_ADD,
+    TOKEN_MUL,
+    TOKEN_SUB,
+    TOKEN_DIV,
+    TOKEN_MOD
 }TokenType;
 
 

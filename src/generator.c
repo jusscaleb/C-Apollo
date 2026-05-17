@@ -50,6 +50,8 @@ static int escaped_string_byte_count(const char* string_start, int length){
     return count;
 }
 
+
+//Replaces escape characters with llvm format contents.
 static void emit_llvm_string_contents(FILE* file, const char* string_start, int length){
     for(int i = 0; i < length; i++){
         if(string_start[i] == '\\' && i + 1 < length){
@@ -174,6 +176,7 @@ void gen_println_float_addition(
     fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%add_%d)\n\n", id, id);
 }
 
+//Add mixed values
 void gen_println_mixed_addition(
     CodegenContext* context,
     const char* left_start,
@@ -213,6 +216,281 @@ void gen_println_mixed_addition(
     fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
     fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%add_%d)\n\n", id, id);
 }
+
+
+//Multiplication
+void gen_println_integer_multiplication(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%mul_%d = mul i32 %.*s, %.*s\n",
+            id,
+            left_length, left_start,
+            right_length, right_start);
+
+    fprintf(context->file, "%%int_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%d\\0A\\00\", [4 x i8]* %%int_fmt_%d\n", id);
+    fprintf(context->file, "%%int_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%int_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%int_fmt_ptr_%d, i32 %%mul_%d)\n\n", id, id);
+}
+
+
+//Float Multiplication
+void gen_println_float_multiplication(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%mul_%d = fmul double %.*s, %.*s\n",
+            id,
+            left_length, left_start,
+            right_length, right_start);
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%mul_%d)\n\n", id, id);
+}
+
+
+//Mixed Multiplication
+void gen_println_mixed_multiplication(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length,
+    bool int_is_left
+){
+    int id = context->string_constant_count++;
+
+    if (int_is_left) {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                left_length,
+                left_start);
+
+        fprintf(context->file, "%%mul_%d = fmul double %%int_to_double_%d, %.*s\n",
+                id,
+                id,
+                right_length,
+                right_start);
+    } else {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                right_length,
+                right_start);
+
+        fprintf(context->file, "%%mul_%d = fmul double %.*s, %%int_to_double_%d\n",
+                id,
+                left_length,
+                left_start,
+                id);
+    }
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%mul_%d)\n\n", id, id);
+}
+
+//Integer Subtraction
+void gen_println_integer_subtraction(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%sub_%d = sub i32 %.*s, %.*s\n",
+            id,
+            left_length, left_start,
+            right_length, right_start);
+
+    fprintf(context->file, "%%int_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%d\\0A\\00\", [4 x i8]* %%int_fmt_%d\n", id);
+    fprintf(context->file, "%%int_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%int_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%int_fmt_ptr_%d, i32 %%sub_%d)\n\n", id, id);
+}
+
+//Float Subtraction
+void gen_println_float_subtraction(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%sub_%d = fsub double %.*s, %.*s\n",
+            id,
+            left_length, left_start,
+            right_length, right_start);
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%sub_%d)\n\n", id, id);
+}
+
+//Mixed Subtraction
+void gen_println_mixed_subtraction(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length,
+    bool int_is_left
+){
+    int id = context->string_constant_count++;
+
+    if (int_is_left) {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                left_length,
+                left_start);
+
+        fprintf(context->file, "%%sub_%d = fsub double %%int_to_double_%d, %.*s\n",
+                id,
+                id,
+                right_length,
+                right_start);
+    } else {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                right_length,
+                right_start);
+
+        fprintf(context->file, "%%sub_%d = fsub double %.*s, %%int_to_double_%d\n",
+                id,
+                left_length,
+                left_start,
+                id);
+    }
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%sub_%d)\n\n", id, id);
+}
+
+//Integer Division
+void gen_println_integer_division(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%div_%d = sdiv i32 %.*s, %.*s\n",
+            id,
+            left_length, left_start,
+            right_length, right_start);
+
+    fprintf(context->file, "%%int_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%d\\0A\\00\", [4 x i8]* %%int_fmt_%d\n", id);
+    fprintf(context->file, "%%int_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%int_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%int_fmt_ptr_%d, i32 %%div_%d)\n\n", id, id);
+}
+
+//Float Division
+void gen_println_float_division(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%div_%d = fdiv double %.*s, %.*s\n",
+            id,
+            left_length, left_start,
+            right_length, right_start);
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%div_%d)\n\n", id, id);
+}
+
+//Mixed Division
+void gen_println_mixed_division(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length,
+    bool int_is_left
+){
+    int id = context->string_constant_count++;
+
+    if (int_is_left) {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                left_length,
+                left_start);
+
+        fprintf(context->file, "%%div_%d = fdiv double %%int_to_double_%d, %.*s\n",
+                id,
+                id,
+                right_length,
+                right_start);
+    } else {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                right_length,
+                right_start);
+
+        fprintf(context->file, "%%div_%d = fdiv double %.*s, %%int_to_double_%d\n",
+                id,
+                left_length,
+                left_start,
+                id);
+    }
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%div_%d)\n\n", id, id);
+}
+
+//Integer Modulus
+void gen_println_integer_modulus(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%mod_%d = srem i32 %.*s, %.*s\n",
+            id,
+            left_length, left_start,
+            right_length, right_start);
+
+    fprintf(context->file, "%%int_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%d\\0A\\00\", [4 x i8]* %%int_fmt_%d\n", id);
+    fprintf(context->file, "%%int_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%int_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%int_fmt_ptr_%d, i32 %%mod_%d)\n\n", id, id);
+}
+
+
 /*------------END OF ENTIRE PROGRAM------------*/
 
 //add the last curly bracket.

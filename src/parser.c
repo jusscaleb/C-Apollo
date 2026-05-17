@@ -49,7 +49,24 @@ static void parse_body_statement(Parser* parser, CodegenContext* context) {
 
         consume(parser, TOKEN_INT, "Expected an int literal.");
 
-        (parser->current.type == TOKEN_ADD) ? parse_addition(parser, context, string_token) : gen_println_integer(context, string_token.start, string_token.length);
+        if(parser->current.type == TOKEN_ADD){
+            parse_addition(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_MUL){
+            parse_multiplication(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_SUB){
+            parse_subtraction(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_DIV){
+            parse_division(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_MOD){
+            parse_modulus(parser, context, string_token);
+        }
+        else{
+            gen_println_integer(context, string_token.start, string_token.length);
+        }
 
         break;
     }
@@ -57,7 +74,24 @@ static void parse_body_statement(Parser* parser, CodegenContext* context) {
     case TOKEN_FLOAT:{
         consume(parser, TOKEN_FLOAT, "Expected a float literal.");
 
-        (parser->current.type == TOKEN_ADD) ? parse_addition(parser, context, string_token) : gen_println_float(context, string_token.start, string_token.length);
+        if(parser->current.type == TOKEN_ADD){
+            parse_addition(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_MUL){
+            parse_multiplication(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_SUB){
+            parse_subtraction(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_DIV){
+            parse_division(parser, context, string_token);
+        }
+        else if(parser->current.type == TOKEN_MOD){
+            parse_modulus(parser, context, string_token);
+        }
+        else{
+            gen_println_float(context, string_token.start, string_token.length);
+        }
 
         break;
     }
