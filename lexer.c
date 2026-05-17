@@ -15,11 +15,7 @@ const char* TokenNames[] = {
     "LBRACE", "RBRACE", "SEMICOLON", "ARROW"
 };
 
-//ACTS AS A POINTER THAT KEEPS TRACK OF POSITION IN SOURCE CODE
-typedef struct {
-    const char* current;
-    int line;
-} Lexer;
+
 
 //FOR ERROR HANDLING
 void lex_error(int line, const char* message) {
@@ -29,7 +25,7 @@ void lex_error(int line, const char* message) {
 
 
 /**
-*Checks if the keyword is reserved
+*Checks if the keyword is reserved.
 *If not it is a user-defined keyword
 */
 static TokenType check_keyword(const char* start, int length){

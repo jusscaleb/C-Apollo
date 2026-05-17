@@ -39,5 +39,22 @@ typedef struct{
 */
 extern const char* TokenNames[];
 
+//ACTS AS A POINTER THAT KEEPS TRACK OF POSITION IN SOURCE CODE
+typedef struct {
+    const char* current;
+    int line;
+} Lexer;
+
+//Called by parser.c
+Token next_token(Lexer* lexer);
+
+//Tracks the internal stream state of parser.
+
+typedef struct{
+    Lexer* lexer; //takes lexer details (current character, current line)
+    Token current; //takes details of the current token
+    Token previous; //takes details of the previous token
+}Parser;
+
 #endif
 
