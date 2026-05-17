@@ -13,7 +13,7 @@ static void advance(Parser* parser){
     parser->current = next_token(parser->lexer);
 }
 
-//consume() checks if given token matches expected token.
+//checks if given token matches expected token.
 static void consume(Parser* parser, TokenType type, const char* errorMessage){
     
     if(parser->current.type == type){
@@ -29,6 +29,7 @@ static void consume(Parser* parser, TokenType type, const char* errorMessage){
     
     exit(1);
 }
+
 //check the body statement
 static void parse_body_statement(Parser* parser, CodegenContext* context) {
     consume(parser, TOKEN_IDENTIFIER, "Expected function identifier statement inside block.");
@@ -44,7 +45,6 @@ static void parse_body_statement(Parser* parser, CodegenContext* context) {
     consume(parser, TOKEN_RPARETH, "Expected closing parenthesis ')' for arguments.");
     consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");
 }
-
 
 //parse_block() checks the innard of that function.
 static void parse_block(Parser* parser, CodegenContext* context){
