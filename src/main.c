@@ -7,6 +7,32 @@
 // Link our global parser orchestration entrypoint
 void compile_parse(Lexer* lexer);
 
+static char* read_file(const char* filename){
+    FILE* file = fopen(filename, "rb");
+
+    if(file == NULL){
+        fprintf(stderr, "[DRIVER] Could not open source file: %s\n", filename);
+        exit(1);
+    }
+
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    rewind(file);
+
+    char* source = malloc(file_size + 1);
+    if(source == NULL){
+        fprintf(stderr, "[DRIVER] Could not allocate memory for source file.\n");
+        fclose(file);
+        exit(1);
+    }
+
+    size_t bytes_read = fread(source, 1, file_size, file);
+    source[bytes_read] = '\0';
+
+    fclose(file);
+    return source;
+}
+
 
 //Automatically runs the program after successfully compilation.
 void llvm_compilation(){
@@ -23,22 +49,17 @@ void llvm_compilation(){
     }
 }
 
-int main() {
-    // Target source code block setup matching your syntax structure
-    const char* source = 
-        "fxn run() -> (void){"
-        "   println(\"hello world.\");\n"
-        "}";
+int main(int argc, char** argv) {
+    const char* filename = argc > 1 ? argv[1] : "main.apl";
+    char* source = read_file(filename);
 
     Lexer lexer;
     lexer.current = source;
     lexer.line = 1;
 
-    printf("Initiating Apollo Compilation Pipeline...\n");
-    printf("-------------------------------------------\n");
-
     // Pass the raw lexer configuration over to the syntax parser engine
     compile_parse(&lexer);
+    free(source);
 
     llvm_compilation();
 
