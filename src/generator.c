@@ -174,7 +174,45 @@ void gen_println_float_addition(
     fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%add_%d)\n\n", id, id);
 }
 
+void gen_println_mixed_addition(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length,
+    bool int_is_left
+){
+    int id = context->string_constant_count++;
 
+    if (int_is_left) {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                left_length,
+                left_start);
+
+        fprintf(context->file, "%%add_%d = fadd double %%int_to_double_%d, %.*s\n",
+                id,
+                id,
+                right_length,
+                right_start);
+    } else {
+        fprintf(context->file, "%%int_to_double_%d = sitofp i32 %.*s to double\n",
+                id,
+                right_length,
+                right_start);
+
+        fprintf(context->file, "%%add_%d = fadd double %.*s, %%int_to_double_%d\n",
+                id,
+                left_length,
+                left_start,
+                id);
+    }
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%add_%d)\n\n", id, id);
+}
 /*------------END OF ENTIRE PROGRAM------------*/
 
 //add the last curly bracket.

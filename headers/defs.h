@@ -35,6 +35,15 @@ void gen_println_float_addition(
     int right_length
 );
 
+void gen_println_mixed_addition(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length,
+    bool int_is_left
+);
+
 void gen_println_float(CodegenContext* context, const char* float_start, int length);
 void gen_function_end(CodegenContext* context, bool is_main);
 

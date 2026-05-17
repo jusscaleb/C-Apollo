@@ -14,6 +14,8 @@ fxn run() -> (void){
    println(5.192213);
    println(5 + 5);
    println(5.5 + 2.5);
+   println(2 + 4.5);
+   println(4.5 + 2);
 }
 ```
 
@@ -28,10 +30,11 @@ Supported syntax at this stage:
 - `println(5.5);` decimal output statements
 - `println(5 + 5);` integer addition output statements
 - `println(5.5 + 2.5);` decimal addition output statements
+- `println(2 + 4.5);` mixed integer and decimal addition output statements
 - displayable string literals, including escaped quotes, newlines, tabs, and backslashes
 - unsigned integer literals
 - unsigned decimal literals, emitted as LLVM `double` values for `printf`
-- addition currently supports matching literal types only: integer plus integer, or decimal plus decimal
+- mixed addition converts the integer side to LLVM `double`, then emits a decimal result
 
 ## Project Layout
 
@@ -62,6 +65,7 @@ fxn run() -> (void){
    println(55);
    println(5.192213);
    println(5 + 5);
+   println(2 + 4.5);
 }
 ```
 
@@ -109,4 +113,4 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can now read source files and display string literals, integer literals, decimal literals, and simple same-type additions through `println`. Decimal literals are currently emitted as LLVM `double` values. The next natural steps are expanding expressions, adding mixed-type arithmetic, improving command-line options, and separating global format/string constants from function body generation.
+Apollo is early-stage and intentionally small. It can now read source files and display string literals, integer literals, decimal literals, and simple additions through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal addition converts the integer side to `double`. The next natural steps are expanding expressions, adding more arithmetic operators, improving command-line options, and separating global format/string constants from function body generation.
