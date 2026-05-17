@@ -20,6 +20,8 @@ fxn run() -> (void){
    println(6 * 7);
    println(20 / 5);
    println(10 % 3);
+   println(10.5 % 3.2);
+   println(10 % 3.2);
 }
 ```
 
@@ -39,11 +41,13 @@ Supported syntax at this stage:
 - `println(6 * 7);` multiplication output statements
 - `println(20 / 5);` division output statements
 - `println(10 % 3);` integer modulus output statements
+- `println(10.5 % 3.2);` decimal modulus output statements
+- `println(10 % 3.2);` mixed integer and decimal modulus output statements
 - displayable string literals, including escaped quotes, newlines, tabs, and backslashes
 - unsigned integer literals
 - unsigned decimal literals, emitted as LLVM `double` values for `printf`
 - mixed decimal arithmetic converts the integer side to LLVM `double`, then emits a decimal result
-- modulus currently supports integer literals only
+- decimal modulus is emitted with LLVM `frem`
 
 ## Project Layout
 
@@ -79,6 +83,7 @@ fxn run() -> (void){
    println(6 * 7);
    println(20 / 5);
    println(10 % 3);
+   println(10.5 % 3.2);
 }
 ```
 

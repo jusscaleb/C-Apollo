@@ -237,8 +237,26 @@ static void parse_modulus(Parser* parser, CodegenContext* context, Token left){
         return;
     }
 
+    if(left.type == TOKEN_FLOAT && right.type == TOKEN_FLOAT){
+        arithmetic_consume(parser, TOKEN_FLOAT, "Expected decimal after '%'.");
+        gen_println_float_modulus(context, left.start, left.length, right.start, right.length);
+        return;
+    }
+
+    if(left.type == TOKEN_INT && right.type == TOKEN_FLOAT){
+        arithmetic_consume(parser, TOKEN_FLOAT, "Expected decimal after '%'.");
+        gen_println_mixed_modulus(context, left.start, left.length, right.start, right.length, true);
+        return;
+    }
+
+    if(left.type == TOKEN_FLOAT && right.type == TOKEN_INT){
+        arithmetic_consume(parser, TOKEN_INT, "Expected int after '%'.");
+        gen_println_mixed_modulus(context, left.start, left.length, right.start, right.length, false);
+        return;
+    }
+
     fprintf(stderr,
-            "Apollo Syntax Error [Line %d]: Modulus currently supports integer literals only.\n",
+            "Apollo Syntax Error [Line %d]: Cannot use modulus with these literal types yet.\n",
             parser->current.line);
     exit(1);
 }

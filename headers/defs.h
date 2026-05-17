@@ -127,6 +127,23 @@ void gen_println_integer_modulus(
     int right_length
 );
 
+void gen_println_float_modulus(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length
+);
+
+void gen_println_mixed_modulus(
+    CodegenContext* context,
+    const char* left_start,
+    int left_length,
+    const char* right_start,
+    int right_length,
+    bool int_is_left
+);
+
 
 
 void gen_println_float(CodegenContext* context, const char* float_start, int length);
