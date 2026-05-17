@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "../headers/token.h"
+#include "../headers/arithmetic.h"
 
 
 
@@ -43,24 +44,27 @@ static void parse_body_statement(Parser* parser, CodegenContext* context) {
     consume(parser, TOKEN_STRING, "Expected string literal argument inside function call.");
     // Send the string literal over to the backend while its token data is available.
     gen_println_statement(context, string_token.start, string_token.length);
-
     }
     case TOKEN_INT:{
 
         consume(parser, TOKEN_INT, "Expected an int literal.");
 
-        gen_println_integer(context, string_token.start, string_token.length);
+        (parser->current.type == TOKEN_ADD) ? parse_addition(parser, context, string_token) : gen_println_integer(context, string_token.start, string_token.length);
 
+        break;
     }
 
     case TOKEN_FLOAT:{
         consume(parser, TOKEN_FLOAT, "Expected a float literal.");
 
-        gen_println_float(context, string_token.start, string_token.length);
+        (parser->current.type == TOKEN_ADD) ? parse_addition(parser, context, string_token) : gen_println_float(context, string_token.start, string_token.length);
+
+        break;
     }
    
     default:
        printf("");
+       break;
 }
     consume(parser, TOKEN_RPARETH, "Expected closing parenthesis ')' for arguments.");
     consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");

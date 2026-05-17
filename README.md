@@ -12,6 +12,8 @@ fxn run() -> (void){
    println("How are you today");
    println(55);
    println(5.192213);
+   println(5 + 5);
+   println(5.5 + 2.5);
 }
 ```
 
@@ -24,9 +26,12 @@ Supported syntax at this stage:
 - `println("...");` string output statements
 - `println(123);` integer output statements
 - `println(5.5);` decimal output statements
+- `println(5 + 5);` integer addition output statements
+- `println(5.5 + 2.5);` decimal addition output statements
 - displayable string literals, including escaped quotes, newlines, tabs, and backslashes
 - unsigned integer literals
 - unsigned decimal literals, emitted as LLVM `double` values for `printf`
+- addition currently supports matching literal types only: integer plus integer, or decimal plus decimal
 
 ## Project Layout
 
@@ -34,6 +39,7 @@ Supported syntax at this stage:
 Apollo/
   apl.c              Compiler driver helper
   headers/
+    arithmetic.h     Header-only arithmetic parser helpers
     defs.h           Shared definitions and codegen declarations
     token.h          Token, lexer, and parser structures
   src/
@@ -55,6 +61,7 @@ fxn run() -> (void){
    println("Hello from Apollo");
    println(55);
    println(5.192213);
+   println(5 + 5);
 }
 ```
 
@@ -90,7 +97,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 1. `src/main.c` reads Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
 3. `src/parser.c` validates the expected Apollo grammar.
-4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, and decimal output.
+4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, decimal, and addition output.
 5. Clang compiles `output.ll` into `program.exe`.
 6. The generated program runs and prints its output.
 
@@ -102,4 +109,4 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can now read source files and display string literals, integer literals, and decimal literals through `println`. Decimal literals are currently emitted as LLVM `double` values. The next natural steps are expanding expressions, adding more types, improving command-line options, and separating global format/string constants from function body generation.
+Apollo is early-stage and intentionally small. It can now read source files and display string literals, integer literals, decimal literals, and simple same-type additions through `println`. Decimal literals are currently emitted as LLVM `double` values. The next natural steps are expanding expressions, adding mixed-type arithmetic, improving command-line options, and separating global format/string constants from function body generation.

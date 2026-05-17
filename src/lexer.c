@@ -11,7 +11,8 @@
 const char* TokenNames[] = {
     "EOF", "FXN", "RUN", "VOID", "IDENTIFIER", 
     "STRING", "ARROW", "LPAREN", "RPAREN", 
-    "LBRACE", "RBRACE", "SEMICOLON", "ARROW", "INT", "DOUB","FLOAT"
+    "LBRACE", "RBRACE", "SEMICOLON", "ARROW", "INT",
+     "DOUB","FLOAT", "ADD",
 };
 
 
@@ -101,6 +102,10 @@ Token next_token(Lexer* lexer){
 
                 lex_error(lexer->line, "Syntax Error: expected '>' after '-'.");
             }
+        
+        case '+':
+            Token token = {TOKEN_ADD, start, 1, lexer->line};
+            return token;
 
     }
 
@@ -141,7 +146,7 @@ Token next_token(Lexer* lexer){
 
     //Checking Int
     if(isdigit((unsigned char) c)){
-        set is_float = true;
+        set is_float = false;
 
         while(isdigit((unsigned char)*lexer->current)){
             lexer->current++;
@@ -151,11 +156,13 @@ Token next_token(Lexer* lexer){
             is_float = true;
             lexer->current++;
 
-        }
-
-        if(!isdigit((unsigned char)*lexer->current)){
+            if(!isdigit((unsigned char)*lexer->current)){
             lex_error(lexer->line, "Expected value int after '.' ");
         }
+
+        }
+
+
 
         while(isdigit((unsigned char)*lexer->current)){
             lexer->current++;

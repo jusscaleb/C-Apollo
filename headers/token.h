@@ -9,6 +9,7 @@ Where the tokens used in the compiler are stored.
 
 
 
+
 /*-------------TOKEN TYPES-------------*/
 typedef enum{
     TOKEN_FXN, //fxn
@@ -27,6 +28,7 @@ typedef enum{
     TOKEN_INT,
     TOKEN_DOUB,
     TOKEN_FLOAT,
+    TOKEN_ADD
 }TokenType;
 
 
