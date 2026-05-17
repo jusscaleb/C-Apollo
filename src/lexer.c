@@ -109,12 +109,27 @@ Token next_token(Lexer* lexer){
     //HANDLE STRINGS
     if( c == '"'){
         //Loops until it reaches closing quotes or \0.
-        while(*lexer->current != '"' && *lexer->current != '\0'){
+        while(*lexer->current != '\0'){
             if(*lexer->current == '\n')lexer->line++;
+
+            if(*lexer->current == '"'){
+                break;
+            }
+
+            //Checks for escaped characters.
+            if(*lexer->current == '\\'){
+                lexer->current++;
+
+                //If it reaches \0 that means it's an unterminated string.
+                if(*lexer->current=='\0') lex_error(lexer->line, "Syntax Error: Unterminated String");
+
+                lexer->current++;
+                continue;
+            }
 
             lexer->current++;
         }
-
+        
         //If it reaches \0 that means it's an unterminated string.
         if(*lexer->current=='\0') lex_error(lexer->line, "Syntax Error: Unterminated String");
 
