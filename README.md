@@ -33,7 +33,8 @@ Apollo/
     lexer.c          Source text to tokens
     parser.c         Syntax parser and codegen handoff
     generator.c      LLVM IR generator
-  output/            Local driver/output folder
+  output/
+    main.apl         Default Apollo source file
   run/               Built executable output folder
 ```
 
@@ -58,9 +59,21 @@ Then it runs:
 ..\run\main.exe
 ```
 
+By default, the compiler reads:
+
+```text
+output/main.apl
+```
+
+You can pass another Apollo source file path to the compiler executable:
+
+```powershell
+..\run\main.exe path\to\file.apl
+```
+
 ## Compiler Pipeline
 
-1. `src/main.c` provides a sample Apollo source string.
+1. `src/main.c` reads Apollo source from `main.apl` or a provided file path.
 2. `src/lexer.c` converts source characters into tokens.
 3. `src/parser.c` validates the expected Apollo grammar.
 4. `src/generator.c` writes LLVM IR to `output.ll`.
@@ -75,4 +88,4 @@ Then it runs:
 
 ## Status
 
-Apollo is early-stage and intentionally small. The next natural steps are reading Apollo source from files, expanding statement parsing, adding more types, and separating global string constants from function body generation.
+Apollo is early-stage and intentionally small. The next natural steps are expanding statement parsing, adding more types, improving command-line options, and separating global string constants from function body generation.
