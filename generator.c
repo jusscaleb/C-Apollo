@@ -41,14 +41,17 @@ void gen_println_statement(CodegenContext* context, const char* string_start, in
     int id = context->string_constant_count++;
 
     int internal_len = length - 2; //removing the quotes from the high level syntax. 
+    int llvm_len = internal_len + 2; //include newline and null terminator.
 
-    fprintf(context->file,"   ; Allocate String literal block in memory\n");
+    fprintf(context->file,"; Allocate string literal block in memory\n");
 
-    //Printing without the quotes...
+    // Copy the Apollo string literal into a local LLVM string buffer.
+    fprintf(context->file, "%%str_%d = alloca [%d x i8]\n", id, llvm_len);
+    fprintf(context->file, "store [%d x i8] c\"%.*s\\0A\\00\", [%d x i8]* %%str_%d\n", llvm_len, internal_len, string_start + 1, llvm_len, id);
+    fprintf(context->file, "%%str_ptr_%d = getelementptr inbounds [%d x i8], [%d x i8]* %%str_%d, i32 0, i32 0\n", id, llvm_len, llvm_len, id);
 
-    fprintf(context->file, "@.str_%d = private unnamed_addr constant [%d x i8] c\"%.*s\\0A\\00\"\n", id, internal_len + 2, internal_len, string_start);
     //Call the printf operation
-    fprintf(context->file, "   call i32 (i8*, ....) @printf(i8* getelementptr inbounds ([%d x i8], [%id x i8]* @.str_%d, i32 0, i32 0))\n\n", internal_len + 2, internal_len +2, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%str_ptr_%d)\n\n", id);
 
 
 }
@@ -56,7 +59,7 @@ void gen_println_statement(CodegenContext* context, const char* string_start, in
 
 //close function brackets safely
 void gen_function_end(CodegenContext* context, bool is_main){
-    (is_main) ? fprintf(context->file, "     ret i32 0\n") : fprintf(context->file,  "    ret void\n");
+    (is_main) ? fprintf(context->file, "ret i32 0\n") : fprintf(context->file,  "    ret void\n");
 
     fprintf(context->file, "}\n");
 
