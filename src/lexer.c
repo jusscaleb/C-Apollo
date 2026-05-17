@@ -7,13 +7,11 @@
 #include "../headers/token.h"
 
 
-
-
 //Defining the TokenNames in token.h
 const char* TokenNames[] = {
     "EOF", "FXN", "RUN", "VOID", "IDENTIFIER", 
     "STRING", "ARROW", "LPAREN", "RPAREN", 
-    "LBRACE", "RBRACE", "SEMICOLON", "ARROW", "INT",
+    "LBRACE", "RBRACE", "SEMICOLON", "ARROW", "INT", "DOUB","FLOAT"
 };
 
 
@@ -143,12 +141,30 @@ Token next_token(Lexer* lexer){
 
     //Checking Int
     if(isdigit((unsigned char) c)){
+        set is_float = true;
+
+        while(isdigit((unsigned char)*lexer->current)){
+            lexer->current++;
+        }
+
+        if(*lexer->current == '.'){
+            is_float = true;
+            lexer->current++;
+
+        }
+
+        if(!isdigit((unsigned char)*lexer->current)){
+            lex_error(lexer->line, "Expected value int after '.' ");
+        }
+
         while(isdigit((unsigned char)*lexer->current)){
             lexer->current++;
         }
 
         int length = (int)(lexer->current - start);
-        Token token = {TOKEN_INT, start, length, lexer->line};
+
+        TokenType type = (is_float) ? TOKEN_FLOAT : TOKEN_INT;
+        Token token = {type, start, length, lexer->line};
         return token;
     }
 

@@ -24,7 +24,9 @@ typedef enum{
     TOKEN_RBRACE, //)
     TOKEN_SEMICOLON, //;
     TOKEN_ERROR,
-    TOKEN_INT
+    TOKEN_INT,
+    TOKEN_DOUB,
+    TOKEN_FLOAT,
 }TokenType;
 
 

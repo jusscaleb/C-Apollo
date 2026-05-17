@@ -120,6 +120,14 @@ void gen_println_integer(CodegenContext* context, const char* number_start, int 
     fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%int_fmt_ptr_%d, i32 %.*s)\n\n", id, length, number_start);
 }
 
+void gen_println_float(CodegenContext* context, const char* float_start, int length){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file, "store [4 x i8] c\"%%f\\0A\\00\", [4 x i8]* %%float_fmt_%d\n", id);
+    fprintf(context->file, "%%float_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%float_fmt_%d, i32 0, i32 0\n", id, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %.*s)\n\n", id, length, float_start);
+}
 
 //close function brackets safely
 void gen_function_end(CodegenContext* context, bool is_main){
