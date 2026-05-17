@@ -10,6 +10,7 @@ Apollo currently supports a single entrypoint function:
 fxn run() -> (void){
    println("Hello \"There\" Caleb");
    println("How are you today");
+   println(55);
 }
 ```
 
@@ -20,7 +21,9 @@ Supported syntax at this stage:
 - `-> (void)` return signature
 - block bodies with `{ ... }`
 - `println("...");` string output statements
+- `println(123);` integer output statements
 - displayable string literals, including escaped quotes, newlines, tabs, and backslashes
+- unsigned integer literals
 
 ## Project Layout
 
@@ -47,6 +50,7 @@ Apollo files use the `.apl` extension. A valid Apollo file currently looks like 
 ```apollo
 fxn run() -> (void){
    println("Hello from Apollo");
+   println(55);
 }
 ```
 
@@ -82,7 +86,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 1. `src/main.c` reads Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
 3. `src/parser.c` validates the expected Apollo grammar.
-4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string output.
+4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string and integer output.
 5. Clang compiles `output.ll` into `program.exe`.
 6. The generated program runs and prints its output.
 
@@ -94,4 +98,4 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can now read source files and display string literals through `println`. The next natural steps are expanding statement parsing, adding more types, improving command-line options, and separating global string constants from function body generation.
+Apollo is early-stage and intentionally small. It can now read source files and display string literals and integer literals through `println`. The next natural steps are expanding expressions, adding more types, improving command-line options, and separating global format/string constants from function body generation.
