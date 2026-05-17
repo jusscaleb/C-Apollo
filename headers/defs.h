@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define EXPECTED_EXTENSION ".apl"
 typedef bool set;
 
 

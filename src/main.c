@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../headers/token.h"
 
 // Link our global parser orchestration entrypoint
@@ -51,6 +52,17 @@ void llvm_compilation(){
 
 int main(int argc, char** argv) {
     const char* filename = argc > 1 ? argv[1] : "main.apl";
+    const int length = strlen(filename);
+
+
+    const char* ext = strrchr(filename, '.');
+
+    if(ext == NULL || strcmp(ext, EXPECTED_EXTENSION) != 0){
+        perror("Expected an .apl file...");
+        exit(1);
+    }
+
+
     char* source = read_file(filename);
 
     Lexer lexer;

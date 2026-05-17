@@ -35,47 +35,51 @@ Apollo/
     lexer.c          Source text to tokens
     parser.c         Syntax parser and codegen handoff
     generator.c      LLVM IR generator
-  output/
-    main.apl         Default Apollo source file
+  .vscode/
+    tasks.json       VS Code task for running the active Apollo file
   run/               Built executable output folder
 ```
 
-## Build
+## Run An Apollo File
 
-From the `output` folder, build and run the compiler driver:
+Apollo files use the `.apl` extension. A valid Apollo file currently looks like this:
 
-```powershell
-cd output
-.\apl.exe
+```apollo
+fxn run() -> (void){
+   println("Hello from Apollo");
+}
 ```
 
-The driver compiles the compiler sources with GCC:
-
-```powershell
-gcc ../src/main.c ../src/lexer.c ../src/parser.c ../src/generator.c -o ../run/main.exe
-```
-
-Then it runs:
-
-```powershell
-..\run\main.exe
-```
-
-By default, the compiler reads:
+In VS Code, open any `.apl` file and press:
 
 ```text
-output/main.apl
+Ctrl + Shift + B
 ```
 
-You can pass another Apollo source file path to the compiler executable:
+The configured task builds `apl.c`, moves into the active file's directory, and runs that file through the Apollo compiler.
+
+The task effectively does:
 
 ```powershell
-..\run\main.exe path\to\file.apl
+gcc apl.c -o apl.exe
+cd <active-file-directory>
+apl.exe <active-file-path> <project-root>
 ```
+
+## Manual Build
+
+The driver compiles the compiler sources with GCC and then runs the selected `.apl` file:
+
+```powershell
+gcc src/main.c src/lexer.c src/parser.c src/generator.c -o run/main.exe
+.\run\main.exe .\main.apl
+```
+
+You can replace `.\main.apl` with any `.apl` file path.
 
 ## Compiler Pipeline
 
-1. `src/main.c` reads Apollo source from `main.apl` or a provided file path.
+1. `src/main.c` reads Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
 3. `src/parser.c` validates the expected Apollo grammar.
 4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string output.
