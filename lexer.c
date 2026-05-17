@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <ctype.h>
+#include <ctype.h>
 #include <stdbool.h>
 #include "token.h"
 
@@ -132,4 +132,23 @@ Token next_token(Lexer* lexer){
 
     }
 
+    //Catering for other types of Keywords
+    if(isalpha(*lexer->current) || c == '_'){
+        //Could my_number_2...
+        while(isalnum(*lexer->current) || c == '_'){
+            lexer->current++;
+        }
+
+        //Loop will likely end at \n, \0 or ;.
+        int length = (int)(lexer->current - start);
+
+        //check for the type of token
+        TokenType type = check_keyword(start,length);
+        Token token = {type, start, length, lexer->line};
+
+        return token;
+    }
+
+    lex_error(lexer->line, "Undefined string.");
+    exit(1);
 }
