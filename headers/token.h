@@ -23,7 +23,8 @@ typedef enum{
     TOKEN_LBRACE, //(
     TOKEN_RBRACE, //)
     TOKEN_SEMICOLON, //;
-    TOKEN_ERROR, 
+    TOKEN_ERROR,
+    TOKEN_INT
 }TokenType;
 
 

@@ -37,10 +37,19 @@ static void parse_body_statement(Parser* parser, CodegenContext* context) {
 
     // Keep a copy of the string token before consume() advances past it.
     Token string_token = parser->current;
-    consume(parser, TOKEN_STRING, "Expected string literal argument inside function call.");
 
+    if(parser->current.type == TOKEN_STRING){
+    consume(parser, TOKEN_STRING, "Expected string literal argument inside function call.");
     // Send the string literal over to the backend while its token data is available.
     gen_println_statement(context, string_token.start, string_token.length);
+
+    }
+    else if(parser->current.type == TOKEN_INT){
+        consume(parser, TOKEN_INT, "Expected an int literal.");
+
+        gen_println_integer(context, string_token.start, string_token.length);
+
+    }
 
     consume(parser, TOKEN_RPARETH, "Expected closing parenthesis ')' for arguments.");
     consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");

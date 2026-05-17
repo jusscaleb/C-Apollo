@@ -13,7 +13,7 @@
 const char* TokenNames[] = {
     "EOF", "FXN", "RUN", "VOID", "IDENTIFIER", 
     "STRING", "ARROW", "LPAREN", "RPAREN", 
-    "LBRACE", "RBRACE", "SEMICOLON", "ARROW"
+    "LBRACE", "RBRACE", "SEMICOLON", "ARROW", "INT",
 };
 
 
@@ -139,6 +139,17 @@ Token next_token(Lexer* lexer){
     Token token = {TOKEN_STRING, start, length, lexer->line};
     return token;
 
+    }
+
+    //Checking Int
+    if(isdigit((unsigned char) c)){
+        while(isdigit((unsigned char)*lexer->current)){
+            lexer->current++;
+        }
+
+        int length = (int)(lexer->current - start);
+        Token token = {TOKEN_INT, start, length, lexer->line};
+        return token;
     }
 
     //Catering for other types of Keywords
