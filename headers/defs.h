@@ -9,7 +9,6 @@ typedef bool set;
 
 
 //generator
-
 typedef struct {
     FILE* file;
     int string_constant_count;

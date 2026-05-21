@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "../headers/token.h"
+#include "../headers/variables.h"
 
 
 //intitialize the output file.
@@ -552,6 +553,15 @@ void gen_println_mixed_modulus(
     fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%float_fmt_ptr_%d, double %%mod_%d)\n\n", id, id);
 }
 
+
+/*------------VARIABLES------------*/
+void create_var(CodegenContext *context, const char *number_start, int length){
+    int id = context->string_constant_count++;
+
+    fprintf(context->file, "; Allocate integer variable slot\n");
+    fprintf(context->file, "%%var_%d = alloca i32\n", id);
+    fprintf(context->file, "store i32 %.*s, i32* %%var_%d\n\n", length, number_start, id);
+}
 
 /*------------END OF ENTIRE PROGRAM------------*/
 

@@ -32,7 +32,10 @@ typedef enum{
     TOKEN_MUL,
     TOKEN_SUB,
     TOKEN_DIV,
-    TOKEN_MOD
+    TOKEN_MOD,
+    TOKEN_PRINTLN,
+    TOKEN_VAR,
+    TOKEN_ASSIGN,
 }TokenType;
 
 

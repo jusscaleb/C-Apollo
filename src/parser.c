@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "../headers/token.h"
 #include "../headers/arithmetic.h"
+#include "../headers/variables.h"
 
 
 
@@ -13,6 +14,8 @@ static void advance(Parser* parser){
     parser->previous = parser->current;
     parser->current = next_token(parser->lexer);
 }
+
+
 
 //checks if given token matches expected token.
 static void consume(Parser* parser, TokenType type, const char* errorMessage){
@@ -31,10 +34,9 @@ static void consume(Parser* parser, TokenType type, const char* errorMessage){
     exit(1);
 }
 
-//check the body statement
-static void parse_body_statement(Parser* parser, CodegenContext* context) {
-    consume(parser, TOKEN_IDENTIFIER, "Expected function identifier statement inside block.");
-    consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
+static void println(Parser* parser, CodegenContext* context){
+        advance(parser);
+        consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
 
     // Keep a copy of the string token before consume() advances past it.
     Token string_token = parser->current;
@@ -44,6 +46,7 @@ static void parse_body_statement(Parser* parser, CodegenContext* context) {
     consume(parser, TOKEN_STRING, "Expected string literal argument inside function call.");
     // Send the string literal over to the backend while its token data is available.
     gen_println_statement(context, string_token.start, string_token.length);
+    break;
     }
     case TOKEN_INT:{
 
@@ -102,6 +105,43 @@ static void parse_body_statement(Parser* parser, CodegenContext* context) {
 }
     consume(parser, TOKEN_RPARETH, "Expected closing parenthesis ')' for arguments.");
     consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");
+}
+
+void var(Parser* parser, CodegenContext* context){
+    advance(parser);
+    consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
+    consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
+    
+    
+    Variable variable = {TYPE_INT, parser->current.start, parser->current.length, parser->current.line};
+
+    switch (parser->current.type) {
+        case TOKEN_INT:
+        {
+            consume(parser, TOKEN_INT, "Expected integer literal for variable assignment.");
+            create_var(context, variable.start, variable.length);
+            break;
+            
+        }
+
+        default:{
+            fprintf(stderr, "Apollo Syntax error [Line %d], expected variable value", parser->current.line);
+            exit(1);
+        }
+    
+    }
+
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
+    
+}
+
+//check the body statement
+static void parse_body_statement(Parser* parser, CodegenContext* context) {
+    //consume(parser, TOKEN_IDENTIFIER, "Expected function identifier statement inside block.");
+    if(parser->current.type == TOKEN_PRINTLN)println(parser, context);
+    else if(parser->current.type == TOKEN_VAR)var(parser, context);
+    
+
 }
 
 //parse_block() checks the innard of that function.

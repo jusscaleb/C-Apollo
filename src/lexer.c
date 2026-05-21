@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include "../headers/token.h"
+#include "../headers/variables.h"
 
 
 //Defining the TokenNames in token.h
@@ -13,6 +14,7 @@ const char* TokenNames[] = {
     "STRING", "ARROW", "LPAREN", "RPAREN", 
     "LBRACE", "RBRACE", "SEMICOLON", "ARROW", "INT",
      "DOUB","FLOAT", "ADD", "MUL", "SUB", "DIV", "MOD",
+     "PRINTLN", "VAR"
 };
 
 
@@ -32,6 +34,8 @@ static TokenType check_keyword(const char* start, int length){
     if(length == 3 && strncmp(start, "fxn", 3) == 0) return TOKEN_FXN;
     if(length == 3 && strncmp(start, "run", 3) == 0) return TOKEN_RUN;
     if(length == 4 && strncmp(start, "void", 4) == 0) return TOKEN_VOID;
+    if(length == 7 && strncmp(start, "println", 7) == 0)return TOKEN_PRINTLN;
+    if(length == 3 && strncmp(start, "var", 3) == 0)return TOKEN_VAR;
 
     return TOKEN_IDENTIFIER;
 }
@@ -95,7 +99,6 @@ Token next_token(Lexer* lexer){
             {
                 if(*lexer -> current == '>'){
                     lexer->current++;
-                    
                     Token token = {TOKEN_ARROW, start, 2, lexer->line};
                     return token;
                 }
@@ -123,6 +126,20 @@ Token next_token(Lexer* lexer){
         case '%':
         {
             Token token = {TOKEN_MOD, start, 1, lexer->line};
+            return token;
+        }
+        case '#':
+            {
+                while(*lexer->current != '\0' && *lexer->current != '\n'){
+                    lexer->current++;
+                }
+
+                return next_token(lexer);
+            }
+        
+        case '=':
+        {
+            Token token = {TOKEN_ASSIGN, start, 1, lexer->line};
             return token;
         }
 
@@ -214,3 +231,4 @@ Token next_token(Lexer* lexer){
     lex_error(lexer->line, "Undefined string.");
     exit(1);
 }
+
