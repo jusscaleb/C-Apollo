@@ -1,6 +1,6 @@
 # Apollo Programming Language
 
-Apollo is a small experimental programming language and compiler written in C. The current compiler pipeline lexes and parses a minimal Apollo program, generates LLVM IR, and uses Clang to build a native Windows executable.
+Apollo is a small programming language and compiler written in C. The current compiler pipeline lexes and parses an Apollo program, generates LLVM IR, and uses Clang to build a native Windows executable.
 
 ## Current Language Shape
 
@@ -18,6 +18,8 @@ fxn run() -> (void){
    println(5.5 + 2.5);
    println(2 + 4.5);
    println(4.5 + 2);
+   println(1 + 2 + 3 + 4);
+   println(5 + 2 * 3);
    println(10 - 4);
    println(6 * 7);
    println(20 / 5);
@@ -41,6 +43,8 @@ Supported syntax at this stage:
 - `println(5 + 5);` integer addition output statements
 - `println(5.5 + 2.5);` decimal addition output statements
 - `println(2 + 4.5);` mixed integer and decimal addition output statements
+- chained arithmetic expressions, such as `println(1 + 2 + 3 + 4);`
+- operator precedence for `*`, `/`, and `%` before `+` and `-`
 - `println(10 - 4);` subtraction output statements
 - `println(6 * 7);` multiplication output statements
 - `println(20 / 5);` division output statements
@@ -87,6 +91,8 @@ fxn run() -> (void){
    println(55);
    println(5.192213);
    println(5 + 5);
+   println(1 + 2 + 3 + 4);
+   println(5 + 2 * 3);
    println(2 + 4.5);
    println(10 - 4);
    println(6 * 7);
@@ -140,13 +146,12 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, allocate simple integer variables, and display string literals, integer literals, decimal literals, and simple two-value arithmetic through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal arithmetic converts the integer side to `double`.
+Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, allocate simple integer variables, and display string literals, integer literals, decimal literals, and chained arithmetic expressions through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal arithmetic converts the integer side to `double`.
 
 Current limitations:
 
 - variables can be declared, but not referenced later
 - `println(name);` is not supported yet
-- expressions are limited to one operator and two literal values
-- there is no operator precedence or chained expression parsing yet
+- expression operands are currently literal values
 
-The next natural steps are adding variable lookup, printing variables, expanding expressions, adding operator precedence and chained operations, improving command-line options, and separating global format/string constants from function body generation.
+The next natural steps are adding variable lookup, printing variables, adding parenthesized expressions, improving command-line options, and separating global format/string constants from function body generation.

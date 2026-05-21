@@ -34,6 +34,62 @@ static void consume(Parser* parser, TokenType type, const char* errorMessage){
     exit(1);
 }
 
+/*------------------ARITHMETICS------------------*/
+static ExprResult parse_expression(Parser* parser, CodegenContext* context);
+
+static ExprResult parse_primary(Parser* parser, CodegenContext* context){
+    Token token = parser->current;
+
+    if(token.type == TOKEN_INT){
+        consume(parser, TOKEN_INT, "Expected integer literal.");
+        return make_literal_expr(token);
+    }
+
+    if(token.type == TOKEN_FLOAT){
+        consume(parser, TOKEN_FLOAT, "Expected float literal.");
+        return make_literal_expr(token);
+    }
+
+    fprintf(stderr, "Apollo Syntax Error [Line %d]: Expected expression value.\n", parser->current.line);
+    exit(1);
+}
+
+static ExprResult parse_factor(Parser* parser, CodegenContext* context){
+    ExprResult left = parse_primary(parser, context);
+
+    while(
+        parser->current.type == TOKEN_MUL ||
+        parser->current.type == TOKEN_DIV ||
+        parser->current.type == TOKEN_MOD
+    ){
+        TokenType operator_type = parser->current.type;
+        advance(parser);
+
+        ExprResult right = parse_primary(parser, context);
+        left = gen_binary_expr(context, left, operator_type, right);
+    }
+
+    return left;
+}
+
+static ExprResult parse_expression(Parser* parser, CodegenContext* context){
+    ExprResult left = parse_factor(parser, context);
+
+    while(
+        parser->current.type == TOKEN_ADD ||
+        parser->current.type == TOKEN_SUB
+    ){
+        TokenType operator_type = parser->current.type;
+        advance(parser);
+
+        ExprResult right = parse_factor(parser, context);
+        left = gen_binary_expr(context, left, operator_type, right);
+    }
+
+    return left;
+}
+
+
 static void println(Parser* parser, CodegenContext* context){
         advance(parser);
         consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
@@ -48,56 +104,12 @@ static void println(Parser* parser, CodegenContext* context){
     gen_println_statement(context, string_token.start, string_token.length);
     break;
     }
-    case TOKEN_INT:{
-
-        consume(parser, TOKEN_INT, "Expected an int literal.");
-
-        if(parser->current.type == TOKEN_ADD){
-            parse_addition(parser, context, string_token);
-        }
-        else if(parser->current.type == TOKEN_MUL){
-            parse_multiplication(parser, context, string_token);
-        }
-        else if(parser->current.type == TOKEN_SUB){
-            parse_subtraction(parser, context, string_token);
-        }
-        else if(parser->current.type == TOKEN_DIV){
-            parse_division(parser, context, string_token);
-        }
-        else if(parser->current.type == TOKEN_MOD){
-            parse_modulus(parser, context, string_token);
-        }
-        else{
-            gen_println_integer(context, string_token.start, string_token.length);
-        }
-
-        break;
-    }
-
+    case TOKEN_INT:
     case TOKEN_FLOAT:{
-        consume(parser, TOKEN_FLOAT, "Expected a float literal.");
-
-        if(parser->current.type == TOKEN_ADD){
-            parse_addition(parser, context, string_token);
+            ExprResult result = parse_expression(parser, context);
+            gen_println_expr(context, result);
+            break;
         }
-        else if(parser->current.type == TOKEN_MUL){
-            parse_multiplication(parser, context, string_token);
-        }
-        else if(parser->current.type == TOKEN_SUB){
-            parse_subtraction(parser, context, string_token);
-        }
-        else if(parser->current.type == TOKEN_DIV){
-            parse_division(parser, context, string_token);
-        }
-        else if(parser->current.type == TOKEN_MOD){
-            parse_modulus(parser, context, string_token);
-        }
-        else{
-            gen_println_float(context, string_token.start, string_token.length);
-        }
-
-        break;
-    }
    
     default:
        printf("");
