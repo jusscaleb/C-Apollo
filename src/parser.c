@@ -91,15 +91,16 @@ static ExprResult parse_expression(Parser* parser, CodegenContext* context){
 
 
 static void println(Parser* parser, CodegenContext* context){
-        advance(parser);
-        consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
+    advance(parser);
+    consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
 
     // Keep a copy of the string token before consume() advances past it.
     Token string_token = parser->current;
 
     switch(parser->current.type){
         case TOKEN_STRING:{
-    consume(parser, TOKEN_STRING, "Expected string literal argument inside function call.");
+        consume(parser, TOKEN_STRING, "Expected string literal argument inside function call.");
+
     // Send the string literal over to the backend while its token data is available.
     gen_println_statement(context, string_token.start, string_token.length);
     break;
@@ -150,8 +151,23 @@ void var(Parser* parser, CodegenContext* context){
 //check the body statement
 static void parse_body_statement(Parser* parser, CodegenContext* context) {
     //consume(parser, TOKEN_IDENTIFIER, "Expected function identifier statement inside block.");
-    if(parser->current.type == TOKEN_PRINTLN)println(parser, context);
-    else if(parser->current.type == TOKEN_VAR)var(parser, context);
+    
+    switch(parser->current.type){
+
+    case TOKEN_PRINTLN:
+            println(parser, context);
+            break;
+    
+    case TOKEN_VAR:
+        var(parser, context);
+        break;
+
+    
+    default:
+        fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
+        exit(1);
+    }
+
     
 
 }

@@ -19,10 +19,10 @@ typedef enum{
     TOKEN_IDENTIFIER, //e.g.: println
     TOKEN_ARROW, //->
     TOKEN_STRING, //string datatype
-    TOKEN_LPARETH, //{
-    TOKEN_RPARETH, //}
-    TOKEN_LBRACE, //(
-    TOKEN_RBRACE, //)
+    TOKEN_LPARETH, //(
+    TOKEN_RPARETH, //)
+    TOKEN_LBRACE, //{
+    TOKEN_RBRACE, //}
     TOKEN_SEMICOLON, //;
     TOKEN_ERROR,
     TOKEN_INT,

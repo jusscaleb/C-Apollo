@@ -58,8 +58,7 @@ Token next_token(Lexer* lexer){
         return token;
     }
 
-    //reac the current character and move on;
-
+    //read the current character and move on;
     char c = *lexer->current++;
 
     //using a switch to check single characters

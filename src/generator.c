@@ -139,6 +139,7 @@ void gen_println_float(CodegenContext* context, const char* float_start, int len
 }
 
 /*------------VARIABLES------------*/
+
 // Emits LLVM for an integer variable declaration.
 // Example: var age = 45; becomes an alloca slot plus a store into that slot.
 void create_var(CodegenContext *context, const char *number_start, int length){
