@@ -36,6 +36,7 @@ typedef enum{
     TOKEN_PRINTLN,
     TOKEN_VAR,
     TOKEN_ASSIGN,
+    TOKEN_BOOL,
 }TokenType;
 
 

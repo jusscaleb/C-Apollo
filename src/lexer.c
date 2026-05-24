@@ -37,6 +37,12 @@ static TokenType check_keyword(const char* start, int length){
     if(length == 7 && strncmp(start, "println", 7) == 0)return TOKEN_PRINTLN;
     if(length == 3 && strncmp(start, "var", 3) == 0)return TOKEN_VAR;
 
+
+    //BOOLEANS
+    if(length == 4 && strncmp(start, "true", 4) == 0) return TOKEN_BOOL;
+    if(length == 5 && strncmp(start, "false", 5) == 0) return TOKEN_BOOL;
+
+
     return TOKEN_IDENTIFIER;
 }
 

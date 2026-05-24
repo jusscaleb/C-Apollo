@@ -124,18 +124,39 @@ void var(Parser* parser, CodegenContext* context){
     advance(parser);
     consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
+    Variable variable;
     
-    
-    Variable variable = {TYPE_INT, parser->current.start, parser->current.length, parser->current.line};
 
     switch (parser->current.type) {
         case TOKEN_INT:
         {
+            variable = (Variable){TYPE_INT, parser->current.start, parser->current.length, parser->current.line};
             consume(parser, TOKEN_INT, "Expected integer literal for variable assignment.");
-            create_var(context, variable.start, variable.length);
             break;
             
         }
+
+        case TOKEN_STRING:
+        {
+        variable = (Variable){TYPE_STRING, parser->current.start, parser->current.length, parser->current.line};
+        consume(parser, TOKEN_STRING, "Expected string literal for variable assignment.");
+        break;
+
+        }
+
+        case TOKEN_FLOAT:
+        {
+        variable = (Variable){TYPE_FLOAT, parser->current.start, parser->current.length, parser->current.line};
+        consume(parser, TOKEN_FLOAT, "Expected float literal for variable assignment.");
+        break;
+
+        }
+
+        case TOKEN_BOOL:
+            variable = (Variable) {TYPE_BOOL, parser->current.start, parser->current.length, parser->current.line};
+            consume(parser, TOKEN_BOOL, "Expected a type 'bool'.");
+            break;
+
 
         default:{
             fprintf(stderr, "Apollo Syntax error [Line %d], expected variable value", parser->current.line);
@@ -145,6 +166,8 @@ void var(Parser* parser, CodegenContext* context){
     }
 
     consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
+    create_var(context, variable.start, variable.length, variable.type);
+
     
 }
 

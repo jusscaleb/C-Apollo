@@ -36,7 +36,10 @@ Supported syntax at this stage:
 - `-> (void)` return signature
 - block bodies with `{ ... }`
 - `#` line comments
-- `var name = 45;` integer variable declarations
+- `var age = 45;` integer variable declarations
+- `var name = "Apollo";` string variable declarations
+- `var score = 5.5;` decimal variable declarations
+- `var ready = true;` boolean variable declarations
 - `println("...");` string output statements
 - `println(123);` integer output statements
 - `println(5.5);` decimal output statements
@@ -57,7 +60,7 @@ Supported syntax at this stage:
 - mixed decimal arithmetic converts the integer side to LLVM `double`, then emits a decimal result
 - decimal modulus is emitted with LLVM `frem`
 
-Variable declarations currently allocate and store integer values in the generated LLVM IR. Variable lookup and printing variables, such as `println(age);`, are not implemented yet.
+Variable declarations currently allocate and store literal integer, decimal, boolean, and string values in the generated LLVM IR. Variable lookup and printing variables, such as `println(age);`, are not implemented yet.
 
 ## Project Layout
 
@@ -87,6 +90,7 @@ Apollo files use the `.apl` extension. A valid Apollo file currently looks like 
 fxn run() -> (void){
    # Comments run until the end of the line
    var age = 45;
+   var name = "Apollo";
    println("Hello from Apollo");
    println(55);
    println(5.192213);
@@ -134,7 +138,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 1. `src/main.c` reads Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
 3. `src/parser.c` validates the expected Apollo grammar.
-4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, decimal, arithmetic output, and early integer variable storage.
+4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, decimal, arithmetic output, and early literal variable storage.
 5. Clang compiles `output.ll` into `program.exe`.
 6. The generated program runs and prints its output.
 
@@ -146,7 +150,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, allocate simple integer variables, and display string literals, integer literals, decimal literals, and chained arithmetic expressions through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal arithmetic converts the integer side to `double`.
+Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, allocate simple literal variables, and display string literals, integer literals, decimal literals, and chained arithmetic expressions through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal arithmetic converts the integer side to `double`.
 
 Current limitations:
 

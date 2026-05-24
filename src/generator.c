@@ -140,14 +140,52 @@ void gen_println_float(CodegenContext* context, const char* float_start, int len
 
 /*------------VARIABLES------------*/
 
+static const char* llvm_datatype(datatype type){
+    switch(type){
+        case TYPE_INT:
+            return "i32";
+
+        case TYPE_FLOAT:
+            return "double";
+
+        case TYPE_BOOL:
+            return "i1";
+
+        case TYPE_CHAR:
+            return "i8";
+
+        default:
+            return NULL;
+        
+    }
+}
+
+
+
 // Emits LLVM for an integer variable declaration.
 // Example: var age = 45; becomes an alloca slot plus a store into that slot.
-void create_var(CodegenContext *context, const char *number_start, int length){
+void create_var(CodegenContext *context, const char *number_start, int length, datatype variable_type){
     int id = context->string_constant_count++;
 
     fprintf(context->file, "; Allocate integer variable slot\n");
-    fprintf(context->file, "%%var_%d = alloca i32\n", id);
-    fprintf(context->file, "store i32 %.*s, i32* %%var_%d\n\n", length, number_start, id);
+
+    const char* llvm_type = llvm_datatype(variable_type);
+   if(llvm_type == NULL){
+    char string_type[32];
+    snprintf(string_type, sizeof(string_type), "[%d x i8]", length);
+    fprintf(context->file, "%%var_%d = alloca %s\n", id, string_type);
+    fprintf(context->file, "store %s c\"%.*s\\00\", %s* %%var_%d\n\n", string_type, length - 1, number_start + 1, string_type, id);
+
+
+}else{
+    fprintf(context->file, "%%var_%d = alloca %s\n", id, llvm_type);
+    fprintf(context->file, "store %s %.*s, %s* %%var_%d\n\n", llvm_type,length, number_start, llvm_type, id);
+
+}
+
+
+
+
 }
 
 

@@ -10,7 +10,7 @@ typedef enum{
     TYPE_STRING,
     TYPE_INT,
     TYPE_CHAR,
-    TYPE_DOUB,
+    TYPE_FLOAT,
     TYPE_BOOL,
 }datatype;
 
@@ -24,7 +24,7 @@ typedef struct{
 
 
 
-void create_var(CodegenContext* context, const char* number_start, int length);
+void create_var(CodegenContext* context, const char* number_start, int length, datatype variable_type);
 
 #endif
 
