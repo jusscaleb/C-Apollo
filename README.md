@@ -40,6 +40,7 @@ Supported syntax at this stage:
 - `var name = "Apollo";` string variable declarations
 - `var score = 5.5;` decimal variable declarations
 - `var ready = true;` boolean variable declarations
+- `var total = 5 + 2 * 3;` arithmetic variable declarations
 - `println("...");` string output statements
 - `println(123);` integer output statements
 - `println(5.5);` decimal output statements
@@ -60,7 +61,7 @@ Supported syntax at this stage:
 - mixed decimal arithmetic converts the integer side to LLVM `double`, then emits a decimal result
 - decimal modulus is emitted with LLVM `frem`
 
-Variable declarations currently allocate and store literal integer, decimal, boolean, and string values in the generated LLVM IR. Variable lookup and printing variables, such as `println(age);`, are not implemented yet.
+Variable declarations currently allocate and store literal integer, decimal, boolean, string, and arithmetic expression values in the generated LLVM IR. Variable lookup and printing variables, such as `println(age);`, are not implemented yet.
 
 ## Project Layout
 
@@ -140,7 +141,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 1. `src/main.c` reads Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
 3. `src/parser.c` validates the expected Apollo grammar and builds AST nodes for `println` expressions.
-4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, decimal, arithmetic output, and early literal variable storage.
+4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, decimal, arithmetic output, and early variable storage.
 5. Clang compiles `output.ll` into `program.exe`.
 6. The generated program runs and prints its output.
 
@@ -152,7 +153,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, allocate simple literal variables, and display string literals, integer literals, decimal literals, and chained arithmetic expressions through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal arithmetic converts the integer side to `double`.
+Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, allocate simple literal and arithmetic expression variables, and display string literals, integer literals, decimal literals, and chained arithmetic expressions through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal arithmetic converts the integer side to `double`.
 
 Current limitations:
 

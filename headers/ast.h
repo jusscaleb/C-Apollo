@@ -91,5 +91,7 @@ void block_add_statement(ASTNode* block, ASTNode* statement);
 void gen_println_from_ast(CodegenContext* context, ASTNode* println_node);
 ExprResult gen_expr_from_ast(CodegenContext* context, ASTNode* expr);
 
+void gen_var_decl_from_ast(CodegenContext* context, ASTNode* var_node);
+
 
 #endif

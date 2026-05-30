@@ -7,6 +7,9 @@
 #include "../headers/arithmetic.h"
 #include "../headers/ast.h"
 
+static void gen_println_bool(CodegenContext* context, Token token);
+static void create_var_from_expr_result(CodegenContext* context, ExprResult result);
+
 
 // Opens the LLVM output file and resets the counters used for generated names.
 void codegen_init(CodegenContext* context, const char* output_filename){
@@ -214,6 +217,8 @@ static const char* llvm_datatype(datatype type){
 
 
 
+/*----------------------------VARIABLES----------------------------------*/
+
 // Emits LLVM for a literal variable declaration.
 // Example: var age = 45; becomes an alloca slot plus a store into that slot.
 void create_var(CodegenContext *context, const char *number_start, int length, datatype variable_type){
@@ -235,9 +240,51 @@ void create_var(CodegenContext *context, const char *number_start, int length, d
 
 }
 
+}
 
+static void create_var_from_expr_result(CodegenContext* context, ExprResult result){
+    int id = context->string_constant_count++;
 
+    if(result.type == EXPR_FLOAT){
+        fprintf(context->file, "; Allocate decimal expression variable slot\n");
+        fprintf(context->file, "%%var_%d = alloca double\n", id);
+        fprintf(context->file, "store double %s, double* %%var_%d\n\n", result.value, id);
+        return;
+    }
 
+    fprintf(context->file, "; Allocate integer expression variable slot\n");
+    fprintf(context->file, "%%var_%d = alloca i32\n", id);
+    fprintf(context->file, "store i32 %s, i32* %%var_%d\n\n", result.value, id);
+}
+
+void gen_var_decl_from_ast(CodegenContext* context, ASTNode* var_node){
+    if(var_node->Type != AST_VAR_DECL){
+        fprintf(stderr, "Expected variable declaration AST node.\n");
+        exit(1);
+    }
+
+    ASTNode* value = var_node->var_decl.value;
+
+    if(value->Type == AST_LITERAL_EXPR){
+        Token token = value->literal_expr.token;
+
+        create_var(
+            context,
+            token.start,
+            token.length,
+            var_node->var_decl.value_type
+        );
+        return;
+    }
+
+    if(value->Type == AST_BINARY_EXPR){
+        ExprResult result = gen_expr_from_ast(context, value);
+        create_var_from_expr_result(context, result);
+        return;
+    }
+
+    fprintf(stderr, "Expected literal or arithmetic expression in variable declaration.\n");
+    exit(1);
 }
 
 
@@ -379,6 +426,8 @@ void gen_println_expr(CodegenContext* context, ExprResult result){
     fprintf(context->file, "%%int_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* %%int_fmt_%d, i32 0, i32 0\n", id, id);
     fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%int_fmt_ptr_%d, i32 %s)\n\n", id, result.value);
 }
+
+
 /*------------END OF ENTIRE PROGRAM------------*/
 
 // Emits the return instruction, closes the current LLVM function, and closes the file.

@@ -41,3 +41,15 @@ ASTNode* create_binary_node(ASTNode* left, TokenType operator_type, ASTNode* rig
     return node;
 }
 
+ASTNode* create_var_decl_node(const char* name, int name_length, datatype value_type, ASTNode* value){
+    ASTNode* node = allocate_node(AST_VAR_DECL);
+
+    node->var_decl.name = name;
+    node->var_decl.name_length = name_length;
+    node->var_decl.value_type = value_type;
+    node->var_decl.value = value;
+
+    return node;
+}
+
+

@@ -90,6 +90,22 @@ static ASTNode* parse_expression(Parser* parser){
     return left;
 }
 
+static datatype infer_expr_type(ASTNode* expr){
+    if(expr->Type == AST_LITERAL_EXPR){
+        return expr->literal_expr.token.type == TOKEN_FLOAT ? TYPE_FLOAT : TYPE_INT;
+    }
+
+    if(expr->Type == AST_BINARY_EXPR){
+        datatype left_type = infer_expr_type(expr->binary_expr.left);
+        datatype right_type = infer_expr_type(expr->binary_expr.right);
+
+        return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT : TYPE_INT;
+    }
+
+    fprintf(stderr, "Apollo Syntax Error: Could not infer expression type.\n");
+    exit(1);
+}
+
 
 static void println(Parser* parser, CodegenContext* context){
     advance(parser);
@@ -123,42 +139,47 @@ static void println(Parser* parser, CodegenContext* context){
     consume(parser, TOKEN_RPARETH, "Expected closing parenthesis ')' for arguments.");
     consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");
 }
+
 void var(Parser* parser, CodegenContext* context){
     advance(parser);
+
+    Token name_token = parser->current;
+
     consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
+
     Variable variable;
+    ASTNode* value;
     
 
     switch (parser->current.type) {
         case TOKEN_INT:
+        case TOKEN_FLOAT:
         {
-            variable = (Variable){TYPE_INT, parser->current.start, parser->current.length, parser->current.line};
-            consume(parser, TOKEN_INT, "Expected integer literal for variable assignment.");
+            value = parse_expression(parser);
+            variable = (Variable){infer_expr_type(value), NULL, 0, parser->current.line};
             break;
             
         }
 
         case TOKEN_STRING:
         {
-        variable = (Variable){TYPE_STRING, parser->current.start, parser->current.length, parser->current.line};
-        consume(parser, TOKEN_STRING, "Expected string literal for variable assignment.");
-        break;
-
-        }
-
-        case TOKEN_FLOAT:
-        {
-        variable = (Variable){TYPE_FLOAT, parser->current.start, parser->current.length, parser->current.line};
-        consume(parser, TOKEN_FLOAT, "Expected float literal for variable assignment.");
-        break;
+            Token value_token = parser->current; 
+            variable = (Variable){TYPE_STRING, parser->current.start, parser->current.length, parser->current.line};
+            consume(parser, TOKEN_STRING, "Expected string literal for variable assignment.");
+            value = create_literal_node(value_token);
+            break;
 
         }
 
         case TOKEN_BOOL:
+        {
+            Token value_token = parser->current;
             variable = (Variable) {TYPE_BOOL, parser->current.start, parser->current.length, parser->current.line};
             consume(parser, TOKEN_BOOL, "Expected boolean literal for variable assignment.");
+            value = create_literal_node(value_token);
             break;
+        }
 
 
         default:{
@@ -169,9 +190,10 @@ void var(Parser* parser, CodegenContext* context){
     }
 
     consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
-    create_var(context, variable.start, variable.length, variable.type);
 
+    ASTNode* var_node = create_var_decl_node(name_token.start, name_token.length, variable.type, value);
     
+    gen_var_decl_from_ast(context, var_node);
 }
 
 //check the body statement
