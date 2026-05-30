@@ -27,5 +27,3 @@ typedef struct{
 void create_var(CodegenContext* context, const char* number_start, int length, datatype variable_type);
 
 #endif
-
-//static void store_var();

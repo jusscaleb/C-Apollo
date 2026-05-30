@@ -69,13 +69,15 @@ Apollo/
   apl.c              Compiler driver helper
   headers/
     arithmetic.h     Header-only arithmetic parser helpers
+    ast.h            AST node structures and AST/codegen bridge declarations
     defs.h           Shared definitions and codegen declarations
     token.h          Token, lexer, and parser structures
     variables.h      Early variable metadata and variable codegen declarations
   src/
+    ast.c            AST node construction helpers
     main.c           Compiler coordinator
     lexer.c          Source text to tokens
-    parser.c         Syntax parser and codegen handoff
+    parser.c         Syntax parser and AST handoff
     generator.c      LLVM IR generator
   .vscode/
     tasks.json       VS Code task for running the active Apollo file
@@ -127,7 +129,7 @@ apl.exe <active-file-path> <project-root>
 The driver compiles the compiler sources with GCC and then runs the selected `.apl` file:
 
 ```powershell
-gcc src/main.c src/lexer.c src/parser.c src/generator.c -o run/main.exe
+gcc src/main.c src/lexer.c src/parser.c src/generator.c src/ast.c -o run/main.exe
 .\run\main.exe .\main.apl
 ```
 
@@ -137,7 +139,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 1. `src/main.c` reads Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
-3. `src/parser.c` validates the expected Apollo grammar.
+3. `src/parser.c` validates the expected Apollo grammar and builds AST nodes for `println` expressions.
 4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, decimal, arithmetic output, and early literal variable storage.
 5. Clang compiles `output.ll` into `program.exe`.
 6. The generated program runs and prints its output.

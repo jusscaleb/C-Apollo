@@ -5,6 +5,7 @@
 #include "../headers/token.h"
 #include "../headers/variables.h"
 #include "../headers/arithmetic.h"
+#include "../headers/ast.h"
 
 
 // Opens the LLVM output file and resets the counters used for generated names.
@@ -117,6 +118,57 @@ void gen_println_statement(CodegenContext* context, const char* string_start, in
 
 }
 
+static void gen_println_bool(CodegenContext* context, Token token){
+    int id = context->string_constant_count++;
+    int llvm_len = token.length + 2;
+
+    fprintf(context->file, "; Allocate bool literal block in memory\n");
+    fprintf(context->file, "%%bool_%d = alloca [%d x i8]\n", id, llvm_len);
+    fprintf(context->file, "store [%d x i8] c\"%.*s\\0A\\00\", [%d x i8]* %%bool_%d\n", llvm_len, token.length, token.start, llvm_len, id);
+    fprintf(context->file, "%%bool_ptr_%d = getelementptr inbounds [%d x i8], [%d x i8]* %%bool_%d, i32 0, i32 0\n", id, llvm_len, llvm_len, id);
+    fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%bool_ptr_%d)\n\n", id);
+}
+
+void gen_println_from_ast(CodegenContext* context, ASTNode* println_node){
+    ASTNode* value = println_node->println.value;
+
+    if(value->Type == AST_LITERAL_EXPR){
+        Token token = value->literal_expr.token;
+
+        switch(token.type){
+            case TOKEN_STRING:
+                gen_println_statement(context, token.start, token.length);
+                break;
+
+            case TOKEN_INT:
+                gen_println_integer(context, token.start, token.length);
+                break;
+
+            case TOKEN_FLOAT:
+                gen_println_float(context, token.start, token.length);
+                break;
+
+            case TOKEN_BOOL:
+                gen_println_bool(context, token);
+                break;
+
+            default:
+                fprintf(stderr, "Unsupported literal in println AST.\n");
+                exit(1);
+        }
+
+        return;
+    }
+
+    if(value->Type == AST_BINARY_EXPR){
+        ExprResult result = gen_expr_from_ast(context, value);
+        gen_println_expr(context, result);
+        return;
+    }
+
+    fprintf(stderr, "Unsupported value in println AST.\n");
+    exit(1);
+}
 // Emits LLVM that prints a single integer literal.
 void gen_println_integer(CodegenContext* context, const char* number_start, int length){
     int id = context->string_constant_count++;
@@ -162,7 +214,7 @@ static const char* llvm_datatype(datatype type){
 
 
 
-// Emits LLVM for an integer variable declaration.
+// Emits LLVM for a literal variable declaration.
 // Example: var age = 45; becomes an alloca slot plus a store into that slot.
 void create_var(CodegenContext *context, const char *number_start, int length, datatype variable_type){
     int id = context->string_constant_count++;
@@ -192,6 +244,31 @@ void create_var(CodegenContext *context, const char *number_start, int length, d
 /*------------ARITHMETICS------------*/
 // Converts a lexer token into an expression result.
 // The value is kept as text so it can be written directly into LLVM later.
+
+
+ExprResult gen_expr_from_ast(CodegenContext* context, ASTNode* expr){
+    switch(expr->Type){
+        case AST_LITERAL_EXPR:
+            return make_literal_expr(expr->literal_expr.token);
+
+        case AST_BINARY_EXPR:{
+            ExprResult left = gen_expr_from_ast(context, expr->binary_expr.left);
+            ExprResult right = gen_expr_from_ast(context, expr->binary_expr.right);
+
+            return gen_binary_expr(
+                context,
+                left,
+                expr->binary_expr.operator_type,
+                right
+            );
+        }
+
+        default:
+            fprintf(stderr, "Unsupported expression AST node.\n");
+            exit(1);
+    }
+}
+
 ExprResult make_literal_expr(Token token){
     ExprResult result;
 

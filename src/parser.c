@@ -5,6 +5,7 @@
 #include "../headers/token.h"
 #include "../headers/arithmetic.h"
 #include "../headers/variables.h"
+#include "../headers/ast.h"
 
 
 
@@ -35,27 +36,27 @@ static void consume(Parser* parser, TokenType type, const char* errorMessage){
 }
 
 /*------------------ARITHMETICS------------------*/
-static ExprResult parse_expression(Parser* parser, CodegenContext* context);
 
-static ExprResult parse_primary(Parser* parser, CodegenContext* context){
+
+static ASTNode* parse_primary(Parser* parser){
     Token token = parser->current;
 
     if(token.type == TOKEN_INT){
         consume(parser, TOKEN_INT, "Expected integer literal.");
-        return make_literal_expr(token);
+        return create_literal_node(token);
     }
 
     if(token.type == TOKEN_FLOAT){
         consume(parser, TOKEN_FLOAT, "Expected float literal.");
-        return make_literal_expr(token);
+        return create_literal_node(token);
     }
 
     fprintf(stderr, "Apollo Syntax Error [Line %d]: Expected expression value.\n", parser->current.line);
     exit(1);
 }
 
-static ExprResult parse_factor(Parser* parser, CodegenContext* context){
-    ExprResult left = parse_primary(parser, context);
+static ASTNode* parse_factor(Parser* parser){
+    ASTNode* left = parse_primary(parser);
 
     while(
         parser->current.type == TOKEN_MUL ||
@@ -65,15 +66,15 @@ static ExprResult parse_factor(Parser* parser, CodegenContext* context){
         TokenType operator_type = parser->current.type;
         advance(parser);
 
-        ExprResult right = parse_primary(parser, context);
-        left = gen_binary_expr(context, left, operator_type, right);
+        ASTNode* right = parse_primary(parser);
+        left = create_binary_node(left, operator_type, right);
     }
 
     return left;
 }
 
-static ExprResult parse_expression(Parser* parser, CodegenContext* context){
-    ExprResult left = parse_factor(parser, context);
+static ASTNode* parse_expression(Parser* parser){
+    ASTNode* left = parse_factor(parser);
 
     while(
         parser->current.type == TOKEN_ADD ||
@@ -82,8 +83,8 @@ static ExprResult parse_expression(Parser* parser, CodegenContext* context){
         TokenType operator_type = parser->current.type;
         advance(parser);
 
-        ExprResult right = parse_factor(parser, context);
-        left = gen_binary_expr(context, left, operator_type, right);
+        ASTNode* right = parse_factor(parser);
+        left = create_binary_node(left, operator_type, right);
     }
 
     return left;
@@ -94,32 +95,34 @@ static void println(Parser* parser, CodegenContext* context){
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
 
-    // Keep a copy of the string token before consume() advances past it.
-    Token string_token = parser->current;
-
     switch(parser->current.type){
-        case TOKEN_STRING:{
-        consume(parser, TOKEN_STRING, "Expected string literal argument inside function call.");
+        case TOKEN_STRING:
+        case TOKEN_BOOL:{
+            Token literal_token = parser->current;
+            advance(parser);
 
-    // Send the string literal over to the backend while its token data is available.
-    gen_println_statement(context, string_token.start, string_token.length);
-    break;
-    }
-    case TOKEN_INT:
-    case TOKEN_FLOAT:{
-            ExprResult result = parse_expression(parser, context);
-            gen_println_expr(context, result);
+            ASTNode* literal = create_literal_node(literal_token);
+            ASTNode* println_node = create_println_node(literal);
+            gen_println_from_ast(context, println_node);
             break;
         }
-   
-    default:
-       printf("");
-       break;
-}
+
+        case TOKEN_INT:
+        case TOKEN_FLOAT:{
+            ASTNode* expr = parse_expression(parser);
+            ASTNode* println_node = create_println_node(expr);
+            gen_println_from_ast(context, println_node);
+            break;
+        }
+
+        default:
+            fprintf(stderr, "Apollo Syntax Error [Line %d]: Expected println argument.\n", parser->current.line);
+            exit(1);
+    }
+
     consume(parser, TOKEN_RPARETH, "Expected closing parenthesis ')' for arguments.");
     consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");
 }
-
 void var(Parser* parser, CodegenContext* context){
     advance(parser);
     consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
@@ -154,7 +157,7 @@ void var(Parser* parser, CodegenContext* context){
 
         case TOKEN_BOOL:
             variable = (Variable) {TYPE_BOOL, parser->current.start, parser->current.length, parser->current.line};
-            consume(parser, TOKEN_BOOL, "Expected a type 'bool'.");
+            consume(parser, TOKEN_BOOL, "Expected boolean literal for variable assignment.");
             break;
 
 
@@ -173,8 +176,6 @@ void var(Parser* parser, CodegenContext* context){
 
 //check the body statement
 static void parse_body_statement(Parser* parser, CodegenContext* context) {
-    //consume(parser, TOKEN_IDENTIFIER, "Expected function identifier statement inside block.");
-    
     switch(parser->current.type){
 
     case TOKEN_PRINTLN:
