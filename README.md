@@ -1,23 +1,23 @@
 # Apollo Programming Language
 
-Apollo is a small programming language and compiler written in C. The current compiler pipeline lexes and parses an Apollo program, generates LLVM IR, and uses Clang to build a native Windows executable.
+Apollo is a small programming language and compiler written in C. The compiler pipeline lexes and parses an Apollo program, generates LLVM IR, and uses Clang to build a native Windows executable.
 
 ## Current Language Shape
-
-Apollo currently supports a single entrypoint function:
 
 ```apollo
 fxn run() -> (void){
    # This is a line comment
    var age = 45;
-   println("Hello \"There\" Caleb");
-   println("How are you today");
+   var score = 5.5;
+   var name = "Apollo";
+   var ready = true;
+   var total = 5 + 2 * 3;
+   println("Hello from Apollo");
    println(55);
    println(5.192213);
    println(5 + 5);
    println(5.5 + 2.5);
    println(2 + 4.5);
-   println(4.5 + 2);
    println(1 + 2 + 3 + 4);
    println(5 + 2 * 3);
    println(10 - 4);
@@ -25,7 +25,8 @@ fxn run() -> (void){
    println(20 / 5);
    println(10 % 3);
    println(10.5 % 3.2);
-   println(10 % 3.2);
+   println(age);
+   println(name);
 }
 ```
 
@@ -41,27 +42,20 @@ Supported syntax at this stage:
 - `var score = 5.5;` decimal variable declarations
 - `var ready = true;` boolean variable declarations
 - `var total = 5 + 2 * 3;` arithmetic variable declarations
-- `println("...");` string output statements
-- `println(123);` integer output statements
-- `println(5.5);` decimal output statements
-- `println(5 + 5);` integer addition output statements
-- `println(5.5 + 2.5);` decimal addition output statements
-- `println(2 + 4.5);` mixed integer and decimal addition output statements
+- `println("...");` string literal output
+- `println(123);` integer literal output
+- `println(5.5);` decimal literal output
+- `println(5 + 5);` arithmetic expression output
+- `println(age);` integer variable output
+- `println(name);` string variable output
 - chained arithmetic expressions, such as `println(1 + 2 + 3 + 4);`
 - operator precedence for `*`, `/`, and `%` before `+` and `-`
-- `println(10 - 4);` subtraction output statements
-- `println(6 * 7);` multiplication output statements
-- `println(20 / 5);` division output statements
-- `println(10 % 3);` integer modulus output statements
-- `println(10.5 % 3.2);` decimal modulus output statements
-- `println(10 % 3.2);` mixed integer and decimal modulus output statements
+- subtraction, multiplication, division, modulus
 - displayable string literals, including escaped quotes, newlines, tabs, and backslashes
 - unsigned integer literals
-- unsigned decimal literals, emitted as LLVM `double` values for `printf`
-- mixed decimal arithmetic converts the integer side to LLVM `double`, then emits a decimal result
-- decimal modulus is emitted with LLVM `frem`
-
-Variable declarations currently allocate and store literal integer, decimal, boolean, string, and arithmetic expression values in the generated LLVM IR. Variable lookup and printing variables, such as `println(age);`, are not implemented yet.
+- unsigned decimal literals, emitted as LLVM `double` values
+- mixed decimal arithmetic converts the integer side to LLVM `double`
+- decimal modulus emitted with LLVM `frem`
 
 ## Project Layout
 
@@ -69,16 +63,16 @@ Variable declarations currently allocate and store literal integer, decimal, boo
 Apollo/
   apl.c              Compiler driver helper
   headers/
-    arithmetic.h     Header-only arithmetic parser helpers
-    ast.h            AST node structures and AST/codegen bridge declarations
-    defs.h           Shared definitions and codegen declarations
-    token.h          Token, lexer, and parser structures
-    variables.h      Early variable metadata and variable codegen declarations
+    arithmetic.h     Arithmetic expression helpers and declarations
+    ast.h            AST node structures and codegen bridge declarations
+    defs.h           CodegenContext struct and shared codegen declarations
+    token.h          Token, Lexer, and Parser structures
+    variables.h      Symbol table, variable metadata, and codegen declarations
   src/
     ast.c            AST node construction helpers
     main.c           Compiler coordinator
     lexer.c          Source text to tokens
-    parser.c         Syntax parser and AST handoff
+    parser.c         Syntax parser, AST builder, and symbol registration
     generator.c      LLVM IR generator
   .vscode/
     tasks.json       VS Code task for running the active Apollo file
@@ -87,35 +81,13 @@ Apollo/
 
 ## Run An Apollo File
 
-Apollo files use the `.apl` extension. A valid Apollo file currently looks like this:
-
-```apollo
-fxn run() -> (void){
-   # Comments run until the end of the line
-   var age = 45;
-   var name = "Apollo";
-   println("Hello from Apollo");
-   println(55);
-   println(5.192213);
-   println(5 + 5);
-   println(1 + 2 + 3 + 4);
-   println(5 + 2 * 3);
-   println(2 + 4.5);
-   println(10 - 4);
-   println(6 * 7);
-   println(20 / 5);
-   println(10 % 3);
-   println(10.5 % 3.2);
-}
-```
-
-In VS Code, open any `.apl` file and press:
+Apollo files use the `.apl` extension. In VS Code, open any `.apl` file and press:
 
 ```text
 Ctrl + Shift + B
 ```
 
-The configured task builds `apl.c`, moves into the active file's directory, and runs that file through the Apollo compiler.
+The configured task builds `apl.c`, moves into the active file's directory, and runs it through the Apollo compiler.
 
 The task effectively does:
 
@@ -127,8 +99,6 @@ apl.exe <active-file-path> <project-root>
 
 ## Manual Build
 
-The driver compiles the compiler sources with GCC and then runs the selected `.apl` file:
-
 ```powershell
 gcc src/main.c src/lexer.c src/parser.c src/generator.c src/ast.c -o run/main.exe
 .\run\main.exe .\main.apl
@@ -138,10 +108,10 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Compiler Pipeline
 
-1. `src/main.c` reads Apollo source from the provided `.apl` file path.
+1. `src/main.c` reads the Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
-3. `src/parser.c` validates the expected Apollo grammar and builds AST nodes for `println` expressions.
-4. `src/generator.c` writes LLVM IR to `output.ll`, including LLVM-safe string, integer, decimal, arithmetic output, and early variable storage.
+3. `src/parser.c` validates the Apollo grammar, builds AST nodes, and registers declared variables into the `CodegenContext` symbol table.
+4. `src/generator.c` writes LLVM IR to `output.ll`, covering string/integer/decimal/boolean/arithmetic output, variable allocation, and variable printing.
 5. Clang compiles `output.ll` into `program.exe`.
 6. The generated program runs and prints its output.
 
@@ -153,12 +123,13 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, allocate simple literal and arithmetic expression variables, and display string literals, integer literals, decimal literals, and chained arithmetic expressions through `println`. Decimal literals are currently emitted as LLVM `double` values, and mixed integer/decimal arithmetic converts the integer side to `double`.
+Apollo is early-stage and intentionally small. It can now read source files, skip `#` line comments, declare and store variables of all supported types, and print both literal values and declared variables through `println`.
 
 Current limitations:
 
-- variables can be declared, but not referenced later
-- `println(name);` is not supported yet
-- expression operands are currently literal values
+- expression operands are currently literal values only (no variable references in expressions)
+- only one entrypoint function `run` is supported
+- no control flow (if, loops) yet
+- boolean variables can be declared but not printed via `println(name)` yet
 
-The next natural steps are adding variable lookup, printing variables, adding parenthesized expressions, improving command-line options, and separating global format/string constants from function body generation.
+The next natural steps are adding variable references inside expressions, control flow, multiple functions, and improving command-line options.

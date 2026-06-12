@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include "../headers/token.h"
-#include "../headers/variables.h"
 
 
 //Defining the TokenNames in token.h
@@ -217,7 +216,7 @@ Token next_token(Lexer* lexer){
     }
 
     //Catering for other types of Keywords
-    if(isalpha(*lexer->current) || c == '_'){
+    if(isalpha(c) || c == '_'){
         //Could my_number_2...
         while(isalnum(*lexer->current) || c == '_'){
             lexer->current++;
