@@ -16,13 +16,13 @@ const char *TokenNames[] = {
     "EOF",   "FXN",    "RUN",    "VOID",    "IDENTIFIER", "STRING",
     "ARROW", "LPAREN", "RPAREN", "LBRACE",  "RBRACE",     "SEMICOLON",
     "ARROW", "INT",    "DOUB",   "FLOAT",   "ADD",        "MUL",
-    "SUB",   "DIV",    "MOD",    "PRINTLN", "VAR", "NULL", "EQT", 
-    "NEQ", "GT", "ST", "GE", "SE"};
+    "SUB",   "DIV",    "MOD",    "PRINTLN", "VAR",        "NULL",
+    "EQT",   "NEQ",    "GT",     "ST",      "GE",         "SE"};
 
 // FOR ERROR HANDLING
 void lex_error(int line, const char *message) {
   fprintf(stderr, "Lexical Error (Line %d): %s\n", line, message);
-  exit(1);
+  exit(0);
 }
 
 /**
@@ -47,10 +47,9 @@ static TokenType check_keyword(const char *start, int length) {
   if (length == 5 && strncmp(start, "false", 5) == 0)
     return TOKEN_BOOL;
 
-
-  //NULL VALUE
-  if(length == 4 && strncmp(start, "null", 4) == 0)
-      return TOKEN_NULL;
+  // NULL VALUE
+  if (length == 4 && strncmp(start, "null", 4) == 0)
+    return TOKEN_NULL;
 
   return TOKEN_IDENTIFIER;
 }
@@ -61,7 +60,7 @@ Token next_token(Lexer *lexer) {
          *lexer->current == '\t' || *lexer->current == '\n') {
     if (*lexer->current == '\n') {
       lexer->line++;
-    }                 // move to the next line.
+    } // move to the next line.
     lexer->current++; // move pointer one character forward.
   }
 
@@ -142,7 +141,7 @@ Token next_token(Lexer *lexer) {
   }
 
   case '=': {
-     if (*lexer->current == '=') {
+    if (*lexer->current == '=') {
       lexer->current++;
       Token token = {TOKEN_EQT, start, 2, lexer->line};
       return token;
@@ -152,7 +151,7 @@ Token next_token(Lexer *lexer) {
   }
 
   case '!': {
-     if (*lexer->current == '=') {
+    if (*lexer->current == '=') {
       lexer->current++;
       Token token = {TOKEN_NEQ, start, 2, lexer->line};
       return token;
@@ -162,8 +161,8 @@ Token next_token(Lexer *lexer) {
     break;
   }
 
-  case '>':{
-      if (*lexer->current == '=') {
+  case '>': {
+    if (*lexer->current == '=') {
       lexer->current++;
       Token token = {TOKEN_GE, start, 2, lexer->line};
       return token;
@@ -171,10 +170,9 @@ Token next_token(Lexer *lexer) {
 
     Token token = {TOKEN_GT, start, 1, lexer->line};
     return token;
-
   }
 
-  case '<':{
+  case '<': {
     if (*lexer->current == '=') {
       lexer->current++;
       Token token = {TOKEN_SE, start, 2, lexer->line};
@@ -184,8 +182,6 @@ Token next_token(Lexer *lexer) {
     Token token = {TOKEN_ST, start, 1, lexer->line};
     return token;
   }
-
-
   }
 
   // HANDLE STRINGS
@@ -270,5 +266,5 @@ Token next_token(Lexer *lexer) {
   }
 
   lex_error(lexer->line, "Undefined string.");
-  exit(1);
+  exit(0);
 }

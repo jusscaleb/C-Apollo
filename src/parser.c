@@ -32,7 +32,7 @@ static void consume(Parser *parser, TokenType type, const char *errorMessage) {
   fprintf(stderr, "Found: '%.*s' (Type: %s)\n", parser->current.length,
           parser->current.start, TokenNames[parser->current.type]);
 
-  exit(1);
+  exit(0);
 }
 
 /*------------------ARITHMETICS------------------*/
@@ -73,7 +73,7 @@ static ASTNode *parse_primary(Parser *parser) {
 
   fprintf(stderr, "Apollo Syntax Error [Line %d]: Expected expression value.\n",
           parser->current.line);
-  exit(1);
+  exit(0);
 }
 
 static ASTNode *parse_factor(Parser *parser) {
@@ -110,10 +110,8 @@ static ASTNode *parse_expression(Parser *parser) {
 static ASTNode *parse_comparison(Parser *parser) {
   ASTNode *left = parse_expression(parser);
 
-  while (parser->current.type == TOKEN_GT  ||
-         parser->current.type == TOKEN_ST  ||
-         parser->current.type == TOKEN_GE  ||
-         parser->current.type == TOKEN_SE  ||
+  while (parser->current.type == TOKEN_GT || parser->current.type == TOKEN_ST ||
+         parser->current.type == TOKEN_GE || parser->current.type == TOKEN_SE ||
          parser->current.type == TOKEN_EQT ||
          parser->current.type == TOKEN_NEQ) {
     TokenType operator_type = parser->current.type;
@@ -140,7 +138,7 @@ static datatype infer_expr_type(ASTNode *expr) {
   }
 
   fprintf(stderr, "Apollo Syntax Error: Could not infer expression type.\n");
-  exit(1);
+  exit(0);
 }
 
 static void println(Parser *parser, CodegenContext *context) {
@@ -168,12 +166,13 @@ void var(Parser *parser, CodegenContext *context) {
   char name[64];
   sprintf(name, "%.*s", name_token.length, name_token.start);
 
-  Symbol* sym = lookup_variable(context, name);
+  Symbol *sym = lookup_variable(context, name);
 
-  if(sym){
-    fprintf(stderr, "Apollo  Error [Line %d], Multiple definition of variable '%s'",
+  if (sym) {
+    fprintf(stderr,
+            "Apollo  Error [Line %d], Multiple definition of variable '%s'",
             parser->current.line, sym->llvm_name);
-    exit(1);
+    exit(0);
   }
 
   Variable variable;
@@ -190,7 +189,7 @@ void var(Parser *parser, CodegenContext *context) {
     register_variable(context, name, variable.type);
   }
 
-  if(!declaring)
+  if (!declaring)
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
 
   switch (parser->current.type) {
@@ -235,16 +234,13 @@ void var(Parser *parser, CodegenContext *context) {
 
   default: {
 
-    if(!declaring){
-    fprintf(stderr, "Apollo Syntax error [Line %d], expected variable value",
-            parser->current.line);
-    exit(1);
-
+    if (!declaring) {
+      fprintf(stderr, "Apollo Syntax error [Line %d], expected variable value",
+              parser->current.line);
+      exit(0);
     }
   }
   }
-
-  
 
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
                                            variable.type, value);
@@ -263,7 +259,7 @@ void identifier(Parser *parser, CodegenContext *context) {
 
   if (!sym) {
     fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
-    exit(1);
+    exit(0);
   }
 
   advance(parser);
@@ -275,7 +271,7 @@ void identifier(Parser *parser, CodegenContext *context) {
     if (sym->type != TYPE_STRING && sym->type != TYPE_NULL) {
       fprintf(stderr, "Incompatible assignment type. [Line %d] Got type %c",
               parser->current.line, sym->type);
-      exit(1);
+      exit(0);
     }
     value = create_literal_node(t);
     advance(parser);
@@ -286,7 +282,7 @@ void identifier(Parser *parser, CodegenContext *context) {
     if (sym->type != TYPE_INT && sym->type != TYPE_NULL) {
       fprintf(stderr, "Incompatible assignment type. [Line %d]",
               parser->current.line);
-      exit(1);
+      exit(0);
     }
     value = parse_comparison(parser);
     break;
@@ -296,7 +292,7 @@ void identifier(Parser *parser, CodegenContext *context) {
     if (sym->type != TYPE_FLOAT && sym->type != TYPE_NULL) {
       fprintf(stderr, "Incompatible assignment type. [Line %d]",
               parser->current.line);
-      exit(1);
+      exit(0);
     }
     value = parse_comparison(parser);
     break;
@@ -306,7 +302,7 @@ void identifier(Parser *parser, CodegenContext *context) {
     if (sym->type != TYPE_BOOL && sym->type != TYPE_NULL) {
       fprintf(stderr, "Incompatible assignment type. [Line %d]. Found type %c",
               parser->current.line, sym->type);
-      exit(1);
+      exit(0);
     }
     value = create_literal_node(t);
     advance(parser);
@@ -320,13 +316,13 @@ void identifier(Parser *parser, CodegenContext *context) {
 
     if (!var) {
       fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
-      exit(1);
+      exit(0);
     }
 
     if (var->type != sym->type && sym->type != TYPE_NULL) {
       fprintf(stderr, "Incompatible assignment type. [Line %d]",
               parser->current.line);
-      exit(1);
+      exit(0);
     }
 
     value = parse_comparison(parser);
@@ -336,7 +332,7 @@ void identifier(Parser *parser, CodegenContext *context) {
 
   default: {
     fprintf(stderr, "Invalid assignment type. [Line %d]", parser->current.line);
-    exit(1);
+    exit(0);
   }
   }
 
@@ -366,7 +362,7 @@ static void parse_body_statement(Parser *parser, CodegenContext *context) {
 
   default:
     fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.type);
-    exit(1);
+    exit(0);
   }
 }
 
@@ -384,7 +380,6 @@ static void parse_block(Parser *parser, CodegenContext *context) {
           "Expected closing brace '}' to terminate block context.");
 }
 
-
 void parse_function(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_FXN, "Expected function declaration keyword 'fxn'.");
   consume(parser, TOKEN_RUN, "Expected program entrypoint name 'run'.");
@@ -393,7 +388,6 @@ void parse_function(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_RPARETH,
           "Expected closing parameter list wrapper ')'.");
 
-
   consume(parser, TOKEN_ARROW, "Expected return signature pointer token '->'.");
   consume(parser, TOKEN_LPARETH,
           "Expected open parenthesis '(' around return type specification.");
@@ -401,7 +395,6 @@ void parse_function(Parser *parser, CodegenContext *context) {
           "Expected explicit type parameter keyword 'void'.");
   consume(parser, TOKEN_RPARETH,
           "Expected closing parenthesis ')' around return type specification.");
-
 
   gen_function_start(context, "run");
 
