@@ -37,6 +37,7 @@ typedef enum{
     TOKEN_VAR,
     TOKEN_ASSIGN,
     TOKEN_BOOL,
+    TOKEN_NULL,
 }TokenType;
 
 

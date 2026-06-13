@@ -16,7 +16,7 @@ const char *TokenNames[] = {
     "EOF",   "FXN",    "RUN",    "VOID",    "IDENTIFIER", "STRING",
     "ARROW", "LPAREN", "RPAREN", "LBRACE",  "RBRACE",     "SEMICOLON",
     "ARROW", "INT",    "DOUB",   "FLOAT",   "ADD",        "MUL",
-    "SUB",   "DIV",    "MOD",    "PRINTLN", "VAR"};
+    "SUB",   "DIV",    "MOD",    "PRINTLN", "VAR", "NULL"};
 
 // FOR ERROR HANDLING
 void lex_error(int line, const char *message) {
@@ -45,6 +45,11 @@ static TokenType check_keyword(const char *start, int length) {
     return TOKEN_BOOL;
   if (length == 5 && strncmp(start, "false", 5) == 0)
     return TOKEN_BOOL;
+
+
+  //NULL VALUE
+  if(length == 4 && strncmp(start, "null", 4) == 0)
+      return TOKEN_NULL;
 
   return TOKEN_IDENTIFIER;
 }

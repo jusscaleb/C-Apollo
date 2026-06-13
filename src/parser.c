@@ -49,8 +49,8 @@ static ASTNode *parse_primary(Parser *parser) {
     consume(parser, TOKEN_STRING, "Expected string literal.");
     return create_literal_node(token);
   }
-  if (token.type == TOKEN_BOOL) {
-    consume(parser, TOKEN_BOOL, "Expected boolean literal.");
+  if (token.type == TOKEN_BOOL || token.type == TOKEN_NULL) {
+    (token.type == TOKEN_BOOL) ? consume(parser, TOKEN_BOOL, "Expected boolean literal.") :consume(parser, TOKEN_NULL, "Expected null value literal.") ;
     return create_literal_node(token);
   }
 
@@ -166,12 +166,15 @@ void var(Parser *parser, CodegenContext *context) {
     break;
   }
 
+  case TOKEN_NULL:
   case TOKEN_BOOL: {
     Token value_token = parser->current;
     variable = (Variable){TYPE_BOOL, parser->current.start,
                           parser->current.length, parser->current.line};
-    consume(parser, TOKEN_BOOL,
-            "Expected boolean literal for variable assignment.");
+    
+    (parser->current.type == TOKEN_BOOL) ? consume(parser, TOKEN_BOOL, "Expected boolean literal for variable assignment.") :
+      consume(parser, TOKEN_NULL, "Expected boolean literal for variable assignment.");
+      
     value = create_literal_node(value_token);
     register_variable(context, name, variable.type);
     break;

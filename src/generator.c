@@ -188,7 +188,9 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
       gen_println_float(context, token.start, token.length);
       break;
 
+    
     case TOKEN_BOOL:
+    case TOKEN_NULL:
       gen_println_bool(context, token);
       break;
 
@@ -422,7 +424,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
       if (rhs_sym->type == TYPE_BOOL) {
         int temp_bool = context->temp_count++;
         fprintf(context->file, "  %%tmp_%d = load i1, i1* %%%s\n", temp_bool, rhs_sym->llvm_name);
-        fprintf(context->file, "  store i1 %%tmp_%d, i1* %%%s\n\n", temp_bool, sym->llvm_name);
+        fprintf(context->file, "  store i8 %%tmp_%d, i1* %%%s\n\n", temp_bool, sym->llvm_name);
         return;
       }
     }
@@ -458,7 +460,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
     fprintf(context->file, "  store double %s, double* %%%s\n\n", result.value, sym->llvm_name);
   } else if (result.type == EXPR_INT) {
     if (sym->type == TYPE_BOOL) {
-      fprintf(context->file, "  store i1 %s, i1* %%%s\n", result.value, sym->llvm_name);
+      fprintf(context->file, "  store i8 %s, i1* %%%s\n", result.value, sym->llvm_name);
     } else {
       fprintf(context->file, "  store i32 %s, i32* %%%s\n", result.value, sym->llvm_name);
     }
