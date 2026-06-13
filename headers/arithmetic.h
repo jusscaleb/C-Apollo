@@ -11,7 +11,8 @@
 typedef enum {
     EXPR_INT,
     EXPR_FLOAT,
-    EXPR_STRING
+    EXPR_STRING,
+    EXPR_BOOL
 } ExprType;
 
 // Stores the expression result

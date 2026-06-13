@@ -16,7 +16,8 @@ const char *TokenNames[] = {
     "EOF",   "FXN",    "RUN",    "VOID",    "IDENTIFIER", "STRING",
     "ARROW", "LPAREN", "RPAREN", "LBRACE",  "RBRACE",     "SEMICOLON",
     "ARROW", "INT",    "DOUB",   "FLOAT",   "ADD",        "MUL",
-    "SUB",   "DIV",    "MOD",    "PRINTLN", "VAR", "NULL"};
+    "SUB",   "DIV",    "MOD",    "PRINTLN", "VAR", "NULL", "EQT", 
+    "NEQ", "GT", "ST", "GE", "SE"};
 
 // FOR ERROR HANDLING
 void lex_error(int line, const char *message) {
@@ -141,9 +142,50 @@ Token next_token(Lexer *lexer) {
   }
 
   case '=': {
+     if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_EQT, start, 2, lexer->line};
+      return token;
+    }
     Token token = {TOKEN_ASSIGN, start, 1, lexer->line};
     return token;
   }
+
+  case '!': {
+     if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_NEQ, start, 2, lexer->line};
+      return token;
+    }
+
+    lex_error(lexer->line, "Unrecognized Token");
+    break;
+  }
+
+  case '>':{
+      if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_GE, start, 2, lexer->line};
+      return token;
+    }
+
+    Token token = {TOKEN_GT, start, 1, lexer->line};
+    return token;
+
+  }
+
+  case '<':{
+    if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_SE, start, 2, lexer->line};
+      return token;
+    }
+
+    Token token = {TOKEN_ST, start, 1, lexer->line};
+    return token;
+  }
+
+
   }
 
   // HANDLE STRINGS

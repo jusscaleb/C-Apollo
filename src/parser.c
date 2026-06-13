@@ -107,6 +107,25 @@ static ASTNode *parse_expression(Parser *parser) {
   return left;
 }
 
+static ASTNode *parse_comparison(Parser *parser) {
+  ASTNode *left = parse_expression(parser);
+
+  while (parser->current.type == TOKEN_GT  ||
+         parser->current.type == TOKEN_ST  ||
+         parser->current.type == TOKEN_GE  ||
+         parser->current.type == TOKEN_SE  ||
+         parser->current.type == TOKEN_EQT ||
+         parser->current.type == TOKEN_NEQ) {
+    TokenType operator_type = parser->current.type;
+    advance(parser);
+
+    ASTNode *right = parse_expression(parser);
+    left = create_binary_node(left, operator_type, right);
+  }
+
+  return left;
+}
+
 static datatype infer_expr_type(ASTNode *expr) {
   if (expr->Type == AST_LITERAL_EXPR) {
     return expr->literal_expr.token.type == TOKEN_FLOAT ? TYPE_FLOAT : TYPE_INT;
@@ -130,7 +149,7 @@ static void println(Parser *parser, CodegenContext *context) {
           "Expected open parenthesis '(' for arguments.");
 
   // Parse whatever is inside the parentheses as a unified expression
-  ASTNode *expr = parse_expression(parser);
+  ASTNode *expr = parse_comparison(parser);
 
   ASTNode *println_node = create_println_node(expr);
   gen_println_from_ast(context, println_node);
@@ -179,7 +198,7 @@ void var(Parser *parser, CodegenContext *context) {
   case TOKEN_INT:
   case TOKEN_FLOAT:
   case TOKEN_IDENTIFIER: {
-    value = parse_expression(parser);
+    value = parse_comparison(parser);
     variable = (Variable){TYPE_INT, NULL, 0, parser->current.line};
     break;
   }
@@ -269,7 +288,7 @@ void identifier(Parser *parser, CodegenContext *context) {
               parser->current.line);
       exit(1);
     }
-    value = parse_expression(parser);
+    value = parse_comparison(parser);
     break;
   }
 
@@ -279,7 +298,7 @@ void identifier(Parser *parser, CodegenContext *context) {
               parser->current.line);
       exit(1);
     }
-    value = parse_expression(parser);
+    value = parse_comparison(parser);
     break;
   }
 
@@ -310,7 +329,7 @@ void identifier(Parser *parser, CodegenContext *context) {
       exit(1);
     }
 
-    value = parse_expression(parser);
+    value = parse_comparison(parser);
 
     break;
   }

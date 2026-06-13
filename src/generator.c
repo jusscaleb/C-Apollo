@@ -43,6 +43,7 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
   fprintf(context->file, "declare i8* @malloc(i64)\n");
   fprintf(context->file, "declare i8* @strcat(i8*, i8*)\n");
   fprintf(context->file, "declare i8* @strcpy(i8*, i8*)\n");
+  fprintf(context->file, "declare i32 @strcmp(i8*, i8*)\n");
 
 }
 
@@ -355,6 +356,16 @@ static void create_var_from_expr_result(CodegenContext *context,
     return;
   }
 
+  if (result.type == EXPR_BOOL) {
+    fprintf(context->file, "; Allocate bool expression variable slot\n");
+    fprintf(context->file, "%%%s = alloca i8\n", llvm_name);
+    // Truncate i32 (0 or 1) down to i8 for storage
+    int trunc_id = context->temp_count++;
+    fprintf(context->file, "%%tmp_%d = trunc i32 %s to i8\n", trunc_id, result.value);
+    fprintf(context->file, "store i8 %%tmp_%d, i8* %%%s\n\n", trunc_id, llvm_name);
+    return;
+  }
+
   fprintf(context->file, "; Allocate integer expression variable slot\n");
   fprintf(context->file, "%%%s = alloca i32\n", llvm_name);
   fprintf(context->file, "store i32 %s, i32* %%%s\n\n", result.value,
@@ -386,7 +397,10 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
   if (value->Type == AST_BINARY_EXPR || value->Type == AST_VAR_REF) {
     ExprResult result = gen_expr_from_ast(context, value);
     // Infer type from the expression result and register the variable now
-    datatype inferred = (result.type == EXPR_FLOAT) ? TYPE_FLOAT : TYPE_INT;
+    datatype inferred;
+    if (result.type == EXPR_FLOAT)      inferred = TYPE_FLOAT;
+    else if (result.type == EXPR_BOOL)  inferred = TYPE_BOOL;
+    else                                inferred = TYPE_INT;
     register_variable(context, name_buf, inferred);
     create_var_from_expr_result(context, result, name_buf);
     return;
@@ -500,6 +514,14 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
       fprintf(context->file, "  store i32 %s, i32* %%%s\n\n", result.value, sym->llvm_name);
     } else {
       fprintf(context->file, "  store i32 %s, i32* %%%s\n", result.value, sym->llvm_name);
+    }
+  } else if (result.type == EXPR_BOOL) {
+    if (sym->type == TYPE_NULL || sym->type == TYPE_BOOL) {
+      // Null is already i8 — reuse the slot, just truncate and store, upgrade type to BOOL
+      int trunc_id = context->temp_count++;
+      fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i8\n", trunc_id, result.value);
+      fprintf(context->file, "  store i8 %%tmp_%d, i8* %%%s\n\n", trunc_id, sym->llvm_name);
+      sym->type = TYPE_BOOL;
     }
   }
 
@@ -619,7 +641,36 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
                            TokenType operator_type, ExprResult right) {
   ExprResult result;
 
-  // Handle string concatenation
+  // == and != on mismatched types always return false/true respectively
+  if ((operator_type == TOKEN_EQT || operator_type == TOKEN_NEQ) &&
+      left.type != right.type) {
+    result.type = EXPR_BOOL;
+    // EQT: false (0), NEQ: true (1)
+    snprintf(result.value, sizeof(result.value), "%d",
+             operator_type == TOKEN_NEQ ? 1 : 0);
+    return result;
+  }
+
+  // String == string or string != string: use strcmp
+  if ((operator_type == TOKEN_EQT || operator_type == TOKEN_NEQ) &&
+      left.type == EXPR_STRING && right.type == EXPR_STRING) {
+    int strcmp_id  = context->temp_count++;
+    int cmp_id     = context->temp_count++;
+    int ext_id     = context->temp_count++;
+    fprintf(context->file,
+            "  %%tmp_%d = call i32 (i8*, i8*) @strcmp(i8* %s, i8* %s)\n",
+            strcmp_id, left.value, right.value);
+    const char *str_op = (operator_type == TOKEN_EQT) ? "icmp eq" : "icmp ne";
+    fprintf(context->file, "  %%tmp_%d = %s i32 %%tmp_%d, 0\n",
+            cmp_id, str_op, strcmp_id);
+    fprintf(context->file, "  %%tmp_%d = zext i1 %%tmp_%d to i32\n",
+            ext_id, cmp_id);
+    result.type = EXPR_BOOL;
+    snprintf(result.value, sizeof(result.value), "%%tmp_%d", ext_id);
+    return result;
+  }
+
+  // String concatenation (+)
   if (left.type == EXPR_STRING || right.type == EXPR_STRING) {
     if (operator_type != TOKEN_ADD) {
       fprintf(stderr, "Error: Operator not supported for strings.\n");
@@ -630,17 +681,59 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
     int strcpy_id = context->temp_count++;
     int strcat_id = context->temp_count++;
 
-    // 1. malloc a new buffer
     fprintf(context->file, "  %%tmp_%d = call i8* @malloc(i64 %d)\n", malloc_id, total_len + 1);
-    // 2. strcpy left string
     fprintf(context->file, "  %%tmp_%d = call i8* @strcpy(i8* %%tmp_%d, i8* %s)\n", strcpy_id, malloc_id, left.value);
-    // 3. strcat right string
     fprintf(context->file, "  %%tmp_%d = call i8* @strcat(i8* %%tmp_%d, i8* %s)\n", strcat_id, malloc_id, right.value);
 
     result.type = EXPR_STRING;
     result.str_len = total_len;
     snprintf(result.value, sizeof(result.value), "%%tmp_%d", malloc_id);
     return result;
+  }
+
+  // Handle comparison operators — emit icmp (int) or fcmp (float)
+  switch (operator_type) {
+  case TOKEN_GT:
+  case TOKEN_ST:
+  case TOKEN_GE:
+  case TOKEN_SE:
+  case TOKEN_EQT:
+  case TOKEN_NEQ: {
+    int cmp_id = context->temp_count++;
+    int ext_id  = context->temp_count++;
+    bool cmp_float = left.type == EXPR_FLOAT || right.type == EXPR_FLOAT;
+    const char *cmp_op = NULL;
+    if (cmp_float) {
+      switch (operator_type) {
+      case TOKEN_GT:  cmp_op = "fcmp ogt"; break;
+      case TOKEN_ST:  cmp_op = "fcmp olt"; break;
+      case TOKEN_GE:  cmp_op = "fcmp oge"; break;
+      case TOKEN_SE:  cmp_op = "fcmp ole"; break;
+      case TOKEN_EQT: cmp_op = "fcmp oeq"; break;
+      case TOKEN_NEQ: cmp_op = "fcmp one"; break;
+      default: break;
+      }
+      fprintf(context->file, "  %%tmp_%d = %s double %s, %s\n", cmp_id, cmp_op, left.value, right.value);
+    } else {
+      switch (operator_type) {
+      case TOKEN_GT:  cmp_op = "icmp sgt"; break;
+      case TOKEN_ST:  cmp_op = "icmp slt"; break;
+      case TOKEN_GE:  cmp_op = "icmp sge"; break;
+      case TOKEN_SE:  cmp_op = "icmp sle"; break;
+      case TOKEN_EQT: cmp_op = "icmp eq";  break;
+      case TOKEN_NEQ: cmp_op = "icmp ne";  break;
+      default: break;
+      }
+      fprintf(context->file, "  %%tmp_%d = %s i32 %s, %s\n", cmp_id, cmp_op, left.value, right.value);
+    }
+    // Zero-extend i1 to i32 so the rest of the pipeline can use it uniformly
+    fprintf(context->file, "  %%tmp_%d = zext i1 %%tmp_%d to i32\n", ext_id, cmp_id);
+    result.type = EXPR_BOOL;
+    snprintf(result.value, sizeof(result.value), "%%tmp_%d", ext_id);
+    return result;
+  }
+  default:
+    break;
   }
 
   int id = context->temp_count++;
@@ -743,6 +836,39 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
 // The ExprResult type decides whether printf receives an i32 or a double.
 void gen_println_expr(CodegenContext *context, ExprResult result) {
   int id = context->string_constant_count++;
+
+  if (result.type == EXPR_BOOL) {
+    int tmp_id = context->temp_count++;
+
+    // Allocate "true\n\0" and "false\n\0"
+    fprintf(context->file, "  %%cmp_true_%d = alloca [6 x i8]\n", id);
+    fprintf(context->file, "  store [6 x i8] c\"true\\0A\\00\", [6 x i8]* %%cmp_true_%d\n", id);
+    fprintf(context->file,
+            "  %%cmp_true_ptr_%d = getelementptr inbounds [6 x i8], [6 x i8]* "
+            "%%cmp_true_%d, i32 0, i32 0\n", id, id);
+
+    fprintf(context->file, "  %%cmp_false_%d = alloca [7 x i8]\n", id);
+    fprintf(context->file, "  store [7 x i8] c\"false\\0A\\00\", [7 x i8]* %%cmp_false_%d\n", id);
+    fprintf(context->file,
+            "  %%cmp_false_ptr_%d = getelementptr inbounds [7 x i8], [7 x i8]* "
+            "%%cmp_false_%d, i32 0, i32 0\n", id, id);
+
+    // Branch on value == 1
+    fprintf(context->file, "  %%cmp_check_%d = icmp eq i32 %s, 1\n", id, result.value);
+    fprintf(context->file, "  br i1 %%cmp_check_%d, label %%cmp_true_lbl_%d, label %%cmp_false_lbl_%d\n\n",
+            id, id, id);
+
+    fprintf(context->file, "cmp_true_lbl_%d:\n", id);
+    fprintf(context->file, "  call i32 (i8*, ...) @printf(i8* %%cmp_true_ptr_%d)\n", id);
+    fprintf(context->file, "  br label %%cmp_end_%d\n\n", id);
+
+    fprintf(context->file, "cmp_false_lbl_%d:\n", id);
+    fprintf(context->file, "  call i32 (i8*, ...) @printf(i8* %%cmp_false_ptr_%d)\n", id);
+    fprintf(context->file, "  br label %%cmp_end_%d\n\n", id);
+
+    fprintf(context->file, "cmp_end_%d:\n", id);
+    return;
+  }
 
   if (result.type == EXPR_STRING) {
     fprintf(context->file, "; Print expression string\n");
