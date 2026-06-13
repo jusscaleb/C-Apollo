@@ -45,6 +45,15 @@ static ASTNode *parse_primary(Parser *parser) {
     return create_literal_node(token);
   }
 
+   if (token.type == TOKEN_STRING) {
+    consume(parser, TOKEN_STRING, "Expected string literal.");
+    return create_literal_node(token);
+  }
+  if (token.type == TOKEN_BOOL) {
+    consume(parser, TOKEN_BOOL, "Expected boolean literal.");
+    return create_literal_node(token);
+  }
+
   if (token.type == TOKEN_FLOAT) {
     consume(parser, TOKEN_FLOAT, "Expected float literal.");
     return create_literal_node(token);
@@ -109,57 +118,17 @@ static datatype infer_expr_type(ASTNode *expr) {
 }
 
 static void println(Parser *parser, CodegenContext *context) {
-  advance(parser);
-  consume(parser, TOKEN_LPARETH,
-          "Expected open parenthesis '(' for arguments.");
+  advance(parser); // Move past TOKEN_PRINTLN
+  consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
 
-  switch (parser->current.type) {
-  case TOKEN_STRING:
-  case TOKEN_BOOL: {
-    Token literal_token = parser->current;
-    advance(parser);
+  // Parse whatever is inside the parentheses as a unified expression
+  ASTNode *expr = parse_expression(parser);
 
-    ASTNode *literal = create_literal_node(literal_token);
-    ASTNode *println_node = create_println_node(literal);
-    gen_println_from_ast(context, println_node);
-    break;
-  }
+  ASTNode *println_node = create_println_node(expr);
+  gen_println_from_ast(context, println_node);
 
-  case TOKEN_INT:
-  case TOKEN_FLOAT:
-  case TOKEN_IDENTIFIER: {
-    ASTNode *expr = parse_expression(parser);
-    ASTNode *println_node = create_println_node(expr);
-    gen_println_from_ast(context, println_node);
-    break;
-  }
-
-  default: {
-    char var_name[64];
-    sprintf(var_name, "%.*s", parser->current.length, parser->current.start);
-    Symbol *sym = lookup_variable(context, var_name);
-
-    if (!sym) {
-      fprintf(stderr,
-              "Apollo Syntax Error [Line %d]: Expected println argument. \nGot "
-              "'%.*s'\n",
-              parser->current.line, parser->current.length,
-              parser->current.start);
-      exit(1);
-    }
-    ASTNode *var_ref = create_var_ref_node(parser->current.start, parser->current.length);
-    ASTNode *println_node = create_println_node(var_ref);
-    gen_println_from_ast(context, println_node);
-    advance(parser);
-
-    return;
-  }
-  }
-
-  consume(parser, TOKEN_RPARETH,
-          "Expected closing parenthesis ')' for arguments.");
-  consume(parser, TOKEN_SEMICOLON,
-          "Expected trailing semicolon ';' to terminate statement.");
+  consume(parser, TOKEN_RPARETH, "Expected close parenthesis ')' after arguments.");
+  consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
 }
 
 void var(Parser *parser, CodegenContext *context) {

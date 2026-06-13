@@ -78,3 +78,11 @@ ASTNode *create_var_assign_node(const char *name, int name_length, ASTNode *valu
     node->var_assign.value = value;
     return node;
 }
+
+ASTNode *create_concat_node(ASTNode *left, ASTNode *right){
+  ASTNode *node = allocate_node(AST_CONCAT_STR);
+  node->str_concat.left = left;
+  node->str_concat.right = right;
+
+  return node;
+}

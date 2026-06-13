@@ -26,6 +26,8 @@ typedef enum {
   AST_VAR_REF,
 
   AST_VAR_ASS,
+
+  AST_CONCAT_STR,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -90,6 +92,12 @@ struct ASTNode {
     
   } var_assign;
 
+  struct{
+    ASTNode *left;
+    ASTNode *right;
+
+  } str_concat;
+
   };
 };
 
@@ -112,7 +120,7 @@ ASTNode *create_block_node(void);
 
 ASTNode *create_var_ref_node(const char *name, int name_length);
 ASTNode *create_var_assign_node(const char *name, int name_length, ASTNode *value);
-
+ASTNode *create_concat_node(ASTNode *left, ASTNode *right);
 
 /*--------------------------------------------------------------------------------
 

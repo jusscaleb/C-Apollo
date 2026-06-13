@@ -39,8 +39,10 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
   // Print headers and link C's native printf function for our standard I/O
   fprintf(context->file, "; --- Apollo Native Compiler Backend Output ---\n");
 
-  fprintf(context->file, "declare i32 @printf(i8*, ...)\n\n");
+  fprintf(context->file, "declare i8* @printf(i8*, ...)\n\n");
   fprintf(context->file, "declare i8* @malloc(i64)\n");
+  fprintf(context->file, "declare i8* @strcat(i8*, i8*)\n");
+  fprintf(context->file, "declare i8* @strcpy(i8*, i8*)\n");
 
 }
 
@@ -492,8 +494,32 @@ Symbol *lookup_variable(CodegenContext *context, const char *name) {
 
 ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
   switch (expr->Type) {
-  case AST_LITERAL_EXPR:
-    return make_literal_expr(expr->literal_expr.token);
+  case AST_LITERAL_EXPR: {
+    Token token = expr->literal_expr.token;
+    if (token.type == TOKEN_STRING) {
+      int id = context->string_constant_count++;
+      int internal_len = token.length - 1; // removing the quotes
+      int llvm_len = internal_len + 1; // include null terminator
+
+      // 1. Allocate the local stack string buffer
+      fprintf(context->file, "  %%str_expr_%d = alloca [%d x i8]\n", id, llvm_len);
+      fprintf(context->file, "  store [%d x i8] c\"", llvm_len);
+      emit_llvm_string_contents(context->file, token.start + 1, internal_len);
+      fprintf(context->file, "\\00\", [%d x i8]* %%str_expr_%d\n", llvm_len, id);
+
+      // 2. Get its pointer
+      int temp_id = context->temp_count++;
+      fprintf(context->file, "  %%str_expr_ptr_%d = getelementptr inbounds [%d x i8], [%d x i8]* %%str_expr_%d, i32 0, i32 0\n",
+              temp_id, llvm_len, llvm_len, id);
+
+      ExprResult result;
+      result.type = EXPR_STRING;
+      result.str_len = internal_len;
+      snprintf(result.value, sizeof(result.value), "%%str_expr_ptr_%d", temp_id);
+      return result;
+    }
+    return make_literal_expr(token);
+  }
 
   case AST_BINARY_EXPR: {
     ExprResult left = gen_expr_from_ast(context, expr->binary_expr.left);
@@ -508,6 +534,16 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
              expr->var_ref.name);
     Symbol *sym = lookup_variable(context, name);
     int temp_id = context->temp_count++;
+
+    if (sym->type == TYPE_STRING) {
+      fprintf(context->file, "  %%tmp_%d = load i8*, i8** %%%s_val\n", temp_id, sym->llvm_name);
+      ExprResult result;
+      result.type = EXPR_STRING;
+      result.str_len = sym->str_length; // Use the symbol's tracked length
+      snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
+      return result;
+    }
+
     const char *llvm_type = llvm_datatype(sym->type);
     fprintf(context->file, "%%tmp_%d = load %s, %s* %%%s\n", temp_id, llvm_type,
             llvm_type, sym->llvm_name);
@@ -543,6 +579,31 @@ ExprResult make_literal_expr(Token token) {
 ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
                            TokenType operator_type, ExprResult right) {
   ExprResult result;
+
+  // Handle string concatenation
+  if (left.type == EXPR_STRING || right.type == EXPR_STRING) {
+    if (operator_type != TOKEN_ADD) {
+      fprintf(stderr, "Error: Operator not supported for strings.\n");
+      exit(1);
+    }
+    int total_len = left.str_len + right.str_len;
+    int malloc_id = context->temp_count++;
+    int strcpy_id = context->temp_count++;
+    int strcat_id = context->temp_count++;
+
+    // 1. malloc a new buffer
+    fprintf(context->file, "  %%tmp_%d = call i8* @malloc(i64 %d)\n", malloc_id, total_len + 1);
+    // 2. strcpy left string
+    fprintf(context->file, "  %%tmp_%d = call i8* @strcpy(i8* %%tmp_%d, i8* %s)\n", strcpy_id, malloc_id, left.value);
+    // 3. strcat right string
+    fprintf(context->file, "  %%tmp_%d = call i8* @strcat(i8* %%tmp_%d, i8* %s)\n", strcat_id, malloc_id, right.value);
+
+    result.type = EXPR_STRING;
+    result.str_len = total_len;
+    snprintf(result.value, sizeof(result.value), "%%tmp_%d", malloc_id);
+    return result;
+  }
+
   int id = context->temp_count++;
 
   // If either side is a decimal, the whole operation must use LLVM double math.
@@ -643,6 +704,21 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
 // The ExprResult type decides whether printf receives an i32 or a double.
 void gen_println_expr(CodegenContext *context, ExprResult result) {
   int id = context->string_constant_count++;
+
+  if (result.type == EXPR_STRING) {
+    fprintf(context->file, "; Print expression string\n");
+    fprintf(context->file, "%%str_fmt_%d = alloca [4 x i8]\n", id);
+    fprintf(context->file,
+            "store [4 x i8] c\"%%s\\0A\\00\", [4 x i8]* %%str_fmt_%d\n", id);
+    fprintf(context->file,
+            "%%str_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* "
+            "%%str_fmt_%d, i32 0, i32 0\n",
+            id, id);
+    fprintf(context->file,
+            "call i32 (i8*, ...) @printf(i8* %%str_fmt_ptr_%d, i8* %s)\n\n",
+            id, result.value);
+    return;
+  }
 
   if (result.type == EXPR_FLOAT) {
     fprintf(context->file, "%%float_fmt_%d = alloca [4 x i8]\n", id);

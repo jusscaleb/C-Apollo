@@ -8,12 +8,17 @@
 
 
 // display either an integer or float as the final answer.
-typedef enum { EXPR_INT, EXPR_FLOAT } ExprType;
+typedef enum {
+    EXPR_INT,
+    EXPR_FLOAT,
+    EXPR_STRING
+} ExprType;
 
 // Stores the expression result
 typedef struct {
   ExprType type;
   char value[64]; // literal like "45" or LLVM temp like "%tmp_0"
+  int str_len;    // For strings, holds the character length
 } ExprResult;
 
 ExprResult make_literal_expr(Token token);
