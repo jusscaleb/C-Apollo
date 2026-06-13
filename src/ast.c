@@ -49,6 +49,8 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
   return node;
 }
 
+
+
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               datatype value_type, ASTNode *value) {
   ASTNode *node = allocate_node(AST_VAR_DECL);
@@ -66,5 +68,13 @@ ASTNode *create_var_ref_node(const char *name, int name_length) {
     ASTNode *node = allocate_node(AST_VAR_REF);
     node->var_ref.name = name;
     node->var_ref.name_length = name_length;
+    return node;
+}
+
+ASTNode *create_var_assign_node(const char *name, int name_length, ASTNode *value) {
+    ASTNode *node = allocate_node(AST_VAR_ASS);
+    node->var_assign.name = name;
+    node->var_assign.name_length = name_length;
+    node->var_assign.value = value;
     return node;
 }

@@ -4,7 +4,6 @@
 
 ---------------------------------------------------------------------------------*/
 
-
 #include "../headers/ast.h"
 #include "../headers/defs.h"
 #include "../headers/token.h"
@@ -12,6 +11,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // move on to next token
 static void advance(Parser *parser) {
@@ -132,8 +132,7 @@ static void println(Parser *parser, CodegenContext *context) {
     ASTNode *println_node = create_println_node(expr);
     gen_println_from_ast(context, println_node);
     break;
-}
-
+  }
 
   default: {
     char var_name[64];
@@ -148,15 +147,12 @@ static void println(Parser *parser, CodegenContext *context) {
               parser->current.start);
       exit(1);
     }
-      ASTNode *var_ref = create_var_ref_node(parser->current.start, parser->current.length);
-      ASTNode *println_node = create_println_node(var_ref);
-      gen_println_from_ast(context, println_node);
-      advance(parser);
+    ASTNode *var_ref = create_var_ref_node(parser->current.start, parser->current.length);
+    ASTNode *println_node = create_println_node(var_ref);
+    gen_println_from_ast(context, println_node);
+    advance(parser);
 
-      return;
-      
-
-
+    return;
   }
   }
 
@@ -227,6 +223,113 @@ void var(Parser *parser, CodegenContext *context) {
   gen_var_decl_from_ast(context, var_node);
 }
 
+
+void identifier(Parser *parser, CodegenContext * context){
+  ASTNode *value;
+
+  //Check that identifier is a registered variable.
+    char potential_var_name[64];
+    sprintf(potential_var_name, "%.*s", parser->current.length, parser->current.start);
+    Symbol *sym = lookup_variable(context, potential_var_name);
+
+
+    if(!sym){
+      fprintf(stderr, "Unrecognized token. [Line %d]",parser->current.line);
+      exit(1);
+    }
+
+    
+
+
+  //Check the reassignment syntax.
+  advance(parser);
+  consume(parser, TOKEN_ASSIGN , "Expected '=' after variable.");
+  
+  Token t = parser->current;
+  switch (parser->current.type) {
+    case TOKEN_STRING:
+          {
+            if(sym->type != TYPE_STRING){
+              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
+              exit(1);
+            }
+            value = create_literal_node(t);
+            advance(parser);
+            break;
+          }
+    
+    case TOKEN_INT:
+          {
+            if(sym->type != TYPE_INT){
+              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
+              exit(1);
+            }
+            value = parse_expression(parser);
+            advance(parser);
+            break;
+          }
+    
+  case TOKEN_FLOAT:
+          {
+            if(sym->type != TYPE_FLOAT){
+              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
+              exit(1);
+            }
+            value = parse_expression(parser);
+            advance(parser);
+            break;
+          }
+
+  case TOKEN_BOOL:
+          {
+            if(sym->type != TYPE_BOOL){
+              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
+              exit(1);
+            }
+            value = create_literal_node(t);
+            advance(parser);
+            break;
+          }
+    
+    case TOKEN_IDENTIFIER:
+          {
+            char id_name[64];
+            sprintf(id_name, "%.*s", parser->current.length, parser->current.start);
+            Symbol* var = lookup_variable(context, id_name);
+
+            if(!var){
+                  fprintf(stderr, "Unrecognized token. [Line %d]",parser->current.line);
+                  exit(1);
+            }
+
+
+            if(var->type != sym->type){
+              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
+              exit(1);
+            }
+
+            value = parse_expression(parser);
+
+
+            break;
+
+          }
+    
+    default:
+          {
+              fprintf(stderr, "Invalid assignment type. [Line %d]",parser->current.line);
+              exit(1);
+          }
+    
+  
+  }
+
+  ASTNode *assign_var = create_var_assign_node(sym->llvm_name, strlen(sym->llvm_name), value);
+  gen_var_assign_from_ast(context, assign_var);
+  consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");
+  
+}
+
 // check the body statement
 static void parse_body_statement(Parser *parser, CodegenContext *context) {
   switch (parser->current.type) {
@@ -239,8 +342,13 @@ static void parse_body_statement(Parser *parser, CodegenContext *context) {
     var(parser, context);
     break;
 
+  case TOKEN_IDENTIFIER:
+    identifier(parser, context);
+    break;
+  
   default:
-    fprintf(stderr, "Unrecognized token '%c'. [Line %d]", parser->current.type, parser->current.line);
+    fprintf(stderr, "Unrecognized token '%c'. [Line %d]", parser->current.type,
+            parser->current.line);
     exit(1);
   }
 }
@@ -311,14 +419,11 @@ void compile_parse(Lexer *lexer) {
   printf("SUCCESSFUL.\n");
 }
 
-
 /*--------------------------------------------------------------------------------
 
                                     HELPERS
 
 ---------------------------------------------------------------------------------*/
-
-
 
 /*Register Variable in Symbol Table*/
 void register_variable(CodegenContext *context, const char *name,

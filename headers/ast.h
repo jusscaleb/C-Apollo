@@ -23,7 +23,9 @@ typedef enum {
   AST_LITERAL_EXPR,
   AST_BINARY_EXPR,
 
-  AST_VAR_REF
+  AST_VAR_REF,
+
+  AST_VAR_ASS,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -76,13 +78,29 @@ struct ASTNode {
       ASTNode *right;
     } binary_expr;
 
-  
     struct {
       const char *name;
       int name_length;
-    }var_ref;
+    } var_ref;
+
+    struct {
+    const char *name;
+    int name_length;
+    ASTNode *value;
+    
+  } var_assign;
+
   };
 };
+
+
+/*--------------------------------------------------------------------------------
+
+                       NODE CREATION -> BEGIN
+
+---------------------------------------------------------------------------------*/
+
+
 
 ASTNode *create_literal_node(Token token);
 ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
@@ -93,6 +111,14 @@ ASTNode *create_println_node(ASTNode *value);
 ASTNode *create_block_node(void);
 
 ASTNode *create_var_ref_node(const char *name, int name_length);
+ASTNode *create_var_assign_node(const char *name, int name_length, ASTNode *value);
+
+
+/*--------------------------------------------------------------------------------
+
+                       NODE CREATION -> END
+
+---------------------------------------------------------------------------------*/
 
 
 
@@ -102,8 +128,6 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node);
 ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr);
 
 void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node);
-
-
-
+void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node);
 
 #endif

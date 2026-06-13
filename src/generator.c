@@ -4,7 +4,6 @@
 
 ---------------------------------------------------------------------------------*/
 
-
 #include "../headers/arithmetic.h"
 #include "../headers/ast.h"
 #include "../headers/token.h"
@@ -41,6 +40,8 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
   fprintf(context->file, "; --- Apollo Native Compiler Backend Output ---\n");
 
   fprintf(context->file, "declare i32 @printf(i8*, ...)\n\n");
+  fprintf(context->file, "declare i8* @malloc(i64)\n");
+
 }
 
 // Emits the LLVM function header. Apollo's run() function becomes LLVM's
@@ -59,7 +60,6 @@ void gen_function_start(CodegenContext *context, const char *name) {
                   INITIALIZING SEGMENT -> END
 
 ---------------------------------------------------------------------------------*/
-
 
 /*--------------------------------------------------------------------------------
 
@@ -203,10 +203,10 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
     gen_println_expr(context, result);
     return;
   }
-  if(value->Type== AST_VAR_REF){
+  if (value->Type == AST_VAR_REF) {
     char var_name[64];
-    snprintf(var_name, sizeof(var_name), "%.*s",
-             value->var_ref.name_length, value->var_ref.name);
+    snprintf(var_name, sizeof(var_name), "%.*s", value->var_ref.name_length,
+             value->var_ref.name);
     gen_println_variable(context, var_name);
 
     return;
@@ -257,7 +257,6 @@ void gen_println_float(CodegenContext *context, const char *float_start,
 
 ---------------------------------------------------------------------------------*/
 
-
 /*--------------------------------------------------------------------------------
 
                   VARIABLES SEGMENT -> BEGIN
@@ -283,6 +282,33 @@ static const char *llvm_datatype(datatype type) {
   }
 }
 
+
+static void create_string_var(CodegenContext *context, const char *value_start, int length, const char *llvm_name) {
+  int id = context->string_constant_count++;
+  int internal_len = length - 1; // removing the quotes
+  int llvm_len = internal_len + 1; // include null terminator
+
+  // 1. Allocate local pointers slots
+  fprintf(context->file, "%%%s_val = alloca i8*\n", llvm_name);
+  fprintf(context->file, "%%%s_len = alloca i32\n", llvm_name);
+
+  // 2. Allocate the local stack string buffer
+  fprintf(context->file, "  %%str_loc_%d = alloca [%d x i8]\n", id, llvm_len);
+  fprintf(context->file, "  store [%d x i8] c\"", llvm_len);
+  emit_llvm_string_contents(context->file, value_start + 1, internal_len);
+  fprintf(context->file, "\\00\", [%d x i8]* %%str_loc_%d\n", llvm_len, id);
+
+  // 3. Get pointer to the stack buffer and store it in variable slots
+  fprintf(context->file, "  %%str_ptr_%d = getelementptr inbounds [%d x i8], [%d x i8]* %%str_loc_%d, i32 0, i32 0\n",
+          id, llvm_len, llvm_len, id);
+  fprintf(context->file, "  store i8* %%str_ptr_%d, i8** %%%s_val\n", id, llvm_name);
+  fprintf(context->file, "  store i32 %d, i32* %%%s_len\n\n", internal_len, llvm_name);
+}
+
+
+
+
+
 // Emits LLVM for a literal variable declaration.
 // Example: var age = 45; becomes an alloca slot plus a store into that slot.
 void create_var(CodegenContext *context, const char *number_start, int length,
@@ -295,11 +321,7 @@ void create_var(CodegenContext *context, const char *number_start, int length,
 
   const char *llvm_type = llvm_datatype(sym->type);
   if (llvm_type == NULL) {
-    char string_type[32];
-    snprintf(string_type, sizeof(string_type), "[%d x i8]", length);
-    fprintf(context->file, "%%%s = alloca %s\n", llvm_name, string_type);
-    fprintf(context->file, "store %s c\"%.*s\\00\", %s* %%%s\n\n", string_type,
-            length - 1, number_start + 1, string_type, llvm_name);
+    create_string_var(context, number_start, length, llvm_name);
 
   } else {
     fprintf(context->file, "%%%s = alloca %s\n", llvm_name, llvm_type);
@@ -326,7 +348,6 @@ static void create_var_from_expr_result(CodegenContext *context,
   fprintf(context->file, "store i32 %s, i32* %%%s\n\n", result.value,
           llvm_name);
 }
-
 
 void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 
@@ -365,6 +386,86 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
   exit(1);
 }
 
+
+void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
+  char name_buf[64];
+  snprintf(name_buf, sizeof(name_buf), "%.*s", 
+           assign_node->var_assign.name_length, 
+           assign_node->var_assign.name);
+           
+  Symbol *sym = lookup_variable(context, name_buf);
+  if (!sym) {
+    fprintf(stderr, "Error: Variable '%s' not declared.\n", name_buf);
+    exit(1);
+  }
+
+  ASTNode *value = assign_node->var_assign.value;
+
+
+  if (value->Type == AST_VAR_REF) {
+    char rhs_name[64];
+    snprintf(rhs_name, sizeof(rhs_name), "%.*s", value->var_ref.name_length, value->var_ref.name);
+    Symbol *rhs_sym = lookup_variable(context, rhs_name);
+    
+    if (rhs_sym) {
+      if (rhs_sym->type == TYPE_STRING) {
+        int temp_ptr = context->temp_count++;
+        int temp_len = context->temp_count++;
+        fprintf(context->file, "  %%tmp_%d = load i8*, i8** %%%s_val\n", temp_ptr, rhs_sym->llvm_name);
+        fprintf(context->file, "  %%tmp_%d = load i32, i32* %%%s_len\n", temp_len, rhs_sym->llvm_name);
+        fprintf(context->file, "  store i8* %%tmp_%d, i8** %%%s_val\n", temp_ptr, sym->llvm_name);
+        fprintf(context->file, "  store i32 %%tmp_%d, i32* %%%s_len\n\n", temp_len, sym->llvm_name);
+        return;
+      }
+      if (rhs_sym->type == TYPE_BOOL) {
+        int temp_bool = context->temp_count++;
+        fprintf(context->file, "  %%tmp_%d = load i1, i1* %%%s\n", temp_bool, rhs_sym->llvm_name);
+        fprintf(context->file, "  store i1 %%tmp_%d, i1* %%%s\n\n", temp_bool, sym->llvm_name);
+        return;
+      }
+    }
+  }
+
+  if (value->Type == AST_LITERAL_EXPR) {
+    Token token = value->literal_expr.token;
+    
+    if (token.type == TOKEN_STRING) {
+      int id = context->string_constant_count++;
+      int internal_len = token.length - 1;
+      int llvm_len = internal_len + 1;
+
+      fprintf(context->file, "  %%str_loc_%d = alloca [%d x i8]\n", id, llvm_len);
+      fprintf(context->file, "  store [%d x i8] c\"", llvm_len);
+      emit_llvm_string_contents(context->file, token.start + 1, internal_len);
+      fprintf(context->file, "\\00\", [%d x i8]* %%str_loc_%d\n", llvm_len, id);
+
+      fprintf(context->file, "  %%str_ptr_%d = getelementptr inbounds [%d x i8], [%d x i8]* %%str_loc_%d, i32 0, i32 0\n",
+              id, llvm_len, llvm_len, id);
+
+      fprintf(context->file, "  store i8* %%str_ptr_%d, i8** %%%s_val\n", id, sym->llvm_name);
+      fprintf(context->file, "  store i32 %d, i32* %%%s_len\n\n", internal_len, sym->llvm_name);
+      return;
+    }
+
+
+  }
+
+  ExprResult result = gen_expr_from_ast(context, value);
+
+  if (result.type == EXPR_FLOAT) {
+    fprintf(context->file, "  store double %s, double* %%%s\n\n", result.value, sym->llvm_name);
+  } else if (result.type == EXPR_INT) {
+    if (sym->type == TYPE_BOOL) {
+      fprintf(context->file, "  store i1 %s, i1* %%%s\n", result.value, sym->llvm_name);
+    } else {
+      fprintf(context->file, "  store i32 %s, i32* %%%s\n", result.value, sym->llvm_name);
+    }
+  }
+
+}
+
+
+
 Symbol *lookup_variable(CodegenContext *context, const char *name) {
   for (int i = 0; i < context->symbol_count; i++) {
     if (strcmp(context->symbols[i].name, name) == 0) {
@@ -379,8 +480,6 @@ Symbol *lookup_variable(CodegenContext *context, const char *name) {
                   VARIABLES SEGMENT -> END
 
 ---------------------------------------------------------------------------------*/
-
-
 
 /*--------------------------------------------------------------------------------
 
@@ -405,19 +504,18 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
   }
   case AST_VAR_REF: {
     char name[64];
-    snprintf(name, sizeof(name), "%.*s",
-             expr->var_ref.name_length, expr->var_ref.name);
+    snprintf(name, sizeof(name), "%.*s", expr->var_ref.name_length,
+             expr->var_ref.name);
     Symbol *sym = lookup_variable(context, name);
     int temp_id = context->temp_count++;
     const char *llvm_type = llvm_datatype(sym->type);
-    fprintf(context->file, "%%tmp_%d = load %s, %s* %%%s\n",
-            temp_id, llvm_type, llvm_type, sym->llvm_name);
+    fprintf(context->file, "%%tmp_%d = load %s, %s* %%%s\n", temp_id, llvm_type,
+            llvm_type, sym->llvm_name);
     ExprResult result;
     result.type = (sym->type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
     snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
     return result;
-}
-
+  }
 
   default:
     fprintf(stderr, "Unsupported expression AST node.\n");
@@ -573,66 +671,75 @@ void gen_println_expr(CodegenContext *context, ExprResult result) {
           result.value);
 }
 
-
 static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
   int id = context->string_constant_count++;
   int temp_id = context->temp_count++;
 
   // Load the i1 value from the variable
   fprintf(context->file, "; Load bool variable and print as true/false\n");
-  fprintf(context->file, "%%tmp_%d = load i1, i1* %%%s\n", temp_id, sym->llvm_name);
+  fprintf(context->file, "%%tmp_%d = load i1, i1* %%%s\n", temp_id,
+          sym->llvm_name);
 
   // Allocate "true\n\0" and "false\n\0"
   fprintf(context->file, "%%bool_true_%d = alloca [6 x i8]\n", id);
-  fprintf(context->file, "store [6 x i8] c\"true\\0A\\00\", [6 x i8]* %%bool_true_%d\n", id);
+  fprintf(context->file,
+          "store [6 x i8] c\"true\\0A\\00\", [6 x i8]* %%bool_true_%d\n", id);
   fprintf(context->file,
           "%%bool_true_ptr_%d = getelementptr inbounds [6 x i8], [6 x i8]* "
-          "%%bool_true_%d, i32 0, i32 0\n", id, id);
+          "%%bool_true_%d, i32 0, i32 0\n",
+          id, id);
 
   fprintf(context->file, "%%bool_false_%d = alloca [7 x i8]\n", id);
-  fprintf(context->file, "store [7 x i8] c\"false\\0A\\00\", [7 x i8]* %%bool_false_%d\n", id);
+  fprintf(context->file,
+          "store [7 x i8] c\"false\\0A\\00\", [7 x i8]* %%bool_false_%d\n", id);
   fprintf(context->file,
           "%%bool_false_ptr_%d = getelementptr inbounds [7 x i8], [7 x i8]* "
-          "%%bool_false_%d, i32 0, i32 0\n", id, id);
+          "%%bool_false_%d, i32 0, i32 0\n",
+          id, id);
 
   // Branch on the i1 value
-  fprintf(context->file, "br i1 %%tmp_%d, label %%bool_true_lbl_%d, label %%bool_false_lbl_%d\n",
-          temp_id, id, id);
+  fprintf(
+      context->file,
+      "br i1 %%tmp_%d, label %%bool_true_lbl_%d, label %%bool_false_lbl_%d\n",
+      temp_id, id, id);
 
   fprintf(context->file, "bool_true_lbl_%d:\n", id);
-  fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%bool_true_ptr_%d)\n", id);
+  fprintf(context->file,
+          "call i32 (i8*, ...) @printf(i8* %%bool_true_ptr_%d)\n", id);
   fprintf(context->file, "br label %%bool_end_%d\n", id);
 
   fprintf(context->file, "bool_false_lbl_%d:\n", id);
-  fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%bool_false_ptr_%d)\n", id);
+  fprintf(context->file,
+          "call i32 (i8*, ...) @printf(i8* %%bool_false_ptr_%d)\n", id);
   fprintf(context->file, "br label %%bool_end_%d\n", id);
 
   fprintf(context->file, "bool_end_%d:\n", id);
 }
 
-
 void gen_println_variable(CodegenContext *context, char *name) {
   Symbol *sym = lookup_variable(context, name);
 
-  
   if (sym->type == TYPE_STRING) {
     int id = context->string_constant_count++;
     int temp_id = context->temp_count++;
     fprintf(context->file, "; Print string variable\n");
     fprintf(context->file, "%%str_fmt_%d = alloca [4 x i8]\n", id);
-    fprintf(context->file, "store [4 x i8] c\"%%s\\0A\\00\", [4 x i8]* %%str_fmt_%d\n", id);
+    fprintf(context->file,
+            "store [4 x i8] c\"%%s\\0A\\00\", [4 x i8]* %%str_fmt_%d\n", id);
     fprintf(context->file,
             "%%str_fmt_ptr_%d = getelementptr inbounds [4 x i8], [4 x i8]* "
-            "%%str_fmt_%d, i32 0, i32 0\n", id, id);
+            "%%str_fmt_%d, i32 0, i32 0\n",
+            id, id);
     fprintf(context->file,
-            "%%str_var_ptr_%d = getelementptr inbounds [%d x i8], [%d x i8]* "
-            "%%%s, i32 0, i32 0\n", temp_id, sym->str_length, sym->str_length, sym->llvm_name);
+            "  %%str_val_load_%d = load i8*, i8** %%%s_val\n",
+            temp_id, sym->llvm_name);
     fprintf(context->file,
-            "call i32 (i8*, ...) @printf(i8* %%str_fmt_ptr_%d, i8* %%str_var_ptr_%d)\n\n",
+            "call i32 (i8*, ...) @printf(i8* %%str_fmt_ptr_%d, i8* "
+            "%%str_val_load_%d)\n\n",
             id, temp_id);
-    
+
     return;
-  } 
+  }
   const char *llvm_type = llvm_datatype(sym->type);
   int temp_id = context->temp_count++;
 
@@ -640,14 +747,14 @@ void gen_println_variable(CodegenContext *context, char *name) {
   fprintf(context->file, "  %%tmp_%d = load %s, %s* %%%s\n", temp_id, llvm_type,
           llvm_type, sym->llvm_name);
 
-  if(sym->type == TYPE_FLOAT || sym->type == TYPE_INT){
-  ExprResult result;
-  result.type = (sym->type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
-  snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
+  if (sym->type == TYPE_FLOAT || sym->type == TYPE_INT) {
+    ExprResult result;
+    result.type = (sym->type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
+    snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
 
-  gen_println_expr(context, result);
+    gen_println_expr(context, result);
 
-  }else{
+  } else {
     gen_println_bool_var(context, sym);
     return;
   }
@@ -659,10 +766,8 @@ void gen_println_variable(CodegenContext *context, char *name) {
 
 ---------------------------------------------------------------------------------*/
 
-
 /*-------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------*/
-
 
 /*--------------------------------------------------------------------------------
 

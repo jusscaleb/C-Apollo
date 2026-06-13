@@ -17,6 +17,10 @@ Supported syntax at this stage:
 - `var total = 5 + 2 * 3;` arithmetic variable declarations
 - `var result = x + 1;` variable reference in declaration RHS
 - `var sum = x + y;` variable-to-variable arithmetic declarations
+- `x = 50;` variable reassignment (any type)
+- `name = "New Apollo";` string variable reassignment (dynamic allocations)
+- `x = y;` variable-to-variable reassignment
+- `x = x + 5;` variable reassignment using arithmetic expressions
 - `println("...");` string literal output
 - `println(123);` integer literal output
 - `println(5.5);` decimal literal output
@@ -87,7 +91,7 @@ You can replace `.\main.apl` with any `.apl` file path.
 1. `src/main.c` reads the Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
 3. `src/parser.c` validates the Apollo grammar and builds AST nodes for all statements.
-4. `src/generator.c` walks the AST and writes LLVM IR to `output.ll`, covering string/integer/decimal/boolean/arithmetic output, variable allocation, variable references in expressions, and variable printing.
+4. `src/generator.c` walks the AST and writes LLVM IR to `output.ll`, covering string/integer/decimal/boolean/arithmetic output, variable allocation, variable references in expressions, variable reassignment (including dynamic strings), and variable printing.
 5. Clang compiles `output.ll` into `program.exe`.
 6. The generated program runs and prints its output.
 
@@ -98,6 +102,7 @@ Every statement and expression in Apollo passes through an AST node before codeg
 | Node | Purpose |
 |---|---|
 | `AST_VAR_DECL` | Variable declaration (`var x = ...`) |
+| `AST_VAR_ASS` | Variable reassignment (`x = ...`) |
 | `AST_PRINTLN` | Print statement (`println(...)`) |
 | `AST_LITERAL_EXPR` | A literal value (integer, float, string, bool) |
 | `AST_BINARY_EXPR` | A binary arithmetic expression (`left op right`) |
@@ -111,12 +116,11 @@ Every statement and expression in Apollo passes through an AST node before codeg
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can read source files, skip `#` line comments, declare and store variables of all supported types, reference variables inside expressions, and print both literal values and declared variables through `println`.
+Apollo is early-stage and intentionally small. It can read source files, skip `#` line comments, declare and store variables of all supported types, reassign variables (including dynamically resizing strings), reference variables inside expressions, and print both literal values and declared variables through `println`.
 
 Current limitations:
 
 - only one entrypoint function `run` is supported
 - no control flow (if, loops) yet
-- no variable reassignment yet
 
-The next natural steps are control flow, variable reassignment, multiple functions, and improving command-line options.
+The next natural steps are control flow, multiple functions, and improving command-line options.
