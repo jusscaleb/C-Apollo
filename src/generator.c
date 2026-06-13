@@ -539,9 +539,48 @@ void gen_println_expr(CodegenContext *context, ExprResult result) {
           result.value);
 }
 
+
+static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
+  int id = context->string_constant_count++;
+  int temp_id = context->temp_count++;
+
+  // Load the i1 value from the variable
+  fprintf(context->file, "; Load bool variable and print as true/false\n");
+  fprintf(context->file, "%%tmp_%d = load i1, i1* %%%s\n", temp_id, sym->llvm_name);
+
+  // Allocate "true\n\0" and "false\n\0"
+  fprintf(context->file, "%%bool_true_%d = alloca [6 x i8]\n", id);
+  fprintf(context->file, "store [6 x i8] c\"true\\0A\\00\", [6 x i8]* %%bool_true_%d\n", id);
+  fprintf(context->file,
+          "%%bool_true_ptr_%d = getelementptr inbounds [6 x i8], [6 x i8]* "
+          "%%bool_true_%d, i32 0, i32 0\n", id, id);
+
+  fprintf(context->file, "%%bool_false_%d = alloca [7 x i8]\n", id);
+  fprintf(context->file, "store [7 x i8] c\"false\\0A\\00\", [7 x i8]* %%bool_false_%d\n", id);
+  fprintf(context->file,
+          "%%bool_false_ptr_%d = getelementptr inbounds [7 x i8], [7 x i8]* "
+          "%%bool_false_%d, i32 0, i32 0\n", id, id);
+
+  // Branch on the i1 value
+  fprintf(context->file, "br i1 %%tmp_%d, label %%bool_true_lbl_%d, label %%bool_false_lbl_%d\n",
+          temp_id, id, id);
+
+  fprintf(context->file, "bool_true_lbl_%d:\n", id);
+  fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%bool_true_ptr_%d)\n", id);
+  fprintf(context->file, "br label %%bool_end_%d\n", id);
+
+  fprintf(context->file, "bool_false_lbl_%d:\n", id);
+  fprintf(context->file, "call i32 (i8*, ...) @printf(i8* %%bool_false_ptr_%d)\n", id);
+  fprintf(context->file, "br label %%bool_end_%d\n", id);
+
+  fprintf(context->file, "bool_end_%d:\n", id);
+}
+
+
 void gen_println_variable(CodegenContext *context, char *name) {
   Symbol *sym = lookup_variable(context, name);
 
+  
   if (sym->type == TYPE_STRING) {
     int id = context->string_constant_count++;
     int temp_id = context->temp_count++;
@@ -567,11 +606,17 @@ void gen_println_variable(CodegenContext *context, char *name) {
   fprintf(context->file, "  %%tmp_%d = load %s, %s* %%%s\n", temp_id, llvm_type,
           llvm_type, sym->llvm_name);
 
+  if(sym->type == TYPE_FLOAT || sym->type == TYPE_INT){
   ExprResult result;
   result.type = (sym->type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
   snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
 
   gen_println_expr(context, result);
+
+  }else{
+    gen_println_bool_var(context, sym);
+    return;
+  }
 }
 
 /*--------------------------------------------------------------------------------

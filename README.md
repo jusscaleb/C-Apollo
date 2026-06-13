@@ -4,34 +4,7 @@ Apollo is a small programming language and compiler written in C. The compiler p
 
 ## Current Language Shape
 
-```apollo
-fxn run() -> (void){
-   # This is a line comment
-   var age = 45;
-   var score = 5.5;
-   var name = "Apollo";
-   var ready = true;
-   var total = 5 + 2 * 3;
-   println("Hello from Apollo");
-   println(55);
-   println(5.192213);
-   println(5 + 5);
-   println(5.5 + 2.5);
-   println(2 + 4.5);
-   println(1 + 2 + 3 + 4);
-   println(5 + 2 * 3);
-   println(10 - 4);
-   println(6 * 7);
-   println(20 / 5);
-   println(10 % 3);
-   println(10.5 % 3.2);
-   println(age);
-   println(name);
-}
-```
-
 Supported syntax at this stage:
-
 - `fxn` function declarations
 - `run` as the program entrypoint
 - `-> (void)` return signature
@@ -130,6 +103,5 @@ Current limitations:
 - expression operands are currently literal values only (no variable references in expressions)
 - only one entrypoint function `run` is supported
 - no control flow (if, loops) yet
-- boolean variables can be declared but not printed via `println(name)` yet
 
 The next natural steps are adding variable references inside expressions, control flow, multiple functions, and improving command-line options.
