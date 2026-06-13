@@ -149,6 +149,14 @@ void var(Parser *parser, CodegenContext *context) {
   char name[64];
   sprintf(name, "%.*s", name_token.length, name_token.start);
 
+  Symbol* sym = lookup_variable(context, name);
+
+  if(sym){
+    fprintf(stderr, "Apollo  Error [Line %d], Multiple definition of variable '%s'",
+            parser->current.line, sym->llvm_name);
+    exit(1);
+  }
+
   Variable variable;
   ASTNode *value;
 
