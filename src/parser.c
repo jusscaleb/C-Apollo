@@ -1,4 +1,10 @@
-/*Structure Builder */
+/*--------------------------------------------------------------------------------
+
+                        TRAFFIC POLICE
+
+---------------------------------------------------------------------------------*/
+
+
 #include "../headers/ast.h"
 #include "../headers/defs.h"
 #include "../headers/token.h"
@@ -42,6 +48,11 @@ static ASTNode *parse_primary(Parser *parser) {
   if (token.type == TOKEN_FLOAT) {
     consume(parser, TOKEN_FLOAT, "Expected float literal.");
     return create_literal_node(token);
+  }
+
+  if (token.type == TOKEN_IDENTIFIER) {
+    consume(parser, TOKEN_IDENTIFIER, "Expected variable name.");
+    return create_var_ref_node(token.start, token.length);
   }
 
   fprintf(stderr, "Apollo Syntax Error [Line %d]: Expected expression value.\n",
@@ -115,31 +126,37 @@ static void println(Parser *parser, CodegenContext *context) {
   }
 
   case TOKEN_INT:
-  case TOKEN_FLOAT: {
+  case TOKEN_FLOAT:
+  case TOKEN_IDENTIFIER: {
     ASTNode *expr = parse_expression(parser);
     ASTNode *println_node = create_println_node(expr);
     gen_println_from_ast(context, println_node);
     break;
-  }
+}
+
 
   default: {
     char var_name[64];
-
     sprintf(var_name, "%.*s", parser->current.length, parser->current.start);
-
     Symbol *sym = lookup_variable(context, var_name);
 
     if (!sym) {
       fprintf(stderr,
               "Apollo Syntax Error [Line %d]: Expected println argument. \nGot "
-              "%.*s\n",
+              "'%.*s'\n",
               parser->current.line, parser->current.length,
               parser->current.start);
       exit(1);
     }
+      ASTNode *var_ref = create_var_ref_node(parser->current.start, parser->current.length);
+      ASTNode *println_node = create_println_node(var_ref);
+      gen_println_from_ast(context, println_node);
+      advance(parser);
 
-    gen_println_variable(context, var_name);
-    advance(parser);
+      return;
+      
+
+
   }
   }
 
@@ -164,11 +181,12 @@ void var(Parser *parser, CodegenContext *context) {
 
   switch (parser->current.type) {
   case TOKEN_INT:
-  case TOKEN_FLOAT: {
+  case TOKEN_FLOAT:
+  case TOKEN_IDENTIFIER: {
     value = parse_expression(parser);
-    variable =
-        (Variable){infer_expr_type(value), NULL, 0, parser->current.line};
-    register_variable(context, name, variable.type);
+    // Type registration is deferred to gen_var_decl_from_ast
+    // which infers the type from the ExprResult at codegen time
+    variable = (Variable){TYPE_INT, NULL, 0, parser->current.line};
     break;
   }
 
@@ -222,7 +240,7 @@ static void parse_body_statement(Parser *parser, CodegenContext *context) {
     break;
 
   default:
-    fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
+    fprintf(stderr, "Unrecognized token '%c'. [Line %d]", parser->current.type, parser->current.line);
     exit(1);
   }
 }
@@ -293,6 +311,16 @@ void compile_parse(Lexer *lexer) {
   printf("SUCCESSFUL.\n");
 }
 
+
+/*--------------------------------------------------------------------------------
+
+                                    HELPERS
+
+---------------------------------------------------------------------------------*/
+
+
+
+/*Register Variable in Symbol Table*/
 void register_variable(CodegenContext *context, const char *name,
                        datatype variable_type) {
   Symbol *sym = &context->symbols[context->symbol_count++];
@@ -300,5 +328,7 @@ void register_variable(CodegenContext *context, const char *name,
   sym->type = variable_type;
   snprintf(sym->llvm_name, sizeof(sym->llvm_name), "%s", name);
 
-  (variable_type == TYPE_STRING) ? sym->str_length = context->string_constant_count++ : 0;
+  (variable_type == TYPE_STRING)
+      ? sym->str_length = context->string_constant_count++
+      : 0;
 }

@@ -1,4 +1,10 @@
-/* Character Grouper */
+/*--------------------------------------------------------------------------------
+
+                        CHARACTER GROUPER :)
+
+---------------------------------------------------------------------------------*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -201,9 +207,6 @@ Token next_token(Lexer* lexer){
         }
 
         }
-
-
-
         while(isdigit((unsigned char)*lexer->current)){
             lexer->current++;
         }

@@ -1,3 +1,10 @@
+/*--------------------------------------------------------------------------------
+
+                         THE TRANSLATOR
+
+---------------------------------------------------------------------------------*/
+
+
 #include "../headers/arithmetic.h"
 #include "../headers/ast.h"
 #include "../headers/token.h"
@@ -53,7 +60,6 @@ void gen_function_start(CodegenContext *context, const char *name) {
 
 ---------------------------------------------------------------------------------*/
 
-/*-----------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------
 
@@ -197,6 +203,14 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
     gen_println_expr(context, result);
     return;
   }
+  if(value->Type== AST_VAR_REF){
+    char var_name[64];
+    snprintf(var_name, sizeof(var_name), "%.*s",
+             value->var_ref.name_length, value->var_ref.name);
+    gen_println_variable(context, var_name);
+
+    return;
+  }
 
   fprintf(stderr, "Unsupported value in println AST.\n");
   exit(1);
@@ -243,7 +257,6 @@ void gen_println_float(CodegenContext *context, const char *float_start,
 
 ---------------------------------------------------------------------------------*/
 
-/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------
 
@@ -314,6 +327,7 @@ static void create_var_from_expr_result(CodegenContext *context,
           llvm_name);
 }
 
+
 void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 
   if (var_node->Type != AST_VAR_DECL) {
@@ -329,13 +343,18 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 
   if (value->Type == AST_LITERAL_EXPR) {
     Token token = value->literal_expr.token;
-
+    // Register here — type is known directly from the literal token
+    datatype lit_type = (token.type == TOKEN_FLOAT) ? TYPE_FLOAT : TYPE_INT;
+    register_variable(context, name_buf, lit_type);
     create_var(context, token.start, token.length, name_buf);
     return;
   }
 
-  if (value->Type == AST_BINARY_EXPR) {
+  if (value->Type == AST_BINARY_EXPR || value->Type == AST_VAR_REF) {
     ExprResult result = gen_expr_from_ast(context, value);
+    // Infer type from the expression result and register the variable now
+    datatype inferred = (result.type == EXPR_FLOAT) ? TYPE_FLOAT : TYPE_INT;
+    register_variable(context, name_buf, inferred);
     create_var_from_expr_result(context, result, name_buf);
     return;
   }
@@ -361,7 +380,7 @@ Symbol *lookup_variable(CodegenContext *context, const char *name) {
 
 ---------------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
 
 /*--------------------------------------------------------------------------------
 
@@ -384,6 +403,21 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
     return gen_binary_expr(context, left, expr->binary_expr.operator_type,
                            right);
   }
+  case AST_VAR_REF: {
+    char name[64];
+    snprintf(name, sizeof(name), "%.*s",
+             expr->var_ref.name_length, expr->var_ref.name);
+    Symbol *sym = lookup_variable(context, name);
+    int temp_id = context->temp_count++;
+    const char *llvm_type = llvm_datatype(sym->type);
+    fprintf(context->file, "%%tmp_%d = load %s, %s* %%%s\n",
+            temp_id, llvm_type, llvm_type, sym->llvm_name);
+    ExprResult result;
+    result.type = (sym->type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
+    snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
+    return result;
+}
+
 
   default:
     fprintf(stderr, "Unsupported expression AST node.\n");

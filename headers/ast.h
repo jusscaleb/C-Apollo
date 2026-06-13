@@ -1,6 +1,11 @@
+/*--------------------------------------------------------------------------------
+
+                       ABSTACT SYNTAX TREE :)
+
+---------------------------------------------------------------------------------*/
+
 #ifndef AST_H
 #define AST_H
-
 #include "arithmetic.h"
 #include "token.h"
 #include "variables.h"
@@ -17,6 +22,8 @@ typedef enum {
 
   AST_LITERAL_EXPR,
   AST_BINARY_EXPR,
+
+  AST_VAR_REF
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -68,6 +75,12 @@ struct ASTNode {
       TokenType operator_type;
       ASTNode *right;
     } binary_expr;
+
+  
+    struct {
+      const char *name;
+      int name_length;
+    }var_ref;
   };
 };
 
@@ -78,11 +91,19 @@ ASTNode *create_var_decl_node(const char *name, int name_length,
                               datatype value_type, ASTNode *value);
 ASTNode *create_println_node(ASTNode *value);
 ASTNode *create_block_node(void);
+
+ASTNode *create_var_ref_node(const char *name, int name_length);
+
+
+
 void block_add_statement(ASTNode *block, ASTNode *statement);
 
 void gen_println_from_ast(CodegenContext *context, ASTNode *println_node);
 ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr);
 
 void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node);
+
+
+
 
 #endif

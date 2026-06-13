@@ -1,3 +1,10 @@
+/*--------------------------------------------------------------------------------
+
+                          THE NEAT FREAK :)
+
+---------------------------------------------------------------------------------*/
+
+
 #include "../headers/ast.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,4 +59,12 @@ ASTNode *create_var_decl_node(const char *name, int name_length,
   node->var_decl.value = value;
 
   return node;
+}
+
+
+ASTNode *create_var_ref_node(const char *name, int name_length) {
+    ASTNode *node = allocate_node(AST_VAR_REF);
+    node->var_ref.name = name;
+    node->var_ref.name_length = name_length;
+    return node;
 }
