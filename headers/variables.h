@@ -11,6 +11,7 @@ typedef enum {
   TYPE_CHAR,
   TYPE_FLOAT,
   TYPE_BOOL,
+  TYPE_NULL,
 } datatype;
 
 typedef struct {

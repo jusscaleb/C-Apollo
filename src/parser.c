@@ -45,12 +45,14 @@ static ASTNode *parse_primary(Parser *parser) {
     return create_literal_node(token);
   }
 
-   if (token.type == TOKEN_STRING) {
+  if (token.type == TOKEN_STRING) {
     consume(parser, TOKEN_STRING, "Expected string literal.");
     return create_literal_node(token);
   }
   if (token.type == TOKEN_BOOL || token.type == TOKEN_NULL) {
-    (token.type == TOKEN_BOOL) ? consume(parser, TOKEN_BOOL, "Expected boolean literal.") :consume(parser, TOKEN_NULL, "Expected null value literal.") ;
+    (token.type == TOKEN_BOOL)
+        ? consume(parser, TOKEN_BOOL, "Expected boolean literal.")
+        : consume(parser, TOKEN_NULL, "Expected null value literal.");
     return create_literal_node(token);
   }
 
@@ -63,6 +65,11 @@ static ASTNode *parse_primary(Parser *parser) {
     consume(parser, TOKEN_IDENTIFIER, "Expected variable name.");
     return create_var_ref_node(token.start, token.length);
   }
+
+  /*if(token.type == TOKEN_SEMICOLON){
+    token.type = TOKEN_NULL;
+    return create_var_ref_node(token.start, token.length);
+  }*/
 
   fprintf(stderr, "Apollo Syntax Error [Line %d]: Expected expression value.\n",
           parser->current.line);
@@ -119,7 +126,8 @@ static datatype infer_expr_type(ASTNode *expr) {
 
 static void println(Parser *parser, CodegenContext *context) {
   advance(parser); // Move past TOKEN_PRINTLN
-  consume(parser, TOKEN_LPARETH, "Expected open parenthesis '(' for arguments.");
+  consume(parser, TOKEN_LPARETH,
+          "Expected open parenthesis '(' for arguments.");
 
   // Parse whatever is inside the parentheses as a unified expression
   ASTNode *expr = parse_expression(parser);
@@ -127,30 +135,43 @@ static void println(Parser *parser, CodegenContext *context) {
   ASTNode *println_node = create_println_node(expr);
   gen_println_from_ast(context, println_node);
 
-  consume(parser, TOKEN_RPARETH, "Expected close parenthesis ')' after arguments.");
+  consume(parser, TOKEN_RPARETH,
+          "Expected close parenthesis ')' after arguments.");
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
 }
 
 void var(Parser *parser, CodegenContext *context) {
   advance(parser);
 
+  set declaring = false;
+
   Token name_token = parser->current;
   char name[64];
   sprintf(name, "%.*s", name_token.length, name_token.start);
 
-  consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
-  consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
-
   Variable variable;
   ASTNode *value;
 
+  consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
+
+  if (parser->current.type == TOKEN_SEMICOLON) {
+    declaring = true;
+    Token null_token = {TOKEN_NULL, "null", 4, parser->current.line};
+    value = create_literal_node(null_token);
+
+    variable = (Variable){TYPE_NULL, "null", 4, parser->current.line};
+    register_variable(context, name, variable.type);
+  }
+
+  if(!declaring)
+    consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
+
   switch (parser->current.type) {
+
   case TOKEN_INT:
   case TOKEN_FLOAT:
   case TOKEN_IDENTIFIER: {
     value = parse_expression(parser);
-    // Type registration is deferred to gen_var_decl_from_ast
-    // which infers the type from the ExprResult at codegen time
     variable = (Variable){TYPE_INT, NULL, 0, parser->current.line};
     break;
   }
@@ -169,137 +190,134 @@ void var(Parser *parser, CodegenContext *context) {
   case TOKEN_NULL:
   case TOKEN_BOOL: {
     Token value_token = parser->current;
-    variable = (Variable){TYPE_BOOL, parser->current.start,
-                          parser->current.length, parser->current.line};
-    
-    (parser->current.type == TOKEN_BOOL) ? consume(parser, TOKEN_BOOL, "Expected boolean literal for variable assignment.") :
-      consume(parser, TOKEN_NULL, "Expected boolean literal for variable assignment.");
-      
+    variable = (parser->current.type == TOKEN_BOOL)
+                   ? (Variable){TYPE_BOOL, parser->current.start,
+                                parser->current.length, parser->current.line}
+                   : (Variable){TYPE_NULL, parser->current.start,
+                                parser->current.length, parser->current.line};
+
+    (parser->current.type == TOKEN_BOOL)
+        ? consume(parser, TOKEN_BOOL,
+                  "Expected boolean literal for variable assignment.")
+        : consume(parser, TOKEN_NULL, "Expected null literal");
+
     value = create_literal_node(value_token);
     register_variable(context, name, variable.type);
     break;
   }
 
   default: {
+
+    if(!declaring){
     fprintf(stderr, "Apollo Syntax error [Line %d], expected variable value",
             parser->current.line);
     exit(1);
+
+    }
   }
   }
 
-  consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
+  
 
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
                                            variable.type, value);
 
   gen_var_decl_from_ast(context, var_node);
+  consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
 }
 
-
-void identifier(Parser *parser, CodegenContext * context){
+void identifier(Parser *parser, CodegenContext *context) {
   ASTNode *value;
 
-  //Check that identifier is a registered variable.
-    char potential_var_name[64];
-    sprintf(potential_var_name, "%.*s", parser->current.length, parser->current.start);
-    Symbol *sym = lookup_variable(context, potential_var_name);
+  char potential_var_name[64];
+  sprintf(potential_var_name, "%.*s", parser->current.length,
+          parser->current.start);
+  Symbol *sym = lookup_variable(context, potential_var_name);
 
+  if (!sym) {
+    fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
+    exit(1);
+  }
 
-    if(!sym){
-      fprintf(stderr, "Unrecognized token. [Line %d]",parser->current.line);
+  advance(parser);
+  consume(parser, TOKEN_ASSIGN, "Expected '=' after variable.");
+
+  Token t = parser->current;
+  switch (parser->current.type) {
+  case TOKEN_STRING: {
+    if (sym->type != TYPE_STRING && sym->type != TYPE_NULL) {
+      fprintf(stderr, "Incompatible assignment type. [Line %d] Got type %c",
+              parser->current.line, sym->type);
+      exit(1);
+    }
+    value = create_literal_node(t);
+    advance(parser);
+    break;
+  }
+
+  case TOKEN_INT: {
+    if (sym->type != TYPE_INT && sym->type != TYPE_NULL) {
+      fprintf(stderr, "Incompatible assignment type. [Line %d]",
+              parser->current.line);
+      exit(1);
+    }
+    value = parse_expression(parser);
+    break;
+  }
+
+  case TOKEN_FLOAT: {
+    if (sym->type != TYPE_FLOAT && sym->type != TYPE_NULL) {
+      fprintf(stderr, "Incompatible assignment type. [Line %d]",
+              parser->current.line);
+      exit(1);
+    }
+    value = parse_expression(parser);
+    break;
+  }
+
+  case TOKEN_BOOL: {
+    if (sym->type != TYPE_BOOL && sym->type != TYPE_NULL) {
+      fprintf(stderr, "Incompatible assignment type. [Line %d]. Found type %c",
+              parser->current.line, sym->type);
+      exit(1);
+    }
+    value = create_literal_node(t);
+    advance(parser);
+    break;
+  }
+
+  case TOKEN_IDENTIFIER: {
+    char id_name[64];
+    sprintf(id_name, "%.*s", parser->current.length, parser->current.start);
+    Symbol *var = lookup_variable(context, id_name);
+
+    if (!var) {
+      fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
       exit(1);
     }
 
-    
+    if (var->type != sym->type && sym->type != TYPE_NULL) {
+      fprintf(stderr, "Incompatible assignment type. [Line %d]",
+              parser->current.line);
+      exit(1);
+    }
 
+    value = parse_expression(parser);
 
-  //Check the reassignment syntax.
-  advance(parser);
-  consume(parser, TOKEN_ASSIGN , "Expected '=' after variable.");
-  
-  Token t = parser->current;
-  switch (parser->current.type) {
-    case TOKEN_STRING:
-          {
-            if(sym->type != TYPE_STRING){
-              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
-              exit(1);
-            }
-            value = create_literal_node(t);
-            advance(parser);
-            break;
-          }
-    
-    case TOKEN_INT:
-          {
-            if(sym->type != TYPE_INT){
-              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
-              exit(1);
-            }
-            value = parse_expression(parser);
-            advance(parser);
-            break;
-          }
-    
-  case TOKEN_FLOAT:
-          {
-            if(sym->type != TYPE_FLOAT){
-              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
-              exit(1);
-            }
-            value = parse_expression(parser);
-            advance(parser);
-            break;
-          }
-
-  case TOKEN_BOOL:
-          {
-            if(sym->type != TYPE_BOOL){
-              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
-              exit(1);
-            }
-            value = create_literal_node(t);
-            advance(parser);
-            break;
-          }
-    
-    case TOKEN_IDENTIFIER:
-          {
-            char id_name[64];
-            sprintf(id_name, "%.*s", parser->current.length, parser->current.start);
-            Symbol* var = lookup_variable(context, id_name);
-
-            if(!var){
-                  fprintf(stderr, "Unrecognized token. [Line %d]",parser->current.line);
-                  exit(1);
-            }
-
-
-            if(var->type != sym->type){
-              fprintf(stderr, "Incompatible assignment type. [Line %d]",parser->current.line);
-              exit(1);
-            }
-
-            value = parse_expression(parser);
-
-
-            break;
-
-          }
-    
-    default:
-          {
-              fprintf(stderr, "Invalid assignment type. [Line %d]",parser->current.line);
-              exit(1);
-          }
-    
-  
+    break;
   }
 
-  ASTNode *assign_var = create_var_assign_node(sym->llvm_name, strlen(sym->llvm_name), value);
+  default: {
+    fprintf(stderr, "Invalid assignment type. [Line %d]", parser->current.line);
+    exit(1);
+  }
+  }
+
+  ASTNode *assign_var =
+      create_var_assign_node(sym->llvm_name, strlen(sym->llvm_name), value);
   gen_var_assign_from_ast(context, assign_var);
-  consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' to terminate statement.");
-  
+  consume(parser, TOKEN_SEMICOLON,
+          "Expected trailing semicolon ';' to terminate statement.");
 }
 
 // check the body statement
@@ -314,13 +332,13 @@ static void parse_body_statement(Parser *parser, CodegenContext *context) {
     var(parser, context);
     break;
 
+  case TOKEN_NULL:
   case TOKEN_IDENTIFIER:
     identifier(parser, context);
     break;
-  
+
   default:
-    fprintf(stderr, "Unrecognized token '%c'. [Line %d]", parser->current.type,
-            parser->current.line);
+    fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.type);
     exit(1);
   }
 }
@@ -339,10 +357,8 @@ static void parse_block(Parser *parser, CodegenContext *context) {
           "Expected closing brace '}' to terminate block context.");
 }
 
-// parse_function check if the function is grammatically correct. (fxn
-// run()->(void){})
+
 void parse_function(Parser *parser, CodegenContext *context) {
-  // verifies fxn run()
   consume(parser, TOKEN_FXN, "Expected function declaration keyword 'fxn'.");
   consume(parser, TOKEN_RUN, "Expected program entrypoint name 'run'.");
   consume(parser, TOKEN_LPARETH,
@@ -350,7 +366,7 @@ void parse_function(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_RPARETH,
           "Expected closing parameter list wrapper ')'.");
 
-  // verifies the return type...
+
   consume(parser, TOKEN_ARROW, "Expected return signature pointer token '->'.");
   consume(parser, TOKEN_LPARETH,
           "Expected open parenthesis '(' around return type specification.");
@@ -359,14 +375,11 @@ void parse_function(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_RPARETH,
           "Expected closing parenthesis ')' around return type specification.");
 
-  // The full function signature is valid, so the backend can open the LLVM
-  // function.
+
   gen_function_start(context, "run");
 
-  // Parse each statement in the body and emit its matching backend code.
   parse_block(parser, context);
 
-  // Close the generated main function after the source block has been parsed.
   gen_function_end(context, true);
 }
 

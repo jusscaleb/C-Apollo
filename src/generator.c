@@ -187,11 +187,11 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
     case TOKEN_FLOAT:
       gen_println_float(context, token.start, token.length);
       break;
-
+      
     
     case TOKEN_BOOL:
     case TOKEN_NULL:
-      gen_println_bool(context, token);
+      gen_println_bool(context, token);   
       break;
 
     default:
@@ -276,7 +276,8 @@ static const char *llvm_datatype(datatype type) {
     return "double";
 
   case TYPE_BOOL:
-    return "i1";
+  case TYPE_NULL:
+    return "i8";
 
   case TYPE_CHAR:
     return "i8";
@@ -326,6 +327,13 @@ void create_var(CodegenContext *context, const char *number_start, int length,
   const char *llvm_type = llvm_datatype(sym->type);
   if (llvm_type == NULL) {
     create_string_var(context, number_start, length, llvm_name);
+
+  } else if (sym->type == TYPE_BOOL || sym->type == TYPE_NULL) {
+    fprintf(context->file, "%%%s = alloca i8\n", llvm_name);
+    int val = 2; // Default to null
+    if (strncmp(number_start, "true", length) == 0) val = 1;
+    else if (strncmp(number_start, "false", length) == 0) val = 0;
+    fprintf(context->file, "store i8 %d, i8* %%%s\n\n", val, llvm_name);
 
   } else {
     fprintf(context->file, "%%%s = alloca %s\n", llvm_name, llvm_type);
@@ -423,8 +431,8 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
       }
       if (rhs_sym->type == TYPE_BOOL) {
         int temp_bool = context->temp_count++;
-        fprintf(context->file, "  %%tmp_%d = load i1, i1* %%%s\n", temp_bool, rhs_sym->llvm_name);
-        fprintf(context->file, "  store i8 %%tmp_%d, i1* %%%s\n\n", temp_bool, sym->llvm_name);
+        fprintf(context->file, "  %%tmp_%d = load i8, i8* %%%s\n", temp_bool, rhs_sym->llvm_name);
+        fprintf(context->file, "  store i8 %%tmp_%d, i8* %%%s\n\n", temp_bool, sym->llvm_name);
         return;
       }
     }
@@ -438,6 +446,14 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
       int internal_len = token.length - 1;
       int llvm_len = internal_len + 1;
 
+      // If the variable was declared as null, its _val/_len slots don't exist yet.
+      // Allocate them now and upgrade the symbol type to TYPE_STRING.
+      if (sym->type == TYPE_NULL) {
+        fprintf(context->file, "  %%%s_val = alloca i8*\n", sym->llvm_name);
+        fprintf(context->file, "  %%%s_len = alloca i32\n", sym->llvm_name);
+        sym->type = TYPE_STRING;
+      }
+
       fprintf(context->file, "  %%str_loc_%d = alloca [%d x i8]\n", id, llvm_len);
       fprintf(context->file, "  store [%d x i8] c\"", llvm_len);
       emit_llvm_string_contents(context->file, token.start + 1, internal_len);
@@ -449,18 +465,39 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
       fprintf(context->file, "  store i8* %%str_ptr_%d, i8** %%%s_val\n", id, sym->llvm_name);
       fprintf(context->file, "  store i32 %d, i32* %%%s_len\n\n", internal_len, sym->llvm_name);
       return;
+    } else if (token.type == TOKEN_BOOL || token.type == TOKEN_NULL) {
+      int val = 2; // Default to null
+      if (token.type == TOKEN_BOOL) {
+        val = (strncmp(token.start, "true", token.length) == 0) ? 1 : 0;
+      }
+      fprintf(context->file, "  store i8 %d, i8* %%%s\n\n", val, sym->llvm_name);
+      return;
     }
-
-
   }
 
   ExprResult result = gen_expr_from_ast(context, value);
 
   if (result.type == EXPR_FLOAT) {
+    // If null, the existing i8 slot can't hold a double — allocate a new slot.
+    if (sym->type == TYPE_NULL) {
+      char new_name[72];
+      snprintf(new_name, sizeof(new_name), "%s_fslot", sym->llvm_name);
+      fprintf(context->file, "  %%%s = alloca double\n", new_name);
+      snprintf(sym->llvm_name, sizeof(sym->llvm_name), "%s", new_name);
+      sym->type = TYPE_FLOAT;
+    }
     fprintf(context->file, "  store double %s, double* %%%s\n\n", result.value, sym->llvm_name);
   } else if (result.type == EXPR_INT) {
     if (sym->type == TYPE_BOOL) {
-      fprintf(context->file, "  store i8 %s, i1* %%%s\n", result.value, sym->llvm_name);
+      fprintf(context->file, "  store i8 %s, i8* %%%s\n", result.value, sym->llvm_name);
+    } else if (sym->type == TYPE_NULL) {
+      // Null was allocated as i8 — allocate a fresh i32 slot and upgrade the symbol.
+      char new_name[72];
+      snprintf(new_name, sizeof(new_name), "%s_islot", sym->llvm_name);
+      fprintf(context->file, "  %%%s = alloca i32\n", new_name);
+      snprintf(sym->llvm_name, sizeof(sym->llvm_name), "%s", new_name);
+      sym->type = TYPE_INT;
+      fprintf(context->file, "  store i32 %s, i32* %%%s\n\n", result.value, sym->llvm_name);
     } else {
       fprintf(context->file, "  store i32 %s, i32* %%%s\n", result.value, sym->llvm_name);
     }
@@ -753,43 +790,62 @@ static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
   int id = context->string_constant_count++;
   int temp_id = context->temp_count++;
 
-  // Load the i1 value from the variable
-  fprintf(context->file, "; Load bool variable and print as true/false\n");
-  fprintf(context->file, "%%tmp_%d = load i1, i1* %%%s\n", temp_id,
+  // Load the i8 value from the variable
+  fprintf(context->file, "; Load bool variable and print as true/false/null\n");
+  fprintf(context->file, "  %%tmp_%d = load i8, i8* %%%s\n", temp_id,
           sym->llvm_name);
 
-  // Allocate "true\n\0" and "false\n\0"
-  fprintf(context->file, "%%bool_true_%d = alloca [6 x i8]\n", id);
+  // Allocate "true\n\0", "false\n\0", and "null\n\0"
+  fprintf(context->file, "  %%bool_true_%d = alloca [6 x i8]\n", id);
   fprintf(context->file,
-          "store [6 x i8] c\"true\\0A\\00\", [6 x i8]* %%bool_true_%d\n", id);
+          "  store [6 x i8] c\"true\\0A\\00\", [6 x i8]* %%bool_true_%d\n", id);
   fprintf(context->file,
-          "%%bool_true_ptr_%d = getelementptr inbounds [6 x i8], [6 x i8]* "
+          "  %%bool_true_ptr_%d = getelementptr inbounds [6 x i8], [6 x i8]* "
           "%%bool_true_%d, i32 0, i32 0\n",
           id, id);
 
-  fprintf(context->file, "%%bool_false_%d = alloca [7 x i8]\n", id);
+  fprintf(context->file, "  %%bool_false_%d = alloca [7 x i8]\n", id);
   fprintf(context->file,
-          "store [7 x i8] c\"false\\0A\\00\", [7 x i8]* %%bool_false_%d\n", id);
+          "  store [7 x i8] c\"false\\0A\\00\", [7 x i8]* %%bool_false_%d\n", id);
   fprintf(context->file,
-          "%%bool_false_ptr_%d = getelementptr inbounds [7 x i8], [7 x i8]* "
+          "  %%bool_false_ptr_%d = getelementptr inbounds [7 x i8], [7 x i8]* "
           "%%bool_false_%d, i32 0, i32 0\n",
           id, id);
 
-  // Branch on the i1 value
-  fprintf(
-      context->file,
-      "br i1 %%tmp_%d, label %%bool_true_lbl_%d, label %%bool_false_lbl_%d\n",
-      temp_id, id, id);
+  fprintf(context->file, "  %%bool_null_%d = alloca [6 x i8]\n", id);
+  fprintf(context->file,
+          "  store [6 x i8] c\"null\\0A\\00\", [6 x i8]* %%bool_null_%d\n", id);
+  fprintf(context->file,
+          "  %%bool_null_ptr_%d = getelementptr inbounds [6 x i8], [6 x i8]* "
+          "%%bool_null_%d, i32 0, i32 0\n",
+          id, id);
+
+  // Compare loaded value with 2 (null)
+  int is_null_id = context->temp_count++;
+  int is_true_id = context->temp_count++;
+
+  fprintf(context->file, "  %%tmp_%d = icmp eq i8 %%tmp_%d, 2\n", is_null_id, temp_id);
+  fprintf(context->file, "  br i1 %%tmp_%d, label %%bool_null_lbl_%d, label %%bool_not_null_lbl_%d\n\n",
+          is_null_id, id, id);
+
+  fprintf(context->file, "bool_not_null_lbl_%d:\n", id);
+  fprintf(context->file, "  %%tmp_%d = icmp eq i8 %%tmp_%d, 1\n", is_true_id, temp_id);
+  fprintf(context->file, "  br i1 %%tmp_%d, label %%bool_true_lbl_%d, label %%bool_false_lbl_%d\n\n",
+          is_true_id, id, id);
+
+  fprintf(context->file, "bool_null_lbl_%d:\n", id);
+  fprintf(context->file, "  call i32 (i8*, ...) @printf(i8* %%bool_null_ptr_%d)\n", id);
+  fprintf(context->file, "  br label %%bool_end_%d\n\n", id);
 
   fprintf(context->file, "bool_true_lbl_%d:\n", id);
   fprintf(context->file,
-          "call i32 (i8*, ...) @printf(i8* %%bool_true_ptr_%d)\n", id);
-  fprintf(context->file, "br label %%bool_end_%d\n", id);
+          "  call i32 (i8*, ...) @printf(i8* %%bool_true_ptr_%d)\n", id);
+  fprintf(context->file, "  br label %%bool_end_%d\n\n", id);
 
   fprintf(context->file, "bool_false_lbl_%d:\n", id);
   fprintf(context->file,
-          "call i32 (i8*, ...) @printf(i8* %%bool_false_ptr_%d)\n", id);
-  fprintf(context->file, "br label %%bool_end_%d\n", id);
+          "  call i32 (i8*, ...) @printf(i8* %%bool_false_ptr_%d)\n", id);
+  fprintf(context->file, "  br label %%bool_end_%d\n\n", id);
 
   fprintf(context->file, "bool_end_%d:\n", id);
 }
