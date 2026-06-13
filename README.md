@@ -2,41 +2,6 @@
 
 Apollo is a small programming language and compiler written in C. The compiler pipeline lexes and parses an Apollo program, generates LLVM IR, and uses Clang to build a native Windows executable.
 
-## Current Language Shape
-
-Supported syntax at this stage:
-- `fxn` function declarations
-- `run` as the program entrypoint
-- `-> (void)` return signature
-- block bodies with `{ ... }`
-- `#` line comments
-- `var age = 45;` integer variable declarations
-- `var name = "Apollo";` string variable declarations
-- `var score = 5.5;` decimal variable declarations
-- `var ready = true;` boolean variable declarations
-- `var total = 5 + 2 * 3;` arithmetic variable declarations
-- `var result = x + 1;` variable reference in declaration RHS
-- `var sum = x + y;` variable-to-variable arithmetic declarations
-- `x = 50;` variable reassignment (any type)
-- `name = "New Apollo";` string variable reassignment (dynamic allocations)
-- `x = y;` variable-to-variable reassignment
-- `x = x + 5;` variable reassignment using arithmetic expressions
-- `println("...");` string literal output
-- `println(123);` integer literal output
-- `println(5.5);` decimal literal output
-- `println(true);` boolean literal output
-- `println(5 + 5);` arithmetic expression output
-- `println(x + y);` variable expression output
-- `println(age);` variable output (any type)
-- chained arithmetic expressions, such as `println(1 + 2 + 3 + 4);`
-- operator precedence for `*`, `/`, and `%` before `+` and `-`
-- subtraction, multiplication, division, modulus
-- displayable string literals, including escaped quotes, newlines, tabs, and backslashes
-- unsigned integer literals
-- unsigned decimal literals, emitted as LLVM `double` values
-- mixed decimal arithmetic converts the integer side to LLVM `double`
-- decimal modulus emitted with LLVM `frem`
-
 ## Project Layout
 
 ```text
