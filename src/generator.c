@@ -218,6 +218,8 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
   fprintf(stderr, "Unsupported value in println AST.\n");
   exit(0);
 }
+
+
 // Emits LLVM that prints a single integer literal.
 void gen_println_integer(CodegenContext *context, const char *number_start,
                          int length) {

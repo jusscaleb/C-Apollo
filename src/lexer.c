@@ -17,7 +17,7 @@ const char *TokenNames[] = {
     "ARROW", "LPAREN", "RPAREN", "LBRACE",  "RBRACE",     "SEMICOLON",
     "ARROW", "INT",    "DOUB",   "FLOAT",   "ADD",        "MUL",
     "SUB",   "DIV",    "MOD",    "PRINTLN", "VAR",        "NULL",
-    "EQT",   "NEQ",    "GT",     "ST",      "GE",         "SE"};
+    "EQT",   "NEQ",    "GT",     "ST",      "GE",         "SE", "AND", "OR"};
 
 // FOR ERROR HANDLING
 void lex_error(int line, const char *message) {
@@ -50,6 +50,13 @@ static TokenType check_keyword(const char *start, int length) {
   // NULL VALUE
   if (length == 4 && strncmp(start, "null", 4) == 0)
     return TOKEN_NULL;
+
+  //Conditions
+  if(length == 3 && strncmp(start, "and", 4)==0)
+      return TOKEN_AND;
+
+  if(length == 2 && strncmp(start, "or", 2) == 0)
+      return TOKEN_OR;
 
   return TOKEN_IDENTIFIER;
 }
@@ -157,7 +164,7 @@ Token next_token(Lexer *lexer) {
       return token;
     }
 
-    lex_error(lexer->line, "Unrecognized Token");
+    lex_error(lexer->line, "Unrecognized Token. Did you mean '!='?");
     break;
   }
 
@@ -181,6 +188,26 @@ Token next_token(Lexer *lexer) {
 
     Token token = {TOKEN_ST, start, 1, lexer->line};
     return token;
+  }
+
+  case '&':{
+     if (*lexer->current == '&') {
+      lexer->current++;
+      Token token = {TOKEN_AND, start, 3, lexer->line};
+      return token;
+    }
+
+    lex_error(lexer->line, "Could not recognize token. Did you mean '&&' ?");
+  }
+
+  case '|':{
+     if (*lexer->current == '|') {
+      lexer->current++;
+      Token token = {TOKEN_OR, start, 2, lexer->line};
+      return token;
+    }
+
+    lex_error(lexer->line, "Could not recognize token. Did you mean '||'?");
   }
   }
 
