@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+static ASTNode *parse_logical_and(Parser *parser);
+
+static ASTNode *parse_logical_or(Parser *parser);
+
 // move on to next token
 static void advance(Parser *parser) {
   parser->previous = parser->current;
@@ -124,6 +128,29 @@ static ASTNode *parse_comparison(Parser *parser) {
   return left;
 }
 
+
+static ASTNode *parse_logical_and(Parser *parser) {
+  ASTNode *left = parse_comparison(parser);
+  while (parser->current.type == TOKEN_AND) {
+    TokenType operator_type = parser->current.type;
+    advance(parser);
+    ASTNode *right = parse_comparison(parser);
+    left = create_binary_node(left, operator_type, right);
+  }
+  return left;
+}
+
+static ASTNode *parse_logical_or(Parser *parser) {
+  ASTNode *left = parse_logical_and(parser);
+  while (parser->current.type == TOKEN_OR) {
+    TokenType operator_type = parser->current.type;
+    advance(parser);
+    ASTNode *right = parse_logical_and(parser);
+    left = create_binary_node(left, operator_type, right);
+  }
+  return left;
+}
+
 static datatype infer_expr_type(ASTNode *expr) {
   if (expr->Type == AST_LITERAL_EXPR) {
     return expr->literal_expr.token.type == TOKEN_FLOAT ? TYPE_FLOAT : TYPE_INT;
@@ -147,7 +174,7 @@ static void println(Parser *parser, CodegenContext *context) {
           "Expected open parenthesis '(' for arguments.");
 
   // Parse whatever is inside the parentheses as a unified expression
-  ASTNode *expr = parse_comparison(parser);
+  ASTNode *expr = parse_logical_or(parser);
 
   ASTNode *println_node = create_println_node(expr);
   gen_println_from_ast(context, println_node);
@@ -197,7 +224,7 @@ void var(Parser *parser, CodegenContext *context) {
   case TOKEN_INT:
   case TOKEN_FLOAT:
   case TOKEN_IDENTIFIER: {
-    value = parse_comparison(parser);
+    value = parse_logical_or(parser);
     variable = (Variable){TYPE_INT, NULL, 0, parser->current.line};
     break;
   }

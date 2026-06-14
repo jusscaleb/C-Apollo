@@ -724,6 +724,16 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
     return result;
   }
 
+  if (operator_type == TOKEN_AND || operator_type == TOKEN_OR) {
+    int cmp_id = context->temp_count++;
+    const char *op = (operator_type == TOKEN_AND) ? "and" : "or";
+    fprintf(context->file, "  %%tmp_%d = %s i32 %s, %s\n", cmp_id, op,
+            left.value, right.value);
+    result.type = EXPR_BOOL;
+    snprintf(result.value, sizeof(result.value), "%%tmp_%d", cmp_id);
+    return result;
+  }
+
   // Handle comparison operators — emit icmp (int) or fcmp (float)
   switch (operator_type) {
   case TOKEN_GT:
