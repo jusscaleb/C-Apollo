@@ -82,3 +82,37 @@ ASTNode *create_concat_node(ASTNode *left, ASTNode *right) {
 
   return node;
 }
+
+ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
+                        ASTNode *else_block) {
+  ASTNode *node = allocate_node(AST_IF);
+  node->if_stmt.condition = condition;
+  node->if_stmt.then_block = then_block;
+  node->if_stmt.else_block = else_block;
+  return node;
+}
+
+ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block){
+  ASTNode *node = allocate_node(AST_WHILE);
+  node->while_lp.condition = condition;
+  node->while_lp.then_block = then_block;
+
+  return node;
+}
+
+ASTNode *create_block_node(void) {
+  ASTNode *node = allocate_node(AST_BLOCK);
+  node->block.count = 0;
+  node->block.capacity = 8;
+  node->block.statements = malloc(sizeof(ASTNode*) * node->block.capacity);
+  return node;
+}
+
+void block_add_statement(ASTNode *block, ASTNode *statement) {
+  if (block->block.count >= block->block.capacity) {
+    block->block.capacity *= 2;
+    block->block.statements = realloc(block->block.statements, sizeof(ASTNode*) * block->block.capacity);
+  }
+  block->block.statements[block->block.count++] = statement;
+}
+

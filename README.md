@@ -55,9 +55,9 @@ You can replace `.\main.apl` with any `.apl` file path.
 
 1. `src/main.c` reads the Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens.
-3. `src/parser.c` validates the Apollo grammar and builds AST nodes for all statements.
-4. `src/generator.c` walks the AST and writes LLVM IR to `output.ll`, covering string/integer/decimal/boolean/arithmetic output, variable allocation, variable references in expressions, variable reassignment (including dynamic strings), and variable printing.
-5. Clang compiles `output.ll` into `program.exe`.
+3. `src/parser.c` validates the Apollo grammar and builds a structured AST for the entire program.
+4. `src/generator.c` walks the AST and writes optimized LLVM IR to `output.ll`, covering variable allocation, expressions, reassignment, printing, conditional branch control flow, and loop control flow.
+5. Clang compiles `output.ll` with `-O3` optimization into a native `program.exe`.
 6. The generated program runs and prints its output.
 
 ## AST Node Types
@@ -70,8 +70,11 @@ Every statement and expression in Apollo passes through an AST node before codeg
 | `AST_VAR_ASS` | Variable reassignment (`x = ...`) |
 | `AST_PRINTLN` | Print statement (`println(...)`) |
 | `AST_LITERAL_EXPR` | A literal value (integer, float, string, bool) |
-| `AST_BINARY_EXPR` | A binary arithmetic expression (`left op right`) |
+| `AST_BINARY_EXPR` | A binary arithmetic or logical expression (`left op right`) |
 | `AST_VAR_REF` | A reference to a declared variable by name |
+| `AST_IF` | Conditional branches (`if`, `elif`, `else`) |
+| `AST_WHILE` | Loop structures (`while`) |
+| `AST_BLOCK` | Brace-enclosed sequence of statements (`{ ... }`) |
 
 ## Requirements
 
@@ -81,11 +84,15 @@ Every statement and expression in Apollo passes through an AST node before codeg
 
 ## Status
 
-Apollo is early-stage and intentionally small. It can read source files, skip `#` line comments, declare and store variables of all supported types, reassign variables (including dynamically resizing strings), reference variables inside expressions, and print both literal values and declared variables through `println`.
+Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for high performance. It supports:
+- Variables of all supported types (integers, floats, booleans, strings, nulls)
+- Mathematical and logical expressions (`+`, `-`, `*`, `/`, `%`, `and`, `or`, `&&`, `||`)
+- Control flow (`if`, `elif`, `else` conditionals)
+- Loop structures (`while` loops)
+- Printing values and variables via `println`
 
 Current limitations:
 
 - only one entrypoint function `run` is supported
-- no control flow (if, loops) yet
 
-The next natural steps are control flow, multiple functions, and improving command-line options.
+The next natural steps are multiple functions, arrays/structs, and custom command-line options.

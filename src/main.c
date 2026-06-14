@@ -37,7 +37,7 @@ static char *read_file(const char *filename) {
 
 // Automatically runs the program after successfully compilation.
 void llvm_compilation() {
-  int result = system("clang output.ll -o program.exe");
+  int result = system("clang -O3 output.ll -o program.exe");
 
   if (result == 0) {
     printf("--- Running Apollo Program Output ---\n");

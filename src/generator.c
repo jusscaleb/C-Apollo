@@ -391,24 +391,12 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 
   if (value->Type == AST_LITERAL_EXPR) {
     Token token = value->literal_expr.token;
-    // Register here — type is known directly from the literal token
-    datatype lit_type = (token.type == TOKEN_FLOAT) ? TYPE_FLOAT : TYPE_INT;
-    register_variable(context, name_buf, lit_type);
     create_var(context, token.start, token.length, name_buf);
     return;
   }
 
   if (value->Type == AST_BINARY_EXPR || value->Type == AST_VAR_REF) {
     ExprResult result = gen_expr_from_ast(context, value);
-    // Infer type from the expression result and register the variable now
-    datatype inferred;
-    if (result.type == EXPR_FLOAT)
-      inferred = TYPE_FLOAT;
-    else if (result.type == EXPR_BOOL)
-      inferred = TYPE_BOOL;
-    else
-      inferred = TYPE_INT;
-    register_variable(context, name_buf, inferred);
     create_var_from_expr_result(context, result, name_buf);
     return;
   }
@@ -1113,6 +1101,107 @@ void gen_println_variable(CodegenContext *context, char *name) {
 /*--------------------------------------------------------------------------------
 
                   ARITHMETICS SEGMENT -> END
+
+---------------------------------------------------------------------------------*/
+
+
+/*--------------------------------------------------------------------------------
+
+                  CONTROL FLOW -> BEGIN
+
+---------------------------------------------------------------------------------*/
+
+void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
+  if (block_node == NULL || block_node->Type != AST_BLOCK) return;
+  
+  for (int i = 0; i < block_node->block.count; i++) {
+    ASTNode *stmt = block_node->block.statements[i];
+    if (stmt == NULL) continue;
+    
+    switch (stmt->Type) {
+      case AST_PRINTLN:
+        gen_println_from_ast(context, stmt);
+        break;
+      case AST_VAR_DECL:
+        gen_var_decl_from_ast(context, stmt);
+        break;
+      case AST_VAR_ASS:
+        gen_var_assign_from_ast(context, stmt);
+        break;
+      case AST_IF:
+        gen_if_from_ast(context, stmt);
+        break;
+
+      case AST_WHILE:
+        gen_while_from_ast(context, stmt);
+        break;
+
+      default:
+        fprintf(stderr, "Unsupported statement type in block codegen.\n");
+        exit(0);
+    }
+  }
+}
+
+
+void gen_while_from_ast(CodegenContext *context, ASTNode *while_node){
+  int label_id = context->temp_count++;
+
+  fprintf(context->file, "  br label %%while_cond_%d\n\n", label_id);
+
+  fprintf(context->file, "while_cond_%d:\n", label_id);
+  ExprResult cond_res = gen_expr_from_ast(context, while_node->while_lp.condition);
+  int trunc_id = context->temp_count++;
+  fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id, cond_res.value);
+  
+  fprintf(context->file, "  br i1 %%tmp_%d, label %%while_body_%d, label %%while_end_%d\n\n", 
+          trunc_id, label_id, label_id);
+
+  fprintf(context->file, "while_body_%d:\n", label_id);
+  gen_block_from_ast(context, while_node->while_lp.then_block);
+  fprintf(context->file, "  br label %%while_cond_%d\n\n", label_id);
+
+  fprintf(context->file, "while_end_%d:\n", label_id);
+}
+
+
+
+void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
+  int label_id = context->temp_count++;
+  
+  // 1. Evaluate condition
+  ExprResult cond_res = gen_expr_from_ast(context, if_node->if_stmt.condition);
+  int trunc_id = context->temp_count++;
+  fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id, cond_res.value);
+  
+  // 2. Conditional branch
+  fprintf(context->file, "  br i1 %%tmp_%d, label %%if_true_%d, label %%if_false_%d\n\n", 
+          trunc_id, label_id, label_id);
+  
+  // 3. Emit True Block and generate its statements recursively
+  fprintf(context->file, "if_true_%d:\n", label_id);
+  gen_block_from_ast(context, if_node->if_stmt.then_block);
+  fprintf(context->file, "  br label %%if_end_%d\n\n", label_id);
+  
+  // 4. Emit False Block (elif, else, or empty)
+  fprintf(context->file, "if_false_%d:\n", label_id);
+  if (if_node->if_stmt.else_block != NULL) {
+    if (if_node->if_stmt.else_block->Type == AST_IF) {
+      gen_if_from_ast(context, if_node->if_stmt.else_block); // Recursive Elif
+    } else {
+      gen_block_from_ast(context, if_node->if_stmt.else_block); // Else block
+    }
+  }
+  fprintf(context->file, "  br label %%if_end_%d\n\n", label_id);
+  
+  // 5. Emit End Block
+  fprintf(context->file, "if_end_%d:\n", label_id);
+}
+
+
+/*--------------------------------------------------------------------------------
+
+                  CONTROL FLOW -> END
 
 ---------------------------------------------------------------------------------*/
 

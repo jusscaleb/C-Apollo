@@ -28,6 +28,9 @@ typedef enum {
   AST_VAR_ASS,
 
   AST_CONCAT_STR,
+
+  AST_IF,
+  AST_WHILE,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -98,8 +101,23 @@ struct ASTNode {
 
   } str_concat;
 
+  struct {
+    ASTNode *condition;
+    ASTNode *then_block;
+    ASTNode *else_block;
+} if_stmt;
+
+struct {
+  ASTNode *condition;
+  ASTNode *then_block;
+}while_lp;
+
   };
 };
+
+
+
+
 
 
 /*--------------------------------------------------------------------------------
@@ -122,6 +140,9 @@ ASTNode *create_var_ref_node(const char *name, int name_length);
 ASTNode *create_var_assign_node(const char *name, int name_length, ASTNode *value);
 ASTNode *create_concat_node(ASTNode *left, ASTNode *right);
 
+ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block, ASTNode *else_block);
+ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block);
+
 /*--------------------------------------------------------------------------------
 
                        NODE CREATION -> END
@@ -137,5 +158,9 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr);
 
 void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node);
 void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node);
+void gen_if_from_ast(CodegenContext *context, ASTNode *if_node);
+void gen_block_from_ast(CodegenContext *context, ASTNode *block_node);
+void gen_while_from_ast(CodegenContext *context, ASTNode *while_node);
+
 
 #endif

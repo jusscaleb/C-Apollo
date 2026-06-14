@@ -16,6 +16,11 @@
 static ASTNode *parse_logical_and(Parser *parser);
 
 static ASTNode *parse_logical_or(Parser *parser);
+static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
+static ASTNode *parse_block(Parser *parser, CodegenContext *context);
+
+
+
 
 // move on to next token
 static void advance(Parser *parser) {
@@ -151,24 +156,37 @@ static ASTNode *parse_logical_or(Parser *parser) {
   return left;
 }
 
-static datatype infer_expr_type(ASTNode *expr) {
+static datatype infer_expr_type(CodegenContext *context, ASTNode *expr) {
   if (expr->Type == AST_LITERAL_EXPR) {
-    return expr->literal_expr.token.type == TOKEN_FLOAT ? TYPE_FLOAT : TYPE_INT;
+    if (expr->literal_expr.token.type == TOKEN_FLOAT) return TYPE_FLOAT;
+    if (expr->literal_expr.token.type == TOKEN_BOOL) return TYPE_BOOL;
+    if (expr->literal_expr.token.type == TOKEN_NULL) return TYPE_NULL;
+    return TYPE_INT;
   }
 
   if (expr->Type == AST_BINARY_EXPR) {
-    datatype left_type = infer_expr_type(expr->binary_expr.left);
-    datatype right_type = infer_expr_type(expr->binary_expr.right);
+    datatype left_type = infer_expr_type(context, expr->binary_expr.left);
+    datatype right_type = infer_expr_type(context, expr->binary_expr.right);
 
     return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT
                                                                  : TYPE_INT;
+  }
+
+  if (expr->Type == AST_VAR_REF) {
+    char var_name[64];
+    snprintf(var_name, sizeof(var_name), "%.*s", expr->var_ref.name_length,
+             expr->var_ref.name);
+    Symbol *sym = lookup_variable(context, var_name);
+    if (sym) {
+      return sym->type;
+    }
   }
 
   fprintf(stderr, "Apollo Syntax Error: Could not infer expression type.\n");
   exit(0);
 }
 
-static void println(Parser *parser, CodegenContext *context) {
+static ASTNode *println(Parser *parser, CodegenContext *context) {
   advance(parser); // Move past TOKEN_PRINTLN
   consume(parser, TOKEN_LPARETH,
           "Expected open parenthesis '(' for arguments.");
@@ -177,14 +195,14 @@ static void println(Parser *parser, CodegenContext *context) {
   ASTNode *expr = parse_logical_or(parser);
 
   ASTNode *println_node = create_println_node(expr);
-  gen_println_from_ast(context, println_node);
 
   consume(parser, TOKEN_RPARETH,
           "Expected close parenthesis ')' after arguments.");
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
+  return println_node;
 }
 
-void var(Parser *parser, CodegenContext *context) {
+ASTNode *var(Parser *parser, CodegenContext *context) {
   advance(parser);
 
   set declaring = false;
@@ -225,7 +243,9 @@ void var(Parser *parser, CodegenContext *context) {
   case TOKEN_FLOAT:
   case TOKEN_IDENTIFIER: {
     value = parse_logical_or(parser);
-    variable = (Variable){TYPE_INT, NULL, 0, parser->current.line};
+    datatype inferred = infer_expr_type(context, value);
+    variable = (Variable){inferred, NULL, 0, parser->current.line};
+    register_variable(context, name, variable.type);
     break;
   }
 
@@ -245,9 +265,9 @@ void var(Parser *parser, CodegenContext *context) {
     Token value_token = parser->current;
     variable = (parser->current.type == TOKEN_BOOL)
                    ? (Variable){TYPE_BOOL, parser->current.start,
-                                parser->current.length, parser->current.line}
+                                 parser->current.length, parser->current.line}
                    : (Variable){TYPE_NULL, parser->current.start,
-                                parser->current.length, parser->current.line};
+                                 parser->current.length, parser->current.line};
 
     (parser->current.type == TOKEN_BOOL)
         ? consume(parser, TOKEN_BOOL,
@@ -272,11 +292,11 @@ void var(Parser *parser, CodegenContext *context) {
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
                                            variable.type, value);
 
-  gen_var_decl_from_ast(context, var_node);
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
+  return var_node;
 }
 
-void identifier(Parser *parser, CodegenContext *context) {
+static ASTNode *identifier(Parser *parser, CodegenContext *context) {
   ASTNode *value;
 
   char potential_var_name[64];
@@ -311,7 +331,7 @@ void identifier(Parser *parser, CodegenContext *context) {
               parser->current.line);
       exit(0);
     }
-    value = parse_comparison(parser);
+    value = parse_logical_or(parser);
     break;
   }
 
@@ -321,7 +341,7 @@ void identifier(Parser *parser, CodegenContext *context) {
               parser->current.line);
       exit(0);
     }
-    value = parse_comparison(parser);
+    value = parse_logical_or(parser);
     break;
   }
 
@@ -352,7 +372,7 @@ void identifier(Parser *parser, CodegenContext *context) {
       exit(0);
     }
 
-    value = parse_comparison(parser);
+    value = parse_logical_or(parser);
 
     break;
   }
@@ -365,27 +385,63 @@ void identifier(Parser *parser, CodegenContext *context) {
 
   ASTNode *assign_var =
       create_var_assign_node(sym->llvm_name, strlen(sym->llvm_name), value);
-  gen_var_assign_from_ast(context, assign_var);
   consume(parser, TOKEN_SEMICOLON,
           "Expected trailing semicolon ';' to terminate statement.");
+  return assign_var;
+}
+
+
+static ASTNode *parse_block(Parser *parser, CodegenContext *context);
+
+ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
+
+  if(parser->current.type == TOKEN_WHILE){
+    advance(parser); 
+    consume(parser, TOKEN_LPARETH, "Expected '('.");
+    ASTNode *condition = parse_logical_or(parser);
+    consume(parser, TOKEN_RPARETH, "Expected ')'."); 
+    ASTNode *then_block = parse_block(parser, context);
+
+    return create_while_node(condition, then_block);
+  }
+  if (parser->current.type == TOKEN_IF || parser->current.type == TOKEN_ELIF) {
+    advance(parser); 
+    consume(parser, TOKEN_LPARETH, "Expected '('.");
+    ASTNode *condition = parse_logical_or(parser);
+    consume(parser, TOKEN_RPARETH, "Expected ')'.");
+    
+    ASTNode *then_block = parse_block(parser, context); 
+    
+    ASTNode *else_block = NULL;
+    if (parser->current.type == TOKEN_ELIF) {
+      else_block = parse_condition(parser, context); 
+    } else if (parser->current.type == TOKEN_ELSE) {
+      consume(parser, TOKEN_ELSE, "Expected 'else'.");
+      else_block = parse_block(parser, context);
+    }
+    
+    return create_if_node(condition, then_block, else_block);
+  }
+  return NULL;
 }
 
 // check the body statement
-static void parse_body_statement(Parser *parser, CodegenContext *context) {
+static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   switch (parser->current.type) {
 
   case TOKEN_PRINTLN:
-    println(parser, context);
-    break;
+    return println(parser, context);
 
   case TOKEN_VAR:
-    var(parser, context);
-    break;
+    return var(parser, context);
 
   case TOKEN_NULL:
   case TOKEN_IDENTIFIER:
-    identifier(parser, context);
-    break;
+    return identifier(parser, context);
+
+  case TOKEN_WHILE:
+  case TOKEN_IF:
+    return parse_condition(parser, context);
 
   default:
     fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.type);
@@ -394,17 +450,23 @@ static void parse_body_statement(Parser *parser, CodegenContext *context) {
 }
 
 // parse_block() checks the innard of that function.
-static void parse_block(Parser *parser, CodegenContext *context) {
+static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_LBRACE,
-          "Expected open brace '{' to begin function block definition.");
+          "Expected open brace '{' to begin block.");
+
+  ASTNode *block = create_block_node();
 
   while (parser->current.type != TOKEN_RBRACE &&
          parser->current.type != TOKEN_EOF) {
-    parse_body_statement(parser, context);
+    ASTNode *stmt = parse_body_statement(parser, context);
+    if (stmt != NULL) {
+      block_add_statement(block, stmt);
+    }
   }
 
   consume(parser, TOKEN_RBRACE,
-          "Expected closing brace '}' to terminate block context.");
+          "Expected closing brace '}' to terminate block.");
+  return block;
 }
 
 void parse_function(Parser *parser, CodegenContext *context) {
@@ -425,7 +487,8 @@ void parse_function(Parser *parser, CodegenContext *context) {
 
   gen_function_start(context, "run");
 
-  parse_block(parser, context);
+  ASTNode *body = parse_block(parser, context);
+  gen_block_from_ast(context, body);
 
   gen_function_end(context, true);
 }
