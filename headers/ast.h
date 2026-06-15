@@ -32,6 +32,7 @@ typedef enum {
   AST_IF,
   AST_WHILE,
   AST_FOR,
+  AST_CALL_FXN,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -120,6 +121,12 @@ struct {
   ASTNode* then_block;
 
 }for_lp;
+
+struct {
+  const char *name;
+  int name_length;
+  datatype return_type;
+}call_fxn;
 
   };
 };
@@ -212,6 +219,8 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block);
  */
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition, ASTNode *var_operation, ASTNode* then_block);
 
+
+ASTNode *create_fxn_call_node(char* name, int name_length, datatype return_type);
 /*--------------------------------------------------------------------------------
 
                        NODE CREATION -> END
@@ -231,6 +240,7 @@ void gen_if_from_ast(CodegenContext *context, ASTNode *if_node);
 void gen_block_from_ast(CodegenContext *context, ASTNode *block_node);
 void gen_while_from_ast(CodegenContext *context, ASTNode *while_node);
 void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
+void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node);
 
 
 #endif

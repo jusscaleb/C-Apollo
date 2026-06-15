@@ -6,12 +6,14 @@
 
 #include "../headers/ast.h"
 #include "../headers/defs.h"
+#include "../headers/functions.h"
 #include "../headers/token.h"
 #include "../headers/variables.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 
 static ASTNode *parse_logical_and(Parser *parser);
 
@@ -176,7 +178,7 @@ static datatype infer_expr_type(CodegenContext *context, ASTNode *expr) {
     char var_name[64];
     snprintf(var_name, sizeof(var_name), "%.*s", expr->var_ref.name_length,
              expr->var_ref.name);
-    Symbol *sym = lookup_variable(context, var_name);
+    Symbol *sym = lookup_token(context, var_name);
     if (sym) {
       return sym->type;
     }
@@ -211,7 +213,7 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
   char name[64];
   sprintf(name, "%.*s", name_token.length, name_token.start);
 
-  Symbol *sym = lookup_variable(context, name);
+  Symbol *sym = lookup_token(context, name);
 
   if (sym) {
     fprintf(stderr,
@@ -296,7 +298,8 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
   return var_node;
 }
 
-static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *context) {
+static ASTNode *parse_assignment_or_increment(Parser *parser,
+                                              CodegenContext *context) {
   ASTNode *value;
   set incrementation = false;
 
@@ -306,7 +309,9 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
   char potential_var_name[64];
   sprintf(potential_var_name, "%.*s", parser->current.length,
           parser->current.start);
-  Symbol *sym = lookup_variable(context, potential_var_name);
+  Symbol *sym = lookup_token(context, potential_var_name);
+
+
 
   if (!sym) {
     fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
@@ -439,7 +444,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
     case TOKEN_IDENTIFIER: {
       char id_name[64];
       sprintf(id_name, "%.*s", parser->current.length, parser->current.start);
-      Symbol *var = lookup_variable(context, id_name);
+      Symbol *var = lookup_token(context, id_name);
 
       if (!var) {
         fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
@@ -468,7 +473,24 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
   return create_var_assign_node(sym->llvm_name, strlen(sym->llvm_name), value);
 }
 
+static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context, Symbol *sym) {
+  advance(parser); // Move past function name identifier
+  consume(parser, TOKEN_LPARETH, "Expected '(' after function name.");
+  consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
+  return create_fxn_call_node((char*)sym->name, strlen(sym->name), sym->type);
+}
+
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
+  char potential_name[64];
+  snprintf(potential_name, sizeof(potential_name), "%.*s", parser->current.length, parser->current.start);
+  Symbol *sym = lookup_token(context, potential_name);
+
+  if (sym && sym->t_type == FUNC) {
+    ASTNode *call_node = parse_fxn_call(parser, context, sym);
+    consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' after function call.");
+    return call_node;
+  }
+
   ASTNode *assign_var = parse_assignment_or_increment(parser, context);
   consume(parser, TOKEN_SEMICOLON,
           "Expected trailing semicolon ';' to terminate statement.");
@@ -489,16 +511,16 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     return create_while_node(condition, then_block);
   }
 
-  if(parser->current.type == TOKEN_FOR){
+  if (parser->current.type == TOKEN_FOR) {
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('");
     ASTNode *variable = var(parser, context);
-    
-    if(variable->Type == TYPE_STRING || variable->Type == TYPE_BOOL ){
-      fprintf(stderr, "For loop variable must be int or float. [Line %d]", parser->current.line);
+
+    if (variable->Type == TYPE_STRING || variable->Type == TYPE_BOOL) {
+      fprintf(stderr, "For loop variable must be int or float. [Line %d]",
+              parser->current.line);
       exit(EXIT_FAILURE);
     }
-
 
     ASTNode *condition = parse_logical_or(parser);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after condition.");
@@ -507,7 +529,6 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
 
     ASTNode *then_block = parse_block(parser, context);
     return create_for_node(variable, condition, var_operation, then_block);
-
   }
   if (parser->current.type == TOKEN_IF || parser->current.type == TOKEN_ELIF) {
     advance(parser);
@@ -574,9 +595,59 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
   return block;
 }
 
+void function(Parser *parser, CodegenContext *context, char *name) {
+  advance(parser);
+  consume(parser, TOKEN_LPARETH,
+          "Expected parameter list wrapper starting with '('.");
+  consume(parser, TOKEN_RPARETH,
+          "Expected closing parameter list wrapper ')'.");
+
+  consume(parser, TOKEN_ARROW, "Expected return signature pointer token '->'.");
+  consume(parser, TOKEN_LPARETH,
+          "Expected open parenthesis '(' around return type specification.");
+  consume(parser, TOKEN_VOID,
+          "Expected explicit type parameter keyword 'void'.");
+  consume(parser, TOKEN_RPARETH,
+          "Expected closing parenthesis ')' around return type specification.");
+
+  gen_function_start(context, name);
+
+  ASTNode *body = parse_block(parser, context);
+  gen_block_from_ast(context, body);
+
+  gen_function_end(context, strcmp(name, "run") == 0);
+}
+
+void register_and_form_fxn(Parser *parser, CodegenContext *context) {
+    Token name_token = parser->current;
+
+    char name[64];
+    sprintf(name, "%.*s", name_token.length, name_token.start);
+    register_fxn(context, name, TYPE_NULL);
+
+    function(parser, context,name);
+
+}
+
 void parse_function(Parser *parser, CodegenContext *context) {
-  consume(parser, TOKEN_FXN, "Expected function declaration keyword 'fxn'.");
-  consume(parser, TOKEN_RUN, "Expected program entrypoint name 'run'.");
+  // consume(parser, TOKEN_FXN, "Expected function declaration keyword 'fxn'.");
+  advance(parser);
+
+  switch (parser->current.type) {
+  case TOKEN_RUN: {
+    function(parser, context, "run");
+    break;
+  }
+
+  case TOKEN_IDENTIFIER: {
+    register_and_form_fxn(parser, context);
+    break;
+  }
+
+  advance(parser);
+  }
+
+  /*consume(parser, TOKEN_RUN, "Expected program entrypoint name 'run'.");
   consume(parser, TOKEN_LPARETH,
           "Expected parameter list wrapper starting with '('.");
   consume(parser, TOKEN_RPARETH,
@@ -595,8 +666,15 @@ void parse_function(Parser *parser, CodegenContext *context) {
   ASTNode *body = parse_block(parser, context);
   gen_block_from_ast(context, body);
 
-  gen_function_end(context, true);
+  gen_function_end(context, true);*/
 }
+
+void begin(Parser *parser, CodegenContext *context) {
+  while (parser->current.type == TOKEN_FXN) {
+    parse_function(parser, context);
+  }
+}
+
 
 void compile_parse(Lexer *lexer) {
   Parser parser;
@@ -609,13 +687,14 @@ void compile_parse(Lexer *lexer) {
   codegen_init(&code_writer, "output.ll");
 
   // Now parsing the function while sharing the backend context.
-  parse_function(&parser, &code_writer);
+  begin(&parser, &code_writer);
 
   // Checks the end of the file.
   consume(
       &parser, TOKEN_EOF,
       "Unexpected trailing syntax tokens encountered after main entry block.");
 
+  fclose(code_writer.file);
   printf("SUCCESSFUL.\n");
 }
 
@@ -636,4 +715,21 @@ void register_variable(CodegenContext *context, const char *name,
   (variable_type == TYPE_STRING)
       ? sym->str_length = context->string_constant_count++
       : 0;
+
+  sym->t_type = VAR;
+}
+
+void register_fxn(CodegenContext *context, const char *name,
+                  datatype return_type) {
+
+  if(strcmp(name, "run") == 0){
+    fprintf(stderr, "Cannot redefine 'run' function.");
+    exit(EXIT_FAILURE);
+  }
+  Symbol *sym = &context->symbols[context->symbol_count++];
+  strncpy(sym->name, name, sizeof(sym->name));
+  sym->type = return_type;
+  snprintf(sym->llvm_name, sizeof(sym->llvm_name), "%s", name);
+  sym->str_length = 0;
+  sym->t_type = FUNC;
 }

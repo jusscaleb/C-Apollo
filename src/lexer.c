@@ -72,6 +72,7 @@ void lex_error(int line, const char *message) {
 static TokenType check_keyword(const char *start, int length) {
   if (length == 3 && strncmp(start, "fxn", 3) == 0)
     return TOKEN_FXN;
+  
   if (length == 3 && strncmp(start, "run", 3) == 0)
     return TOKEN_RUN;
   if (length == 4 && strncmp(start, "void", 4) == 0)

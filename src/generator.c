@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Symbol *lookup_variable(CodegenContext *context, const char *name);
+Symbol *lookup_token(CodegenContext *context, const char *name);
 static void gen_println_bool(CodegenContext *context, Token token);
 static void create_var_from_expr_result(CodegenContext *context,
                                         ExprResult result, const char *name);
@@ -54,6 +54,9 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
     case AST_FOR:
       gen_for_from_ast(context, stmt);
       break;
+    case AST_CALL_FXN:
+      gen_fxn_call_from_ast(context, stmt);
+      break;
 
     default:
       fprintf(stderr, "Unsupported statement type in block codegen.\n");
@@ -74,7 +77,6 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
     exit(EXIT_FAILURE);
   }
 
-  // Print headers and link C's native printf function for our standard I/O
   fprintf(context->file, "; --- Apollo Native Compiler Backend Output ---\n");
 
   fprintf(context->file, "declare i8* @printf(i8*, ...)\n\n");
@@ -91,7 +93,7 @@ void gen_function_start(CodegenContext *context, const char *name) {
   if (strcmp(name, "run") == 0) {
     fprintf(context->file, "define i32 @main() {\n");
   } else {
-    fprintf(context->file, "define void @%s()", name);
+    fprintf(context->file, "define void @%s() {", name);
   }
 }
 
@@ -356,7 +358,7 @@ static void create_string_var(CodegenContext *context, const char *value_start,
 void create_var(CodegenContext *context, const char *number_start, int length,
                 const char *name) {
 
-  Symbol *sym = lookup_variable(context, name);
+  Symbol *sym = lookup_token(context, name);
   char *llvm_name = sym->llvm_name;
 
   fprintf(context->file, "; Allocate integer variable slot\n");
@@ -383,7 +385,7 @@ void create_var(CodegenContext *context, const char *number_start, int length,
 
 static void create_var_from_expr_result(CodegenContext *context,
                                         ExprResult result, const char *name) {
-  Symbol *sym = lookup_variable(context, name);
+  Symbol *sym = lookup_token(context, name);
   char *llvm_name = sym->llvm_name;
 
   if (result.type == EXPR_FLOAT) {
@@ -448,7 +450,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
   snprintf(name_buf, sizeof(name_buf), "%.*s",
            assign_node->var_assign.name_length, assign_node->var_assign.name);
 
-  Symbol *sym = lookup_variable(context, name_buf);
+  Symbol *sym = lookup_token(context, name_buf);
   if (!sym) {
     fprintf(stderr, "Error: Variable '%s' not declared.\n", name_buf);
     exit(EXIT_FAILURE);
@@ -460,7 +462,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
     char rhs_name[64];
     snprintf(rhs_name, sizeof(rhs_name), "%.*s", value->var_ref.name_length,
              value->var_ref.name);
-    Symbol *rhs_sym = lookup_variable(context, rhs_name);
+    Symbol *rhs_sym = lookup_token(context, rhs_name);
 
     if (rhs_sym) {
       if (rhs_sym->type == TYPE_STRING) {
@@ -575,7 +577,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
   }
 }
 
-Symbol *lookup_variable(CodegenContext *context, const char *name) {
+Symbol *lookup_token(CodegenContext *context, const char *name) {
   for (int i = 0; i < context->symbol_count; i++) {
     if (strcmp(context->symbols[i].name, name) == 0) {
       return &context->symbols[i];
@@ -644,7 +646,7 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
     char name[64];
     snprintf(name, sizeof(name), "%.*s", expr->var_ref.name_length,
              expr->var_ref.name);
-    Symbol *sym = lookup_variable(context, name);
+    Symbol *sym = lookup_token(context, name);
     int temp_id = context->temp_count++;
 
     if (sym->type == TYPE_STRING) {
@@ -664,6 +666,30 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
     result.type = (sym->type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
     snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
     return result;
+  }
+
+  case AST_CALL_FXN: {
+    char func_name[64];
+    snprintf(func_name, sizeof(func_name), "%.*s",
+             expr->call_fxn.name_length, expr->call_fxn.name);
+    const char *llvm_type = llvm_datatype(expr->call_fxn.return_type);
+    if (llvm_type == NULL) {
+      llvm_type = "void";
+    }
+    int temp_id = context->temp_count++;
+    if (expr->call_fxn.return_type == TYPE_NULL) {
+      fprintf(context->file, "  call void @%s()\n", func_name);
+      ExprResult result;
+      result.type = EXPR_INT; // default fallback
+      snprintf(result.value, sizeof(result.value), "0");
+      return result;
+    } else {
+      fprintf(context->file, "  %%tmp_%d = call %s @%s()\n", temp_id, llvm_type, func_name);
+      ExprResult result;
+      result.type = (expr->call_fxn.return_type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
+      snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
+      return result;
+    }
   }
 
   default:
@@ -727,7 +753,6 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
     if (operator_type != TOKEN_ADD) {
       fprintf(stderr, "Error: Operator not supported for strings.\n");
       exit(EXIT_FAILURE);
-      
     }
     int total_len = left.str_len + right.str_len;
     int malloc_id = context->temp_count++;
@@ -1093,7 +1118,7 @@ static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
 }
 
 void gen_println_variable(CodegenContext *context, char *name) {
-  Symbol *sym = lookup_variable(context, name);
+  Symbol *sym = lookup_token(context, name);
 
   if (sym->type == TYPE_STRING) {
     int id = context->string_constant_count++;
@@ -1190,12 +1215,14 @@ void gen_for_from_ast(CodegenContext *context, ASTNode *for_node) {
 
   // 2. Condition block
   fprintf(context->file, "for_cond_%d:\n", label_id);
-  
+
   int trunc_id = context->temp_count++;
   if (for_node->for_lp.condtion != NULL) {
     ExprResult cond_res = gen_expr_from_ast(context, for_node->for_lp.condtion);
-    fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id, cond_res.value);
-    fprintf(context->file, "  br i1 %%tmp_%d, label %%for_body_%d, label %%for_end_%d\n\n",
+    fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id,
+            cond_res.value);
+    fprintf(context->file,
+            "  br i1 %%tmp_%d, label %%for_body_%d, label %%for_end_%d\n\n",
             trunc_id, label_id, label_id);
   } else {
     // If no condition, default to true
@@ -1207,7 +1234,7 @@ void gen_for_from_ast(CodegenContext *context, ASTNode *for_node) {
   if (for_node->for_lp.then_block != NULL) {
     gen_block_from_ast(context, for_node->for_lp.then_block);
   }
-  
+
   fprintf(context->file, "  br label %%for_step_%d\n\n", label_id);
 
   // 4. Step/Update block: var_operation
@@ -1221,6 +1248,26 @@ void gen_for_from_ast(CodegenContext *context, ASTNode *for_node) {
 
   // 5. End block
   fprintf(context->file, "for_end_%d:\n", label_id);
+}
+
+void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node) {
+  if (call_node == NULL || call_node->Type != AST_CALL_FXN)
+    return;
+
+  char func_name[64];
+  snprintf(func_name, sizeof(func_name), "%.*s",
+           call_node->call_fxn.name_length, call_node->call_fxn.name);
+
+  if (call_node->call_fxn.return_type == TYPE_NULL) {
+    fprintf(context->file, "  call void @%s()\n", func_name);
+  } else {
+    const char *llvm_type = llvm_datatype(call_node->call_fxn.return_type);
+    if (llvm_type == NULL) {
+      llvm_type = "void";
+    }
+    int temp_id = context->temp_count++;
+    fprintf(context->file, "  %%tmp_%d = call %s @%s()\n", temp_id, llvm_type, func_name);
+  }
 }
 
 void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
@@ -1279,5 +1326,4 @@ void gen_function_end(CodegenContext *context, bool is_main) {
             : fprintf(context->file, "    ret void\n");
 
   fprintf(context->file, "}\n");
-  fclose(context->file);
 }
