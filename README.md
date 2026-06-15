@@ -11,6 +11,7 @@ Apollo/
     arithmetic.h     Arithmetic expression helpers and declarations
     ast.h            AST node structures and codegen bridge declarations
     defs.h           CodegenContext struct and shared codegen declarations
+    functions.h      Function metadata and tracking declarations
     token.h          Token, Lexer, and Parser structures
     variables.h      Symbol table, variable metadata, and codegen declarations
   src/
@@ -74,7 +75,9 @@ Every statement and expression in Apollo passes through an AST node before codeg
 | `AST_VAR_REF` | A reference to a declared variable by name |
 | `AST_IF` | Conditional branches (`if`, `elif`, `else`) |
 | `AST_WHILE` | Loop structures (`while`) |
+| `AST_FOR` | Loop structures (`for` loops) |
 | `AST_BLOCK` | Brace-enclosed sequence of statements (`{ ... }`) |
+| `AST_CALL_FXN` | Call to a function (`func()`) |
 
 ## Requirements
 
@@ -88,11 +91,13 @@ Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for h
 - Variables of all supported types (integers, floats, booleans, strings, nulls)
 - Mathematical and logical expressions (`+`, `-`, `*`, `/`, `%`, `and`, `or`, `&&`, `||`)
 - Control flow (`if`, `elif`, `else` conditionals)
-- Loop structures (`while` loops)
+- Loop structures (`while` and `for` loops)
+- Function declarations (`fxn func_name() -> (void) { ... }`)
+- Function calls (`func_name();`)
 - Printing values and variables via `println`
 
 Current limitations:
+- A flat (global) symbol table scope
+- No function parameters/arguments yet
 
-- only one entrypoint function `run` is supported
-
-The next natural steps are multiple functions, arrays/structs, and custom command-line options.
+The next natural steps are local lexical scoping, parameter support, arrays/structs, and custom command-line options.
