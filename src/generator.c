@@ -24,6 +24,44 @@ static void create_var_from_expr_result(CodegenContext *context,
 
 ---------------------------------------------------------------------------------*/
 
+// AST Dictionary
+void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
+  if (block_node == NULL || block_node->Type != AST_BLOCK)
+    return;
+
+  for (int i = 0; i < block_node->block.count; i++) {
+    ASTNode *stmt = block_node->block.statements[i];
+    if (stmt == NULL)
+      continue;
+
+    switch (stmt->Type) {
+    case AST_PRINTLN:
+      gen_println_from_ast(context, stmt);
+      break;
+    case AST_VAR_DECL:
+      gen_var_decl_from_ast(context, stmt);
+      break;
+    case AST_VAR_ASS:
+      gen_var_assign_from_ast(context, stmt);
+      break;
+    case AST_IF:
+      gen_if_from_ast(context, stmt);
+      break;
+
+    case AST_WHILE:
+      gen_while_from_ast(context, stmt);
+      break;
+    case AST_FOR:
+      gen_for_from_ast(context, stmt);
+      break;
+
+    default:
+      fprintf(stderr, "Unsupported statement type in block codegen.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+}
+
 // Opens the LLVM output file and resets the counters used for generated names.
 void codegen_init(CodegenContext *context, const char *output_filename) {
   context->file = fopen(output_filename, "w");
@@ -33,7 +71,7 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
 
   if (context->file == NULL) {
     fprintf(stderr, "Could not create output file %s\n", output_filename);
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   // Print headers and link C's native printf function for our standard I/O
@@ -195,7 +233,7 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
 
     default:
       fprintf(stderr, "Unsupported literal in println AST.\n");
-      exit(0);
+      exit(EXIT_FAILURE);
     }
 
     return;
@@ -216,9 +254,8 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
   }
 
   fprintf(stderr, "Unsupported value in println AST.\n");
-  exit(0);
+  exit(EXIT_FAILURE);
 }
-
 
 // Emits LLVM that prints a single integer literal.
 void gen_println_integer(CodegenContext *context, const char *number_start,
@@ -316,7 +353,6 @@ static void create_string_var(CodegenContext *context, const char *value_start,
 }
 
 // Emits LLVM for a literal variable declaration.
-// Example: var age = 45; becomes an alloca slot plus a store into that slot.
 void create_var(CodegenContext *context, const char *number_start, int length,
                 const char *name) {
 
@@ -380,7 +416,7 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 
   if (var_node->Type != AST_VAR_DECL) {
     fprintf(stderr, "Expected variable declaration AST node.\n");
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   ASTNode *value = var_node->var_decl.value;
@@ -404,7 +440,7 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
   fprintf(
       stderr,
       "Expected literal or arithmetic expression in variable declaration.\n");
-  exit(0);
+  exit(EXIT_FAILURE);
 }
 
 void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
@@ -415,7 +451,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
   Symbol *sym = lookup_variable(context, name_buf);
   if (!sym) {
     fprintf(stderr, "Error: Variable '%s' not declared.\n", name_buf);
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   ASTNode *value = assign_node->var_assign.value;
@@ -632,7 +668,7 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
 
   default:
     fprintf(stderr, "Unsupported expression AST node.\n");
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -690,7 +726,8 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
   if (left.type == EXPR_STRING || right.type == EXPR_STRING) {
     if (operator_type != TOKEN_ADD) {
       fprintf(stderr, "Error: Operator not supported for strings.\n");
-      exit(0);
+      exit(EXIT_FAILURE);
+      
     }
     int total_len = left.str_len + right.str_len;
     int malloc_id = context->temp_count++;
@@ -847,7 +884,7 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
       break;
     default:
       fprintf(stderr, "Invalid float operator.\n");
-      exit(0);
+      exit(EXIT_FAILURE);
     }
 
     fprintf(context->file, "%%tmp_%d = %s double %s, %s\n", id, llvm_op,
@@ -880,7 +917,7 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
     break;
   default:
     fprintf(stderr, "Invalid integer operator.\n");
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   fprintf(context->file, "%%tmp_%d = %s i32 %s, %s\n", id, llvm_op, left.value,
@@ -1104,57 +1141,26 @@ void gen_println_variable(CodegenContext *context, char *name) {
 
 ---------------------------------------------------------------------------------*/
 
-
 /*--------------------------------------------------------------------------------
 
                   CONTROL FLOW -> BEGIN
 
 ---------------------------------------------------------------------------------*/
 
-void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
-  if (block_node == NULL || block_node->Type != AST_BLOCK) return;
-  
-  for (int i = 0; i < block_node->block.count; i++) {
-    ASTNode *stmt = block_node->block.statements[i];
-    if (stmt == NULL) continue;
-    
-    switch (stmt->Type) {
-      case AST_PRINTLN:
-        gen_println_from_ast(context, stmt);
-        break;
-      case AST_VAR_DECL:
-        gen_var_decl_from_ast(context, stmt);
-        break;
-      case AST_VAR_ASS:
-        gen_var_assign_from_ast(context, stmt);
-        break;
-      case AST_IF:
-        gen_if_from_ast(context, stmt);
-        break;
-
-      case AST_WHILE:
-        gen_while_from_ast(context, stmt);
-        break;
-
-      default:
-        fprintf(stderr, "Unsupported statement type in block codegen.\n");
-        exit(0);
-    }
-  }
-}
-
-
-void gen_while_from_ast(CodegenContext *context, ASTNode *while_node){
+void gen_while_from_ast(CodegenContext *context, ASTNode *while_node) {
   int label_id = context->temp_count++;
 
   fprintf(context->file, "  br label %%while_cond_%d\n\n", label_id);
 
   fprintf(context->file, "while_cond_%d:\n", label_id);
-  ExprResult cond_res = gen_expr_from_ast(context, while_node->while_lp.condition);
+  ExprResult cond_res =
+      gen_expr_from_ast(context, while_node->while_lp.condition);
   int trunc_id = context->temp_count++;
-  fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id, cond_res.value);
-  
-  fprintf(context->file, "  br i1 %%tmp_%d, label %%while_body_%d, label %%while_end_%d\n\n", 
+  fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id,
+          cond_res.value);
+
+  fprintf(context->file,
+          "  br i1 %%tmp_%d, label %%while_body_%d, label %%while_end_%d\n\n",
           trunc_id, label_id, label_id);
 
   fprintf(context->file, "while_body_%d:\n", label_id);
@@ -1164,25 +1170,78 @@ void gen_while_from_ast(CodegenContext *context, ASTNode *while_node){
   fprintf(context->file, "while_end_%d:\n", label_id);
 }
 
+void gen_for_from_ast(CodegenContext *context, ASTNode *for_node) {
+  if (for_node == NULL || for_node->Type != AST_FOR)
+    return;
 
+  int label_id = context->temp_count++;
+
+  // 1. Initializer: variable
+  if (for_node->for_lp.variable != NULL) {
+    if (for_node->for_lp.variable->Type == AST_VAR_DECL) {
+      gen_var_decl_from_ast(context, for_node->for_lp.variable);
+    } else if (for_node->for_lp.variable->Type == AST_VAR_ASS) {
+      gen_var_assign_from_ast(context, for_node->for_lp.variable);
+    }
+  }
+
+  // Branch to condition
+  fprintf(context->file, "  br label %%for_cond_%d\n\n", label_id);
+
+  // 2. Condition block
+  fprintf(context->file, "for_cond_%d:\n", label_id);
+  
+  int trunc_id = context->temp_count++;
+  if (for_node->for_lp.condtion != NULL) {
+    ExprResult cond_res = gen_expr_from_ast(context, for_node->for_lp.condtion);
+    fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id, cond_res.value);
+    fprintf(context->file, "  br i1 %%tmp_%d, label %%for_body_%d, label %%for_end_%d\n\n",
+            trunc_id, label_id, label_id);
+  } else {
+    // If no condition, default to true
+    fprintf(context->file, "  br label %%for_body_%d\n\n", label_id);
+  }
+
+  // 3. Body block
+  fprintf(context->file, "for_body_%d:\n", label_id);
+  if (for_node->for_lp.then_block != NULL) {
+    gen_block_from_ast(context, for_node->for_lp.then_block);
+  }
+  
+  fprintf(context->file, "  br label %%for_step_%d\n\n", label_id);
+
+  // 4. Step/Update block: var_operation
+  fprintf(context->file, "for_step_%d:\n", label_id);
+  if (for_node->for_lp.var_operation != NULL) {
+    if (for_node->for_lp.var_operation->Type == AST_VAR_ASS) {
+      gen_var_assign_from_ast(context, for_node->for_lp.var_operation);
+    }
+  }
+  fprintf(context->file, "  br label %%for_cond_%d\n\n", label_id);
+
+  // 5. End block
+  fprintf(context->file, "for_end_%d:\n", label_id);
+}
 
 void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
   int label_id = context->temp_count++;
-  
+
   // 1. Evaluate condition
   ExprResult cond_res = gen_expr_from_ast(context, if_node->if_stmt.condition);
   int trunc_id = context->temp_count++;
-  fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id, cond_res.value);
-  
+  fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id,
+          cond_res.value);
+
   // 2. Conditional branch
-  fprintf(context->file, "  br i1 %%tmp_%d, label %%if_true_%d, label %%if_false_%d\n\n", 
+  fprintf(context->file,
+          "  br i1 %%tmp_%d, label %%if_true_%d, label %%if_false_%d\n\n",
           trunc_id, label_id, label_id);
-  
+
   // 3. Emit True Block and generate its statements recursively
   fprintf(context->file, "if_true_%d:\n", label_id);
   gen_block_from_ast(context, if_node->if_stmt.then_block);
   fprintf(context->file, "  br label %%if_end_%d\n\n", label_id);
-  
+
   // 4. Emit False Block (elif, else, or empty)
   fprintf(context->file, "if_false_%d:\n", label_id);
   if (if_node->if_stmt.else_block != NULL) {
@@ -1193,11 +1252,10 @@ void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
     }
   }
   fprintf(context->file, "  br label %%if_end_%d\n\n", label_id);
-  
+
   // 5. Emit End Block
   fprintf(context->file, "if_end_%d:\n", label_id);
 }
-
 
 /*--------------------------------------------------------------------------------
 

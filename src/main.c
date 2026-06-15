@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 // Link our global parser orchestration entrypoint
 void compile_parse(Lexer *lexer);
 
@@ -14,7 +13,7 @@ static char *read_file(const char *filename) {
 
   if (file == NULL) {
     fprintf(stderr, "[DRIVER] Could not open source file: %s\n", filename);
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   fseek(file, 0, SEEK_END);
@@ -25,7 +24,7 @@ static char *read_file(const char *filename) {
   if (source == NULL) {
     fprintf(stderr, "[DRIVER] Could not allocate memory for source file.\n");
     fclose(file);
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   size_t bytes_read = fread(source, 1, file_size, file);
@@ -43,11 +42,11 @@ void llvm_compilation() {
     printf("--- Running Apollo Program Output ---\n");
     system(".\\program.exe");
     printf("-------------------------------------\n");
-    exit(0);
+    exit(EXIT_FAILURE);
   } else {
     fprintf(stderr,
             "[DRIVER] Compilation Error: Clang failed to build the IR.\n");
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -59,7 +58,7 @@ int main(int argc, char **argv) {
 
   if (ext == NULL || strcmp(ext, EXPECTED_EXTENSION) != 0) {
     perror("Expected an .apl file...");
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   char *source = read_file(filename);

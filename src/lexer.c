@@ -13,16 +13,56 @@
 
 // Defining the TokenNames in token.h
 const char *TokenNames[] = {
-    "EOF",     "FXN",    "RUN",    "VOID",   "IDENTIFIER", "STRING", "ARROW",
-    "LPAREN",  "RPAREN", "LBRACE", "RBRACE", "SEMICOLON",  "ARROW",  "INT",
-    "DOUB",    "FLOAT",  "ADD",    "MUL",    "SUB",        "DIV",    "MOD",
-    "PRINTLN", "VAR",    "NULL",   "EQT",    "NEQ",        "GT",     "ST",
-    "GE",      "SE",     "AND",    "OR", "IF", "ELSE", "ELIF", "WHILE"};
+    "FXN",
+    "EOF",
+    "RUN",
+    "VOID",
+    "IDENTIFIER",
+    "ARROW",
+    "STRING",
+    "LPAREN",
+    "RPAREN",
+    "LBRACE",
+    "RBRACE",
+    "SEMICOLON",
+    "INT",
+    "DOUB",
+    "FLOAT",
+    "ADD",
+    "MUL",
+    "SUB",
+    "DIV",
+    "MOD",
+    "INC",
+    "DEC",
+    "AEQ",
+    "SEQ",
+    "MEQ",
+    "DEQ",
+    "PEQ",
+    "PRINTLN",
+    "VAR",
+    "ASSIGN",
+    "BOOL",
+    "NULL",
+    "EQT",
+    "NEQ",
+    "GT",
+    "ST",
+    "GE",
+    "SE",
+    "AND",
+    "OR",
+    "IF",
+    "ELIF",
+    "ELSE",
+    "WHILE",
+    "FOR"};
 
 // FOR ERROR HANDLING
 void lex_error(int line, const char *message) {
   fprintf(stderr, "Lexical Error (Line %d): %s\n", line, message);
-  exit(0);
+  exit(EXIT_FAILURE);
 }
 
 /**
@@ -65,8 +105,13 @@ static TokenType check_keyword(const char *start, int length) {
     return TOKEN_ELSE;
   if (length == 4 && strncmp(start, "elif", 4) == 0)
     return TOKEN_ELIF;
+
+  // Loops
   if (length == 5 && strncmp(start, "while", 5) == 0)
     return TOKEN_WHILE;
+
+  if (length == 3 && strncmp(start, "for", 3) == 0)
+    return TOKEN_FOR;
 
   return TOKEN_IDENTIFIER;
 }
@@ -125,6 +170,15 @@ Token next_token(Lexer *lexer) {
       lexer->current++;
       Token token = {TOKEN_ARROW, start, 2, lexer->line};
       return token;
+    } else if (*lexer->current == '-') {
+      lexer->current++;
+      Token token = {TOKEN_DEC, start, 2, lexer->line};
+      return token;
+
+    } else if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_SEQ, start, 2, lexer->line};
+      return token;
     }
 
     Token token = {TOKEN_SUB, start, 1, lexer->line};
@@ -132,20 +186,48 @@ Token next_token(Lexer *lexer) {
   }
 
   case '+':
+    if (*lexer->current == '+') {
+      lexer->current++;
+      Token token = {TOKEN_INC, start, 2, lexer->line};
+      return token;
+
+    } else if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_AEQ, start, 2, lexer->line};
+      return token;
+    }
+
     Token token = {TOKEN_ADD, start, 1, lexer->line};
     return token;
 
   case '*': {
+
+    if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_MEQ, start, 2, lexer->line};
+      return token;
+    }
     Token token = {TOKEN_MUL, start, 1, lexer->line};
     return token;
   }
 
   case '/': {
+    if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_DEQ, start, 2, lexer->line};
+      return token;
+    }
     Token token = {TOKEN_DIV, start, 1, lexer->line};
     return token;
   }
 
   case '%': {
+    if (*lexer->current == '=') {
+      lexer->current++;
+      Token token = {TOKEN_PEQ, start, 2, lexer->line};
+      return token;
+    }
+
     Token token = {TOKEN_MOD, start, 1, lexer->line};
     return token;
   }
@@ -303,5 +385,5 @@ Token next_token(Lexer *lexer) {
   }
 
   lex_error(lexer->line, "Undefined string.");
-  exit(0);
+  exit(EXIT_FAILURE);
 }

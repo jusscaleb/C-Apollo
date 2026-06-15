@@ -31,6 +31,7 @@ typedef enum {
 
   AST_IF,
   AST_WHILE,
+  AST_FOR,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -112,12 +113,16 @@ struct {
   ASTNode *then_block;
 }while_lp;
 
+struct {
+  ASTNode* variable;
+  ASTNode* condtion;
+  ASTNode* var_operation;
+  ASTNode* then_block;
+
+}for_lp;
+
   };
 };
-
-
-
-
 
 
 /*--------------------------------------------------------------------------------
@@ -126,22 +131,86 @@ struct {
 
 ---------------------------------------------------------------------------------*/
 
-
-
+/**
+ * Creates an AST node representing a literal value.
+ * @param token The Token representing the literal (number, string, bool, null).
+ */
 ASTNode *create_literal_node(Token token);
+
+/**
+ * Creates an AST node representing a binary operation.
+ * @param left The AST node for the left operand.
+ * @param operator_type The token operator type (e.g. TOKEN_ADD, TOKEN_AND).
+ * @param right The AST node for the right operand.
+ */
 ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
                             ASTNode *right);
+
+/**
+ * Creates an AST node representing a variable declaration.
+ * @param name Pointer to the variable identifier character sequence.
+ * @param name_length Length of the variable name identifier.
+ * @param value_type The compiler datatype of the variable.
+ * @param value The AST node representing the initial value expression.
+ */
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               datatype value_type, ASTNode *value);
+
+/**
+ * Creates an AST node representing a println statement.
+ * @param value The AST node representing the expression to print.
+ */
 ASTNode *create_println_node(ASTNode *value);
+
+/**
+ * Creates an empty AST block container to hold statements.
+ */
 ASTNode *create_block_node(void);
 
+/**
+ * Creates an AST node representing a reference to a variable by name.
+ * @param name Pointer to the variable identifier.
+ * @param name_length Length of the variable name.
+ */
 ASTNode *create_var_ref_node(const char *name, int name_length);
+
+/**
+ * Creates an AST node representing a variable reassignment.
+ * @param name The LLVM-compatible name of the variable.
+ * @param name_length Length of the variable's LLVM name.
+ * @param value The AST node representing the new value expression.
+ */
 ASTNode *create_var_assign_node(const char *name, int name_length, ASTNode *value);
+
+/**
+ * Creates an AST node representing a string concatenation.
+ * @param left The AST node of the left-hand string expression.
+ * @param right The AST node of the right-hand string expression.
+ */
 ASTNode *create_concat_node(ASTNode *left, ASTNode *right);
 
+/**
+ * Creates an AST node representing conditional branching (if/elif/else).
+ * @param condition The AST node evaluating to the boolean condition.
+ * @param then_block The AST block to execute if the condition is true.
+ * @param else_block The AST block or next conditional node if the condition is false.
+ */
 ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block, ASTNode *else_block);
+
+/**
+ * Creates an AST node representing a while loop.
+ * @param condition The AST node evaluating to the loop condition.
+ * @param then_block The AST block to execute repeatedly while condition is true.
+ */
 ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block);
+
+/**
+ * Creates an AST node representing a for loop.
+ * @param variable The AST node representing loop variable initialization.
+ * @param condition The AST node representing loop continuation condition.
+ * @param var_operation The AST node representing loop variable step/update.
+ */
+ASTNode *create_for_node(ASTNode *variable, ASTNode *condition, ASTNode *var_operation, ASTNode* then_block);
 
 /*--------------------------------------------------------------------------------
 
@@ -161,6 +230,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node);
 void gen_if_from_ast(CodegenContext *context, ASTNode *if_node);
 void gen_block_from_ast(CodegenContext *context, ASTNode *block_node);
 void gen_while_from_ast(CodegenContext *context, ASTNode *while_node);
+void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
 
 
 #endif

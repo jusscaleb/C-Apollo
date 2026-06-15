@@ -13,7 +13,7 @@ static ASTNode *allocate_node(ASTNodeType type) {
 
   if (node == NULL) {
     fprintf(stderr, "Could not allocate AST node.\n");
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   node->Type = type;
@@ -92,7 +92,7 @@ ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
   return node;
 }
 
-ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block){
+ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block) {
   ASTNode *node = allocate_node(AST_WHILE);
   node->while_lp.condition = condition;
   node->while_lp.then_block = then_block;
@@ -104,15 +104,25 @@ ASTNode *create_block_node(void) {
   ASTNode *node = allocate_node(AST_BLOCK);
   node->block.count = 0;
   node->block.capacity = 8;
-  node->block.statements = malloc(sizeof(ASTNode*) * node->block.capacity);
+  node->block.statements = malloc(sizeof(ASTNode *) * node->block.capacity);
+  return node;
+}
+
+ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
+                         ASTNode *var_operation, ASTNode* then_block) {
+  ASTNode *node = allocate_node(AST_FOR);
+  node->for_lp.var_operation = var_operation;
+  node->for_lp.condtion = condition;
+  node->for_lp.variable = variable;
+  node->for_lp.then_block = then_block;
   return node;
 }
 
 void block_add_statement(ASTNode *block, ASTNode *statement) {
   if (block->block.count >= block->block.capacity) {
     block->block.capacity *= 2;
-    block->block.statements = realloc(block->block.statements, sizeof(ASTNode*) * block->block.capacity);
+    block->block.statements = realloc(
+        block->block.statements, sizeof(ASTNode *) * block->block.capacity);
   }
   block->block.statements[block->block.count++] = statement;
 }
-
