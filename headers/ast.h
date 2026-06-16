@@ -220,7 +220,15 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block);
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition, ASTNode *var_operation, ASTNode* then_block);
 
 
+/**
+ * Creates an AST node representing fxn call.
+ * @param name The AST node representing the name of the fxn.
+ * @param name_length The AST node representing the length of the name.
+ * @param return_type The AST node representing the return type of the fxn.
+ */
 ASTNode *create_fxn_call_node(char* name, int name_length, datatype return_type);
+
+
 /*--------------------------------------------------------------------------------
 
                        NODE CREATION -> END
@@ -229,7 +237,13 @@ ASTNode *create_fxn_call_node(char* name, int name_length, datatype return_type)
 
 
 
+/**
+ * Adds a new block to the AST.
+ * @param block The AST node representing the block to add.
+ * @param statement The type of statement the block falls under.
+ */
 void block_add_statement(ASTNode *block, ASTNode *statement);
+
 
 void gen_println_from_ast(CodegenContext *context, ASTNode *println_node);
 ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr);

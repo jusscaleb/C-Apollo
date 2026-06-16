@@ -20,6 +20,7 @@ Apollo/
     lexer.c          Source text to tokens
     parser.c         Syntax parser and AST builder
     generator.c      LLVM IR generator
+    memory.c         Memory management helpers (realloc, calloc, grow symbol list, free context)
   .vscode/
     tasks.json       VS Code task for running the active Apollo file
   run/               Built executable output folder
@@ -46,7 +47,7 @@ apl.exe <active-file-path> <project-root>
 ## Manual Build
 
 ```powershell
-gcc src/main.c src/lexer.c src/parser.c src/generator.c src/ast.c -o run/main.exe
+gcc src/main.c src/lexer.c src/parser.c src/generator.c src/ast.c src/memory.c -o run/main.exe
 .\run\main.exe .\main.apl
 ```
 

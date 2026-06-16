@@ -1,0 +1,67 @@
+/*--------------------------------------------------------------------------------
+
+                         RESOURCE DISTRIBUTOR
+
+---------------------------------------------------------------------------------*/
+
+
+#include "../headers/defs.h"
+#include <stdlib.h>
+
+
+
+char *realloc_space(char *value, int size) {
+  char *alloc_space = realloc(value, size);
+
+  if (alloc_space == NULL) {
+    fprintf(stderr, "Memory allocation failed");
+    exit(EXIT_FAILURE);
+  }
+  return alloc_space;
+}
+
+char *alloc_space(int num_elements, int element_size) {
+  char *alloc_space = calloc(num_elements, element_size);
+
+  if (alloc_space == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    exit(EXIT_FAILURE);
+  }
+  return alloc_space;
+}
+
+void grow_symbols_if_needed(CodegenContext *context) {
+  if (context->symbol_count >= context->symbol_capacity) {
+
+    int new_capacity =
+        context->symbol_capacity == 0 ? 8 : context->symbol_capacity * 2;
+
+    Symbol *new_symbols =
+        realloc(context->symbols, new_capacity * sizeof(Symbol));
+    if (new_symbols == NULL) {
+      fprintf(stderr,
+              "Fatal Error: Failed to allocate memory for symbol table.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    for (int i = context->symbol_capacity; i < new_capacity; i++) {
+      new_symbols[i].name = NULL;
+      new_symbols[i].llvm_name = NULL;
+    }
+
+    context->symbols = new_symbols;
+    context->symbol_capacity = new_capacity;
+  }
+}
+
+void free_codegen_context(CodegenContext *context) {
+  if (context->symbols != NULL) {
+    for (int i = 0; i < context->symbol_count; i++) {
+      free(context->symbols[i].name);
+    }
+    free(context->symbols);
+    context->symbols = NULL;
+    context->symbol_count = 0;
+    context->symbol_capacity = 0;
+  }
+}

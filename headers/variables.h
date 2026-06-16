@@ -1,6 +1,7 @@
 #ifndef VARIABLES
 #define VARIABLES
 
+
 #include <stdio.h>
 #include <string.h>
 
@@ -25,11 +26,14 @@ typedef struct {
 typedef enum{
   VAR,
   FUNC,
+  CLASS,
+  OBJ,
+  ARR,
 }token_type;
 
 typedef struct {
-  char name[64];
-  char llvm_name[64];
+  char* name;
+  char* llvm_name;
   datatype type;
   int str_length;
   token_type t_type;

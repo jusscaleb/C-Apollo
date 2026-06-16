@@ -8,6 +8,8 @@
 #include "../headers/ast.h"
 #include "../headers/token.h"
 #include "../headers/variables.h"
+#include "../headers/defs.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,6 +73,10 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
 
   context->string_constant_count = 0;
   context->temp_count = 0;
+
+  context->symbol_count = 0;
+  context->symbol_capacity = 0;
+  context->symbols = NULL;
 
   if (context->file == NULL) {
     fprintf(stderr, "Could not create output file %s\n", output_filename);
@@ -247,11 +253,13 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
     return;
   }
   if (value->Type == AST_VAR_REF) {
-    char var_name[64];
-    snprintf(var_name, sizeof(var_name), "%.*s", value->var_ref.name_length,
-             value->var_ref.name);
+    char *var_name;
+    const int NAME_LENGTH = value->var_ref.name_length;
+    char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
+    var_name = temp_alloc;
+    snprintf(var_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, value->var_ref.name);
     gen_println_variable(context, var_name);
-
+    free(var_name);
     return;
   }
 
@@ -423,13 +431,16 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 
   ASTNode *value = var_node->var_decl.value;
 
-  char name_buf[64];
-  snprintf(name_buf, sizeof(name_buf), "%.*s", var_node->var_decl.name_length,
+  char *name_buf;
+  const int NAME_LENGTH = var_node->var_decl.name_length;
+  char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
+  name_buf = temp_alloc;
+  snprintf(name_buf, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
            var_node->var_decl.name);
-
   if (value->Type == AST_LITERAL_EXPR) {
     Token token = value->literal_expr.token;
     create_var(context, token.start, token.length, name_buf);
+    free(name_buf);
     return;
   }
 
@@ -446,11 +457,15 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 }
 
 void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
-  char name_buf[64];
-  snprintf(name_buf, sizeof(name_buf), "%.*s",
-           assign_node->var_assign.name_length, assign_node->var_assign.name);
+  char *name_buf;
+  const int NAME_LENGTH = assign_node->var_assign.name_length;
+  char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
+  name_buf = temp_alloc;
+  snprintf(name_buf, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
+           assign_node->var_assign.name);
 
   Symbol *sym = lookup_token(context, name_buf);
+  free(name_buf);
   if (!sym) {
     fprintf(stderr, "Error: Variable '%s' not declared.\n", name_buf);
     exit(EXIT_FAILURE);
@@ -459,11 +474,15 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
   ASTNode *value = assign_node->var_assign.value;
 
   if (value->Type == AST_VAR_REF) {
-    char rhs_name[64];
-    snprintf(rhs_name, sizeof(rhs_name), "%.*s", value->var_ref.name_length,
+    char *rhs_name;
+    const int NAME_LENGTH = value->var_ref.name_length;
+    char *temp_alloc_rhs = alloc_space(NAME_LENGTH + 1, sizeof(char));
+    rhs_name = temp_alloc_rhs;
+    snprintf(rhs_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
              value->var_ref.name);
     Symbol *rhs_sym = lookup_token(context, rhs_name);
-
+    
+    free(rhs_name);
     if (rhs_sym) {
       if (rhs_sym->type == TYPE_STRING) {
         int temp_ptr = context->temp_count++;
@@ -643,10 +662,15 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
                            right);
   }
   case AST_VAR_REF: {
-    char name[64];
-    snprintf(name, sizeof(name), "%.*s", expr->var_ref.name_length,
+    char *name;
+    const int NAME_LENGTH = expr->var_ref.name_length;
+    char *temp_alloc_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+    name = temp_alloc_name;
+    snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
              expr->var_ref.name);
     Symbol *sym = lookup_token(context, name);
+
+    free(name);
     int temp_id = context->temp_count++;
 
     if (sym->type == TYPE_STRING) {
@@ -669,9 +693,14 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
   }
 
   case AST_CALL_FXN: {
-    char func_name[64];
-    snprintf(func_name, sizeof(func_name), "%.*s",
-             expr->call_fxn.name_length, expr->call_fxn.name);
+    char *func_name;
+    const int NAME_LENGTH = expr->call_fxn.name_length;
+    char* temp_alloc = alloc_space(NAME_LENGTH+1, sizeof(char));
+    func_name = temp_alloc;
+    snprintf(func_name, NAME_LENGTH, "%.*s",
+             NAME_LENGTH, expr->call_fxn.name);
+    
+    
     const char *llvm_type = llvm_datatype(expr->call_fxn.return_type);
     if (llvm_type == NULL) {
       llvm_type = "void";
@@ -682,14 +711,17 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
       ExprResult result;
       result.type = EXPR_INT; // default fallback
       snprintf(result.value, sizeof(result.value), "0");
+      free(func_name);
       return result;
     } else {
       fprintf(context->file, "  %%tmp_%d = call %s @%s()\n", temp_id, llvm_type, func_name);
       ExprResult result;
       result.type = (expr->call_fxn.return_type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
       snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
+      free(func_name);
       return result;
     }
+    
   }
 
   default:
@@ -864,17 +896,21 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
   bool use_float = left.type == EXPR_FLOAT || right.type == EXPR_FLOAT;
 
   if (use_float) {
-    char left_value[64];
-    char right_value[64];
+    char *left_value;
+    char *right_value;
 
     // Convert integer operands to double before mixed int/float arithmetic.
     if (left.type == EXPR_INT) {
       int cast_id = context->temp_count++;
       fprintf(context->file, "%%tmp_%d = sitofp i32 %s to double\n", cast_id,
               left.value);
-      snprintf(left_value, sizeof(left_value), "%%tmp_%d", cast_id);
+      int size = snprintf(NULL, 0, "%%tmp_%d", cast_id) + 1;
+      left_value = alloc_space(size, sizeof(char));
+      snprintf(left_value, size, "%%tmp_%d", cast_id);
     } else {
-      snprintf(left_value, sizeof(left_value), "%s", left.value);
+      int size = strlen(left.value) + 1;
+      left_value = alloc_space(size, sizeof(char));
+      snprintf(left_value, size, "%s", left.value);
     }
 
     // Convert the right side too if it is the integer part of a mixed
@@ -883,9 +919,13 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
       int cast_id = context->temp_count++;
       fprintf(context->file, "%%tmp_%d = sitofp i32 %s to double\n", cast_id,
               right.value);
-      snprintf(right_value, sizeof(right_value), "%%tmp_%d", cast_id);
+      int size = snprintf(NULL, 0, "%%tmp_%d", cast_id) + 1;
+      right_value = alloc_space(size, sizeof(char));
+      snprintf(right_value, size, "%%tmp_%d", cast_id);
     } else {
-      snprintf(right_value, sizeof(right_value), "%s", right.value);
+      int size = strlen(right.value) + 1;
+      right_value = alloc_space(size, sizeof(char));
+      snprintf(right_value, size, "%s", right.value);
     }
 
     // Choose the LLVM floating-point instruction for this Apollo operator.
@@ -914,6 +954,9 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
 
     fprintf(context->file, "%%tmp_%d = %s double %s, %s\n", id, llvm_op,
             left_value, right_value);
+
+    free(left_value);
+    free(right_value);
 
     result.type = EXPR_FLOAT;
     snprintf(result.value, sizeof(result.value), "%%tmp_%d", id);
@@ -1254,9 +1297,15 @@ void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node) {
   if (call_node == NULL || call_node->Type != AST_CALL_FXN)
     return;
 
-  char func_name[64];
-  snprintf(func_name, sizeof(func_name), "%.*s",
-           call_node->call_fxn.name_length, call_node->call_fxn.name);
+  char *func_name;
+  const int NAME_LENGTH = call_node->call_fxn.name_length;
+  char* temp_alloc = alloc_space(NAME_LENGTH+1, sizeof(char));
+
+  func_name = temp_alloc;
+
+
+  snprintf(func_name, NAME_LENGTH+1, "%.*s",
+           NAME_LENGTH+1, call_node->call_fxn.name);
 
   if (call_node->call_fxn.return_type == TYPE_NULL) {
     fprintf(context->file, "  call void @%s()\n", func_name);
@@ -1267,7 +1316,10 @@ void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node) {
     }
     int temp_id = context->temp_count++;
     fprintf(context->file, "  %%tmp_%d = call %s @%s()\n", temp_id, llvm_type, func_name);
+    
   }
+
+  free(func_name);
 }
 
 void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
