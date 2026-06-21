@@ -90,6 +90,7 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
   fprintf(context->file, "declare i8* @strcat(i8*, i8*)\n");
   fprintf(context->file, "declare i8* @strcpy(i8*, i8*)\n");
   fprintf(context->file, "declare i32 @strcmp(i8*, i8*)\n");
+  fprintf(context->file, "declare i32 @snprintf(i8*, i64, i8*, ...)\n");
 }
 
 // Emits the LLVM function header. Apollo's run() function becomes LLVM's
@@ -728,6 +729,41 @@ ExprResult make_literal_expr(Token token) {
   return result;
 }
 
+static ExprResult convert_to_string_expr(CodegenContext *context, ExprResult expr) {
+  if (expr.type == EXPR_STRING) return expr;
+
+  int fmt_id = context->string_constant_count++;
+  int buf_id = context->temp_count++;
+  int call_id = context->temp_count++;
+
+  if (expr.type == EXPR_INT) {
+    fprintf(context->file, "  %%fmt_%d = alloca [3 x i8]\n", fmt_id);
+    fprintf(context->file, "  store [3 x i8] c\"%%d\\00\", [3 x i8]* %%fmt_%d\n", fmt_id);
+    fprintf(context->file, "  %%fmt_ptr_%d = getelementptr inbounds [3 x i8], [3 x i8]* %%fmt_%d, i32 0, i32 0\n", fmt_id, fmt_id);
+    fprintf(context->file, "  %%tmp_%d = call i8* @malloc(i64 16)\n", buf_id);
+    fprintf(context->file, "  %%tmp_%d = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %%tmp_%d, i64 16, i8* %%fmt_ptr_%d, i32 %s)\n", call_id, buf_id, fmt_id, expr.value);
+    expr.str_len = 15;
+  } else if (expr.type == EXPR_FLOAT) {
+    fprintf(context->file, "  %%fmt_%d = alloca [3 x i8]\n", fmt_id);
+    fprintf(context->file, "  store [3 x i8] c\"%%f\\00\", [3 x i8]* %%fmt_%d\n", fmt_id);
+    fprintf(context->file, "  %%fmt_ptr_%d = getelementptr inbounds [3 x i8], [3 x i8]* %%fmt_%d, i32 0, i32 0\n", fmt_id, fmt_id);
+    fprintf(context->file, "  %%tmp_%d = call i8* @malloc(i64 32)\n", buf_id);
+    fprintf(context->file, "  %%tmp_%d = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %%tmp_%d, i64 32, i8* %%fmt_ptr_%d, double %s)\n", call_id, buf_id, fmt_id, expr.value);
+    expr.str_len = 31;
+  } else if (expr.type == EXPR_BOOL) {
+    fprintf(context->file, "  %%fmt_%d = alloca [3 x i8]\n", fmt_id);
+    fprintf(context->file, "  store [3 x i8] c\"%%d\\00\", [3 x i8]* %%fmt_%d\n", fmt_id);
+    fprintf(context->file, "  %%fmt_ptr_%d = getelementptr inbounds [3 x i8], [3 x i8]* %%fmt_%d, i32 0, i32 0\n", fmt_id, fmt_id);
+    fprintf(context->file, "  %%tmp_%d = call i8* @malloc(i64 16)\n", buf_id);
+    fprintf(context->file, "  %%tmp_%d = call i32 (i8*, i64, i8*, ...) @snprintf(i8* %%tmp_%d, i64 16, i8* %%fmt_ptr_%d, i32 %s)\n", call_id, buf_id, fmt_id, expr.value);
+    expr.str_len = 15;
+  }
+
+  expr.type = EXPR_STRING;
+  snprintf(expr.value, sizeof(expr.value), "%%tmp_%d", buf_id);
+  return expr;
+}
+
 // Emits LLVM for a binary arithmetic expression such as left + right.
 // Returns a new ExprResult pointing at the generated temporary value.
 ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
@@ -769,7 +805,11 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
       fprintf(stderr, "Error: Operator not supported for strings.\n");
       exit(EXIT_FAILURE);
     }
-    int total_len = left.str_len + right.str_len;
+    
+    ExprResult str_left = convert_to_string_expr(context, left);
+    ExprResult str_right = convert_to_string_expr(context, right);
+
+    int total_len = str_left.str_len + str_right.str_len;
     int malloc_id = context->temp_count++;
     int strcpy_id = context->temp_count++;
     int strcat_id = context->temp_count++;
@@ -778,10 +818,10 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
             total_len + 1);
     fprintf(context->file,
             "  %%tmp_%d = call i8* @strcpy(i8* %%tmp_%d, i8* %s)\n", strcpy_id,
-            malloc_id, left.value);
+            malloc_id, str_left.value);
     fprintf(context->file,
             "  %%tmp_%d = call i8* @strcat(i8* %%tmp_%d, i8* %s)\n", strcat_id,
-            malloc_id, right.value);
+            malloc_id, str_right.value);
 
     result.type = EXPR_STRING;
     result.str_len = total_len;

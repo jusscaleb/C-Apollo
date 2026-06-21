@@ -100,11 +100,22 @@ Every statement and expression in Apollo passes through an AST node before codeg
 Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for high performance. It supports:
 - Variables of all supported types (integers, floats, booleans, strings, nulls)
 - Mathematical and logical expressions (`+`, `-`, `*`, `/`, `%`, `and`, `or`, `&&`, `||`)
+- String concatenation (`+`), including seamless concatenation with non-string types (integers, floats, booleans)
 - Control flow (`if`, `elif`, `else` conditionals)
 - Loop structures (`while` and `for` loops)
 - Function declarations (`fxn func_name() -> (void) { ... }`)
 - Function calls (`func_name();`)
 - Printing values and variables via `println`
+
+## Testing
+
+Apollo includes an automated integration test suite written in Python, located at `tests/println.py`. This script dynamically creates temporary `.apl` test cases, compiles them via `apl.exe`, executes the built native binaries, and asserts the `stdout` against expected results.
+
+You can run the full test suite using:
+
+```powershell
+python tests/println.py
+```
 
 Current limitations:
 - A flat (global) symbol table scope
