@@ -7,6 +7,9 @@ Where the tokens used in the compiler are stored.
 #include "defs.h"
 #include <stdio.h>
 
+typedef struct errorStack errorStack;
+
+
 /*-------------TOKEN TYPES-------------*/
 typedef enum {
   TOKEN_FXN, //----------------------------------------------------------> fxn
@@ -70,6 +73,10 @@ typedef enum {
 
 } TokenType;
 
+
+
+
+
 /*-------------DEFINING THE TOKEN-------------*/
 typedef struct {
   TokenType type;    // Token type
@@ -87,6 +94,8 @@ extern const char *TokenNames[];
 typedef struct {
   const char *current;
   int line;
+  int column;
+  errorStack *errors;
 } Lexer;
 
 // Called by parser.c
@@ -97,6 +106,7 @@ typedef struct {
   Lexer *lexer;   // takes lexer details (current character, current line)
   Token current;  // takes details of the current token
   Token previous; // takes details of the previous token
+  errorStack *error;
 } Parser;
 
 #endif

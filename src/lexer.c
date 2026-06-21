@@ -4,6 +4,7 @@
 
 ---------------------------------------------------------------------------------*/
 
+#include "../headers/error.h"
 #include "../headers/token.h"
 #include <ctype.h>
 #include <stdbool.h>
@@ -13,56 +14,23 @@
 
 // Defining the TokenNames in token.h
 const char *TokenNames[] = {
-    "FXN",
-    "EOF",
-    "RUN",
-    "VOID",
-    "IDENTIFIER",
-    "ARROW",
-    "STRING",
-    "LPAREN",
-    "RPAREN",
-    "LBRACE",
-    "RBRACE",
-    "SEMICOLON",
-    "INT",
-    "DOUB",
-    "FLOAT",
-    "ADD",
-    "MUL",
-    "SUB",
-    "DIV",
-    "MOD",
-    "INC",
-    "DEC",
-    "AEQ",
-    "SEQ",
-    "MEQ",
-    "DEQ",
-    "PEQ",
-    "PRINTLN",
-    "VAR",
-    "ASSIGN",
-    "BOOL",
-    "NULL",
-    "EQT",
-    "NEQ",
-    "GT",
-    "ST",
-    "GE",
-    "SE",
-    "AND",
-    "OR",
-    "IF",
-    "ELIF",
-    "ELSE",
-    "WHILE",
-    "FOR"};
+    "FXN",    "EOF",    "RUN",    "VOID",   "IDENTIFIER", "ARROW", "STRING",
+    "LPAREN", "RPAREN", "LBRACE", "RBRACE", "SEMICOLON",  "INT",   "DOUB",
+    "FLOAT",  "ADD",    "MUL",    "SUB",    "DIV",        "MOD",   "INC",
+    "DEC",    "AEQ",    "SEQ",    "MEQ",    "DEQ",        "PEQ",   "PRINTLN",
+    "VAR",    "ASSIGN", "BOOL",   "NULL",   "EQT",        "NEQ",   "GT",
+    "ST",     "GE",     "SE",     "AND",    "OR",         "IF",    "ELIF",
+    "ELSE",   "WHILE",  "FOR"};
 
 // FOR ERROR HANDLING
-void lex_error(int line, const char *message) {
-  fprintf(stderr, "Lexical Error (Line %d): %s\n", line, message);
-  exit(EXIT_FAILURE);
+void lex_error(Lexer *lexer, const char *message, const char *got) {
+  Error *e = (Error *)alloc_space(1, sizeof(Error));
+  e->message = _strdup(message);
+  e->token.line = lexer->line;
+  e->type = LEXERROR;
+  e->got = _strdup(got);
+
+  errorStack_push(lexer->errors, e);
 }
 
 /**
@@ -72,7 +40,7 @@ void lex_error(int line, const char *message) {
 static TokenType check_keyword(const char *start, int length) {
   if (length == 3 && strncmp(start, "fxn", 3) == 0)
     return TOKEN_FXN;
-  
+
   if (length == 3 && strncmp(start, "run", 3) == 0)
     return TOKEN_RUN;
   if (length == 4 && strncmp(start, "void", 4) == 0)
@@ -124,7 +92,8 @@ Token next_token(Lexer *lexer) {
     if (*lexer->current == '\n') {
       lexer->line++;
     } // move to the next line.
-    lexer->current++; // move pointer one character forward.
+    lexer->current++;
+    lexer->column++; // move pointer one character forward.
   }
 
   // set start to current character...
@@ -133,11 +102,13 @@ Token next_token(Lexer *lexer) {
   // HIT NULL CHARACTER/ END OF PROGRAM...
   if (*lexer->current == '\0') {
     Token token = {TOKEN_EOF, start, 0, lexer->line};
+    lexer->column = 0;
     return token;
   }
 
   // read the current character and move on;
   char c = *lexer->current++;
+  lexer->column++;
 
   // using a switch to check single characters
   switch (c) {
@@ -163,21 +134,25 @@ Token next_token(Lexer *lexer) {
 
   case ';': {
     Token token = {TOKEN_SEMICOLON, start, 1, lexer->line};
+    lexer->column = 0;
     return token;
   }
 
   case '-': {
     if (*lexer->current == '>') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_ARROW, start, 2, lexer->line};
       return token;
     } else if (*lexer->current == '-') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_DEC, start, 2, lexer->line};
       return token;
 
     } else if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_SEQ, start, 2, lexer->line};
       return token;
     }
@@ -189,11 +164,13 @@ Token next_token(Lexer *lexer) {
   case '+':
     if (*lexer->current == '+') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_INC, start, 2, lexer->line};
       return token;
 
     } else if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_AEQ, start, 2, lexer->line};
       return token;
     }
@@ -205,6 +182,7 @@ Token next_token(Lexer *lexer) {
 
     if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_MEQ, start, 2, lexer->line};
       return token;
     }
@@ -215,6 +193,7 @@ Token next_token(Lexer *lexer) {
   case '/': {
     if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_DEQ, start, 2, lexer->line};
       return token;
     }
@@ -225,6 +204,7 @@ Token next_token(Lexer *lexer) {
   case '%': {
     if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_PEQ, start, 2, lexer->line};
       return token;
     }
@@ -235,6 +215,7 @@ Token next_token(Lexer *lexer) {
   case '#': {
     while (*lexer->current != '\0' && *lexer->current != '\n') {
       lexer->current++;
+      lexer->column++;
     }
 
     return next_token(lexer);
@@ -243,6 +224,7 @@ Token next_token(Lexer *lexer) {
   case '=': {
     if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_EQT, start, 2, lexer->line};
       return token;
     }
@@ -253,17 +235,20 @@ Token next_token(Lexer *lexer) {
   case '!': {
     if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_NEQ, start, 2, lexer->line};
       return token;
     }
 
-    lex_error(lexer->line, "Unrecognized Token. Did you mean '!='?");
-    break;
+    lex_error(lexer, "Unrecognized Token. Did you mean '!='?", "!");
+    Token token = {TOKEN_EOF, start, 1, lexer->line};
+    return token;
   }
 
   case '>': {
     if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_GE, start, 2, lexer->line};
       return token;
     }
@@ -275,6 +260,7 @@ Token next_token(Lexer *lexer) {
   case '<': {
     if (*lexer->current == '=') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_SE, start, 2, lexer->line};
       return token;
     }
@@ -286,21 +272,27 @@ Token next_token(Lexer *lexer) {
   case '&': {
     if (*lexer->current == '&') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_AND, start, 3, lexer->line};
       return token;
     }
 
-    lex_error(lexer->line, "Could not recognize token. Did you mean '&&' ?");
+    lex_error(lexer, "Could not recognize token. Did you mean '&&' ?", "&");
+    Token token = {TOKEN_EOF, start, 1, lexer->line};
+    return token;
   }
 
   case '|': {
     if (*lexer->current == '|') {
       lexer->current++;
+      lexer->column++;
       Token token = {TOKEN_OR, start, 2, lexer->line};
       return token;
     }
 
-    lex_error(lexer->line, "Could not recognize token. Did you mean '||'?");
+    lex_error(lexer, "Could not recognize token. Did you mean '||'?", "|");
+    Token token = {TOKEN_EOF, start, 1, lexer->line};
+    return token;
   }
   }
 
@@ -318,24 +310,42 @@ Token next_token(Lexer *lexer) {
       // Checks for escaped characters.
       if (*lexer->current == '\\') {
         lexer->current++;
+        lexer->column++;
 
         // If it reaches \0 that means it's an unterminated string.
-        if (*lexer->current == '\0')
-          lex_error(lexer->line, "Syntax Error: Unterminated String");
+        if (*lexer->current == '\0') {
+          int len = (int)(lexer->current - start);
+          char *temp = malloc(len + 1);
+          snprintf(temp, len + 1, "%.*s", len, start);
+          lex_error(lexer, "Unterminated String", temp);
+          free(temp);
+          Token token = {TOKEN_EOF, start, len, lexer->line};
+          return token;
+        }
 
         lexer->current++;
+        lexer->column++;
         continue;
       }
 
       lexer->current++;
+      lexer->column++;
     }
 
     // If it reaches \0 that means it's an unterminated string.
-    if (*lexer->current == '\0')
-      lex_error(lexer->line, "Syntax Error: Unterminated String");
+    if (*lexer->current == '\0') {
+      int len = (int)(lexer->current - start);
+      char *temp = malloc(len + 1);
+      snprintf(temp, len + 1, "%.*s", len, start);
+      lex_error(lexer, "Unterminated String", temp);
+      free(temp);
+      Token token = {TOKEN_EOF, start, len, lexer->line};
+      return token;
+    }
 
     int length = (int)(lexer->current - start);
     lexer->current++;
+    lexer->column++;
 
     Token token = {TOKEN_STRING, start, length, lexer->line};
     return token;
@@ -347,18 +357,25 @@ Token next_token(Lexer *lexer) {
 
     while (isdigit((unsigned char)*lexer->current)) {
       lexer->current++;
+      lexer->column++;
     }
 
     if (*lexer->current == '.') {
       is_float = true;
       lexer->current++;
+      lexer->column++;
 
       if (!isdigit((unsigned char)*lexer->current)) {
-        lex_error(lexer->line, "Expected value int after '.' ");
+        int len = (int)(lexer->current - start);
+        char *temp = malloc(len + 1);
+        snprintf(temp, len + 1, "%.*s", len, start);
+        lex_error(lexer, "Expected value int after '.' ", temp);
+        free(temp);
       }
     }
     while (isdigit((unsigned char)*lexer->current)) {
       lexer->current++;
+      lexer->column++;
     }
 
     int length = (int)(lexer->current - start);
@@ -371,8 +388,9 @@ Token next_token(Lexer *lexer) {
   // Catering for other types of Keywords
   if (isalpha(c) || c == '_') {
     // Could my_number_2...
-    while (isalnum(*lexer->current) || c == '_') {
+    while (isalnum((unsigned char)*lexer->current) || *lexer->current == '_') {
       lexer->current++;
+      lexer->column++;
     }
 
     // Loop will likely end at \n, \0 or ;.
@@ -385,6 +403,8 @@ Token next_token(Lexer *lexer) {
     return token;
   }
 
-  lex_error(lexer->line, "Undefined string.");
-  exit(EXIT_FAILURE);
+  char temp[2] = {c, '\0'};
+  lex_error(lexer, "Undefined string.", temp);
+  Token token = {TOKEN_EOF, start, 1, lexer->line};
+  return token;
 }

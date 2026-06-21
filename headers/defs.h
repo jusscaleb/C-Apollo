@@ -2,8 +2,13 @@
 #define DEFS_H
 
 #include "variables.h"
+
 #include <stdbool.h>
 #include <stdio.h>
+
+typedef struct errorStack errorStack;
+
+
 
 #define EXPECTED_EXTENSION ".apl"
 typedef bool set;
@@ -16,11 +21,12 @@ typedef struct CodegenContext {
   int string_constant_count;
   Symbol *symbols;
   int temp_count;
+
 } CodegenContext;
 
 char *realloc_space(char *value, int size);
 void grow_symbols_if_needed(CodegenContext *context);
-void free_codegen_context(CodegenContext *context);
+void free_codegen_context(CodegenContext *context, errorStack *s);
 char *alloc_space(int num_elements, int element_size);
 
 void codegen_init(CodegenContext *context, const char *output_filename);

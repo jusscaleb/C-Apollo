@@ -5,8 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Link our global parser orchestration entrypoint
-void compile_parse(Lexer *lexer);
+#include "../headers/error.h"
+
+void compile_parse(Lexer *lexer, errorStack *s);
 
 static char *read_file(const char *filename) {
   FILE *file = fopen(filename, "rb");
@@ -63,14 +64,28 @@ int main(int argc, char **argv) {
 
   char *source = read_file(filename);
 
+  errorStack err_stack;
+
   Lexer lexer;
   lexer.current = source;
   lexer.line = 1;
+  lexer.errors = &err_stack;
+
+  errorStack_init(&err_stack);
 
   // Pass the raw lexer configuration over to the syntax parser engine
-  compile_parse(&lexer);
+  compile_parse(&lexer, &err_stack);
+  printf("Compilation done\n");
   free(source);
 
+  printf("Found : %llu Errors\n", err_stack.size);
+  if (err_stack.size > 0) {
+    errorStack_seek(&err_stack);
+    errorStack_free(&err_stack);
+    exit(EXIT_FAILURE);
+  }
+
+  printf("SUCCESSFUL.\n");
   llvm_compilation();
 
   return 0;

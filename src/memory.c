@@ -4,11 +4,10 @@
 
 ---------------------------------------------------------------------------------*/
 
-
 #include "../headers/defs.h"
+#include "../headers/error.h"
+#include <stdio.h>
 #include <stdlib.h>
-
-
 
 char *realloc_space(char *value, int size) {
   char *alloc_space = realloc(value, size);
@@ -39,8 +38,7 @@ void grow_symbols_if_needed(CodegenContext *context) {
     Symbol *new_symbols =
         realloc(context->symbols, new_capacity * sizeof(Symbol));
     if (new_symbols == NULL) {
-      fprintf(stderr,
-              "Fatal Error: Failed to allocate memory for symbol table.\n");
+      fprintf(stderr, "FATAL: Failed to allocate memory for symbol table.\n");
       exit(EXIT_FAILURE);
     }
 
@@ -54,7 +52,7 @@ void grow_symbols_if_needed(CodegenContext *context) {
   }
 }
 
-void free_codegen_context(CodegenContext *context) {
+void free_codegen_context(CodegenContext *context, errorStack *s) {
   if (context->symbols != NULL) {
     for (int i = 0; i < context->symbol_count; i++) {
       free(context->symbols[i].name);
@@ -63,5 +61,28 @@ void free_codegen_context(CodegenContext *context) {
     context->symbols = NULL;
     context->symbol_count = 0;
     context->symbol_capacity = 0;
+  }
+}
+
+void realloc_errorStack(errorStack *s) {
+  if (s->size == s->capacity) {
+    s->capacity = (s->capacity == 0) ? 8 : s->capacity * 2;
+    s->data = (Error **)realloc(s->data, s->capacity * sizeof(Error *));
+    if (s->data == NULL) {
+      fprintf(stderr, "FATAL : Failed to realloc memory in error stack");
+      exit(EXIT_FAILURE);
+    }
+  }
+}
+
+void errorStack_free(errorStack *s) {
+  if (s->data != NULL) {
+    for (size_t i = 0; i < s->size; i++) {
+      free(s->data[i]);
+    }
+    free(s->data);
+    s->data = NULL;
+    s->size = 0;
+    s->capacity = 0;
   }
 }

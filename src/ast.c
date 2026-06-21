@@ -12,7 +12,7 @@ static ASTNode *allocate_node(ASTNodeType type) {
   ASTNode *node = malloc(sizeof(ASTNode));
 
   if (node == NULL) {
-    fprintf(stderr, "Could not allocate AST node.\n");
+    fprintf(stderr, "CRITICAL: Could not allocate AST node.\n");
     exit(EXIT_FAILURE);
   }
 
@@ -109,7 +109,7 @@ ASTNode *create_block_node(void) {
 }
 
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
-                         ASTNode *var_operation, ASTNode* then_block) {
+                         ASTNode *var_operation, ASTNode *then_block) {
   ASTNode *node = allocate_node(AST_FOR);
   node->for_lp.var_operation = var_operation;
   node->for_lp.condtion = condition;
@@ -127,8 +127,8 @@ void block_add_statement(ASTNode *block, ASTNode *statement) {
   block->block.statements[block->block.count++] = statement;
 }
 
-
-ASTNode *create_fxn_call_node(char* name, int name_length, datatype return_type){
+ASTNode *create_fxn_call_node(char *name, int name_length,
+                              datatype return_type) {
   ASTNode *node = allocate_node(AST_CALL_FXN);
 
   node->call_fxn.name = name;

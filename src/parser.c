@@ -6,6 +6,7 @@
 
 #include "../headers/ast.h"
 #include "../headers/defs.h"
+#include "../headers/error.h"
 #include "../headers/functions.h"
 #include "../headers/token.h"
 #include "../headers/variables.h"
@@ -26,7 +27,6 @@ static void advance(Parser *parser) {
   parser->current = next_token(parser->lexer);
 }
 
-// checks if given token matches expected token.
 static void consume(Parser *parser, TokenType type, const char *errorMessage) {
 
   if (parser->current.type == type) {
@@ -34,12 +34,37 @@ static void consume(Parser *parser, TokenType type, const char *errorMessage) {
     return;
   }
 
-  fprintf(stderr, "Apollo Syntax Error [Line %d]: %s\n", parser->current.line,
-          errorMessage);
-  fprintf(stderr, "Found: '%.*s' (Type: %s)\n", parser->current.length,
-          parser->current.start, TokenNames[parser->current.type]);
+  // Prevent cascaded errors at EOF if we already reported an error
+  if (parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0) {
+      return;
+  }
 
-  exit(EXIT_FAILURE);
+  error(parser, errorMessage, SYNTAXERROR);
+  advance(parser);
+}
+
+// Resynchronizes the parser after an error to avoid cascading false-positive errors
+static void synchronize(Parser *parser) {
+  advance(parser);
+
+  while (parser->current.type != TOKEN_EOF) {
+    if (parser->previous.type == TOKEN_SEMICOLON) return;
+
+    switch (parser->current.type) {
+      case TOKEN_VAR:
+      case TOKEN_FOR:
+      case TOKEN_IF:
+      case TOKEN_WHILE:
+      case TOKEN_PRINTLN:
+      case TOKEN_FXN:
+        return;
+      default:
+        // Keep advancing until a statement boundary is found
+        ;
+    }
+
+    advance(parser);
+  }
 }
 
 /*------------------ARITHMETICS------------------*/
@@ -74,9 +99,11 @@ static ASTNode *parse_primary(Parser *parser) {
     return create_var_ref_node(token.start, token.length);
   }
 
-  fprintf(stderr, "Apollo Syntax Error [Line %d]: Expected expression value.\n",
-          parser->current.line);
-  exit(EXIT_FAILURE);
+  if (!(parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0)) {
+      error(parser, "Expected expression value.", SYNTAXERROR);
+  }
+  advance(parser);
+  return NULL;
 }
 
 // Second Priority
@@ -154,7 +181,8 @@ static ASTNode *parse_logical_or(Parser *parser) {
   return left;
 }
 
-static datatype infer_expr_type(CodegenContext *context, ASTNode *expr) {
+static datatype infer_expr_type(Parser *parser, CodegenContext *context,
+                                ASTNode *expr) {
   if (expr->Type == AST_LITERAL_EXPR) {
     if (expr->literal_expr.token.type == TOKEN_FLOAT)
       return TYPE_FLOAT;
@@ -166,8 +194,10 @@ static datatype infer_expr_type(CodegenContext *context, ASTNode *expr) {
   }
 
   if (expr->Type == AST_BINARY_EXPR) {
-    datatype left_type = infer_expr_type(context, expr->binary_expr.left);
-    datatype right_type = infer_expr_type(context, expr->binary_expr.right);
+    datatype left_type =
+        infer_expr_type(parser, context, expr->binary_expr.left);
+    datatype right_type =
+        infer_expr_type(parser, context, expr->binary_expr.right);
 
     return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT
                                                                  : TYPE_INT;
@@ -176,21 +206,18 @@ static datatype infer_expr_type(CodegenContext *context, ASTNode *expr) {
   if (expr->Type == AST_VAR_REF) {
     // char var_name[64];
     const int NAME_LENGTH = expr->var_ref.name_length;
-    char *var_name;
-    char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
-    var_name = temp_alloc;
-
-    snprintf(var_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
+    char var_name[NAME_LENGTH + 1];
+    snprintf(var_name, sizeof(var_name), "%.*s", NAME_LENGTH,
              expr->var_ref.name);
     Symbol *sym = lookup_token(context, var_name);
-    free(var_name);
+
     if (sym) {
       return sym->type;
     }
   }
 
-  fprintf(stderr, "Apollo Syntax Error: Could not infer expression type.\n");
-  exit(EXIT_FAILURE);
+  error(parser, "Could not infer expression type.", TYPEERROR);
+  return TYPE_NULL;
 }
 
 static ASTNode *println(Parser *parser, CodegenContext *context) {
@@ -204,7 +231,7 @@ static ASTNode *println(Parser *parser, CodegenContext *context) {
   ASTNode *println_node = create_println_node(expr);
 
   consume(parser, TOKEN_RPARETH,
-          "Expected close parenthesis ')' after arguments.");
+          "Expected close parenthesis ')' after arguments. Found [%c]");
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return println_node;
 }
@@ -216,18 +243,13 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
 
   Token name_token = parser->current;
   const int NAME_LENGTH = name_token.length;
-  char *name = NULL;
-  char *temp_alloc = realloc(name, NAME_LENGTH + 1);
-  name = temp_alloc;
-
-  snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, name_token.start);
+  char name[NAME_LENGTH + 1];
+  snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, name_token.start);
 
   Symbol *sym = lookup_token(context, name);
   if (sym) {
-    fprintf(stderr,
-            "Apollo  Error [Line %d], Multiple definition of variable '%s'",
-            parser->current.line, sym->llvm_name);
-    exit(EXIT_FAILURE);
+    error(parser, "Multiple definition of variable.", REFERROR);
+    advance(parser);
   }
 
   Variable variable;
@@ -253,7 +275,7 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
   case TOKEN_FLOAT:
   case TOKEN_IDENTIFIER: {
     value = parse_logical_or(parser);
-    datatype inferred = infer_expr_type(context, value);
+    datatype inferred = infer_expr_type(parser, context, value);
     variable = (Variable){inferred, NULL, 0, parser->current.line};
     register_variable(context, name, variable.type);
     break;
@@ -292,9 +314,8 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
   default: {
 
     if (!declaring) {
-      fprintf(stderr, "Apollo Syntax error [Line %d], expected variable value",
-              parser->current.line);
-      exit(EXIT_FAILURE);
+      error(parser, "Expected a variable value", SYNTAXERROR);
+      advance(parser);
     }
   }
   }
@@ -303,7 +324,6 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
                                            variable.type, value);
 
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
-  free(name);
   return var_node;
 }
 
@@ -315,19 +335,17 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
   TokenType alternatives[] = {TOKEN_AEQ, TOKEN_SEQ, TOKEN_MEQ, TOKEN_DEQ,
                               TOKEN_PEQ};
 
-  char *potential_var_name;
   const int NAME_LENGTH = parser->current.length;
-  char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
-  potential_var_name = temp_alloc;
+  char potential_var_name[NAME_LENGTH + 1];
 
-  snprintf(potential_var_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
+  snprintf(potential_var_name, sizeof(potential_var_name), "%.*s", NAME_LENGTH,
            parser->current.start);
   Symbol *sym = lookup_token(context, potential_var_name);
-  free(potential_var_name);
 
   if (!sym) {
-    fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
-    exit(EXIT_FAILURE);
+    error(parser, "Unrecognized Token.", REFERROR);
+    synchronize(parser);
+    return NULL;
   }
 
   advance(parser);
@@ -349,10 +367,9 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
       advance(parser);
 
     } else {
-      fprintf(stderr,
-              "Needs to be of type float or int for incrementation. [Line %d]",
-              parser->current.line);
-      exit(EXIT_FAILURE);
+      error(parser, "Needs to be of type float or int for incrementation.",
+            TYPEERROR);
+      advance(parser);
     }
   }
 
@@ -397,10 +414,8 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
       advance(parser);
 
     } else {
-      fprintf(stderr,
-              "Needs to be of type float or int for Operation. [Line %d]",
-              parser->current.line);
-      exit(EXIT_FAILURE);
+      error(parser, "Needs to be of type float or int for Operation.",
+            TYPEERROR);
     }
   }
 
@@ -412,9 +427,9 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     switch (parser->current.type) {
     case TOKEN_STRING: {
       if (sym->type != TYPE_STRING && sym->type != TYPE_NULL) {
-        fprintf(stderr, "Incompatible assignment type. [Line %d] Got type %c",
-                parser->current.line, sym->type);
-        exit(EXIT_FAILURE);
+        error(parser, "Incompatible assignment type. Expected String.",
+              TYPEERROR);
+        advance(parser);
       }
       value = create_literal_node(t);
       advance(parser);
@@ -423,9 +438,9 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
 
     case TOKEN_INT: {
       if (sym->type != TYPE_INT && sym->type != TYPE_NULL) {
-        fprintf(stderr, "Incompatible assignment type. [Line %d]",
-                parser->current.line);
-        exit(EXIT_FAILURE);
+        error(parser, "Incompatible assignment type. Expected Integer.",
+              TYPEERROR);
+        advance(parser);
       }
       value = parse_logical_or(parser);
       break;
@@ -433,9 +448,9 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
 
     case TOKEN_FLOAT: {
       if (sym->type != TYPE_FLOAT && sym->type != TYPE_NULL) {
-        fprintf(stderr, "Incompatible assignment type. [Line %d]",
-                parser->current.line);
-        exit(EXIT_FAILURE);
+        error(parser, "Incompatible assignment type. Expected Float.",
+              TYPEERROR);
+        advance(parser);
       }
       value = parse_logical_or(parser);
       break;
@@ -443,10 +458,9 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
 
     case TOKEN_BOOL: {
       if (sym->type != TYPE_BOOL && sym->type != TYPE_NULL) {
-        fprintf(stderr,
-                "Incompatible assignment type. [Line %d]. Found type %c",
-                parser->current.line, sym->type);
-        exit(EXIT_FAILURE);
+        error(parser, "Incompatible assignment type. Expected Boolean.",
+              TYPEERROR);
+        advance(parser);
       }
       value = create_literal_node(t);
       advance(parser);
@@ -454,23 +468,17 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     }
 
     case TOKEN_IDENTIFIER: {
-      char *id_name;
       const int NAME_LENGTH = parser->current.length;
-      char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
-      id_name = temp_alloc;
+      char id_name[NAME_LENGTH + 1];
       sprintf(id_name, "%.*s", NAME_LENGTH, parser->current.start);
       Symbol *var = lookup_token(context, id_name);
-
-      free(id_name);
       if (!var) {
-        fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.line);
-        exit(EXIT_FAILURE);
-      }
+        error(parser, "Unrecognized token. line 446", REFERROR);
+        advance(parser);
 
-      if (var->type != sym->type && sym->type != TYPE_NULL) {
-        fprintf(stderr, "Incompatible assignment type. [Line %d]",
-                parser->current.line);
-        exit(EXIT_FAILURE);
+      } else if (var->type != sym->type && sym->type != TYPE_NULL) {
+        error(parser, "Incompatible assignment type.", TYPEERROR);
+        advance(parser);
       }
 
       value = parse_logical_or(parser);
@@ -479,9 +487,8 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     }
 
     default: {
-      fprintf(stderr, "Invalid assignment type. [Line %d]",
-              parser->current.line);
-      exit(EXIT_FAILURE);
+      error(parser, "Invalid assignment type.", TYPEERROR);
+      advance(parser);
     }
     }
   }
@@ -498,14 +505,11 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
 }
 
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
-  char *potential_name;
   const int NAME_LENGTH = parser->current.length;
-  char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
-  potential_name = temp_alloc;
-  snprintf(potential_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
+  char potential_name[NAME_LENGTH + 1];
+  snprintf(potential_name, sizeof(potential_name), "%.*s", NAME_LENGTH,
            parser->current.start);
   Symbol *sym = lookup_token(context, potential_name);
-  free(potential_name);
   if (sym && sym->t_type == FUNC) {
     ASTNode *call_node = parse_fxn_call(parser, context, sym);
     consume(parser, TOKEN_SEMICOLON,
@@ -514,6 +518,9 @@ static ASTNode *identifier(Parser *parser, CodegenContext *context) {
   }
 
   ASTNode *assign_var = parse_assignment_or_increment(parser, context);
+  if (!assign_var) {
+    return NULL;
+  }
   consume(parser, TOKEN_SEMICOLON,
           "Expected trailing semicolon ';' to terminate statement.");
   return assign_var;
@@ -539,9 +546,8 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     ASTNode *variable = var(parser, context);
 
     if (variable->Type == TYPE_STRING || variable->Type == TYPE_BOOL) {
-      fprintf(stderr, "For loop variable must be int or float. [Line %d]",
-              parser->current.line);
-      exit(EXIT_FAILURE);
+      error(parser, "For loop variable must be int or float.", TYPEERROR);
+      advance(parser);
     }
 
     ASTNode *condition = parse_logical_or(parser);
@@ -570,7 +576,7 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
 
     return create_if_node(condition, then_block, else_block);
   }
-  return NULL;
+  advance(parser);
 }
 
 // check the body statement
@@ -589,12 +595,13 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 
   case TOKEN_FOR:
   case TOKEN_WHILE:
-  case TOKEN_IF:
+      case TOKEN_IF:
     return parse_condition(parser, context);
 
   default:
-    fprintf(stderr, "Unrecognized token. [Line %d]", parser->current.type);
-    exit(EXIT_FAILURE);
+    error(parser, "Unrecognized token in body statement.", SYNTAXERROR);
+    synchronize(parser);
+    return NULL;
   }
 }
 
@@ -635,7 +642,10 @@ void function(Parser *parser, CodegenContext *context, char *name) {
   gen_function_start(context, name);
 
   ASTNode *body = parse_block(parser, context);
-  gen_block_from_ast(context, body);
+
+  if (parser->lexer->errors->size == 0) {
+    gen_block_from_ast(context, body);
+  }
 
   gen_function_end(context, strcmp(name, "run") == 0);
 }
@@ -643,14 +653,17 @@ void function(Parser *parser, CodegenContext *context, char *name) {
 void register_and_form_fxn(Parser *parser, CodegenContext *context) {
   Token name_token = parser->current;
 
-  char *name;
   const int NAME_LENGTH = name_token.length;
-  char *temp_alloc = alloc_space(NAME_LENGTH + 1, sizeof(char));
-  name = temp_alloc;
+  char name[NAME_LENGTH + 1];
   sprintf(name, "%.*s", NAME_LENGTH, name_token.start);
+
+  if (lookup_token(context, name)) {
+    error(parser, "Cannot redefine function.", SEMANTICERROR);
+    advance(parser);
+  }
+
   register_fxn(context, name, TYPE_NULL);
   function(parser, context, name);
-  free(name);
 }
 
 void parse_function(Parser *parser, CodegenContext *context) {
@@ -658,16 +671,13 @@ void parse_function(Parser *parser, CodegenContext *context) {
   advance(parser);
 
   switch (parser->current.type) {
-  case TOKEN_RUN: {
-    function(parser, context, "run");
-    break;
-  }
-
+  case TOKEN_RUN:
   case TOKEN_IDENTIFIER: {
     register_and_form_fxn(parser, context);
     break;
   }
-
+  default:
+    error(parser, "Cannot use token to create fxn.", SYNTAXERROR);
     advance(parser);
   }
 }
@@ -678,7 +688,7 @@ void begin(Parser *parser, CodegenContext *context) {
   }
 }
 
-void compile_parse(Lexer *lexer) {
+void compile_parse(Lexer *lexer, errorStack *s) {
   Parser parser;
   parser.lexer = lexer;
   // Prime  by fetching the first token. That way parser.current is not NULL
@@ -697,9 +707,9 @@ void compile_parse(Lexer *lexer) {
       "Unexpected trailing syntax tokens encountered after main entry block.");
 
   fclose(code_writer.file);
-  free_codegen_context(&code_writer);
+  free_codegen_context(&code_writer, s);
 
-  printf("SUCCESSFUL.\n");
+  printf("Checking errors before compilation...");
 }
 
 /*--------------------------------------------------------------------------------
@@ -733,11 +743,6 @@ void register_variable(CodegenContext *context, const char *name,
 void register_fxn(CodegenContext *context, const char *name,
                   datatype return_type) {
 
-  if (strcmp(name, "run") == 0) {
-    fprintf(stderr, "Cannot redefine 'run' function.");
-    exit(EXIT_FAILURE);
-  }
-
   grow_symbols_if_needed(context);
   Symbol *sym = &context->symbols[context->symbol_count++];
 
@@ -746,7 +751,6 @@ void register_fxn(CodegenContext *context, const char *name,
   sym->llvm_name = new_space;
   strcpy(sym->name, name);
   sym->type = return_type;
-  // snprintf(sym->llvm_name, strlen(sym->llvm_name)+1, "%s", name);
   sym->str_length = 0;
   sym->t_type = FUNC;
 }
