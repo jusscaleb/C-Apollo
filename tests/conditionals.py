@@ -1,22 +1,23 @@
 #########################
 ##                     ##
-##    PRINTLN() TEST   ##
+##    CONDITIONALS     ##
 ##                     ##    
 #########################
 
-#run "python -m doctest println.py"
+##################
+### INCOMPLETE ###
+##################
+from test import test_n
 
-from test import *
-
-def run_println_tests():
+def run_conditionals_tests():
     """
-    >>> run_println_tests()
-    println test: 7/7 passed.
+    >>> run_conditionals_tests()
+    conditionals test: 7/7 passed.
 
     """
     TESTS = [
-    test_n(1,"String Literals", "fxn run() -> (void) { println(\"hello world\"); }", "hello world"),
-    test_n(2,"Integers", "fxn run() -> (void) { println(5); }", "5"),
+    test_n(1,"if Statement", "fxn run() -> (void) { var name = \"Apollo\"; \n if(name == \"Apollo\"){println(name);} }", "Apollo"),
+    test_n(2,"if -> else", "fxn run() -> (void) { var name = \"Apollo\"; name = \"Apl\"; if(name == \"Apollo\"){println(\"Apollo\");}else{println(name);} }", "Apl"),
     test_n(3,"Variable", "fxn run() -> (void) { var name = \"Apollo\"; var year = 2026; println(name + \" was made in \" + year); }", 
     "Apollo was made in 2026"),
     test_n(4, "Sum", "fxn run() -> (void) { println(5 + 10); }", "15"),
@@ -31,6 +32,6 @@ def run_println_tests():
         if  TESTS[test] == 1:
             pass_count += 1
 
-    print(f"println test: {pass_count}/{len(TESTS)} passed.")
+    print(f"conditionals test: {pass_count}/{len(TESTS)} passed.")
 
     

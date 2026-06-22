@@ -4,3 +4,4 @@ output/
 *.ll
 run/
 *.apl
+tests/__pycache__/

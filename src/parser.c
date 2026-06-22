@@ -21,10 +21,20 @@ static ASTNode *parse_logical_or(Parser *parser);
 static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
 static ASTNode *parse_block(Parser *parser, CodegenContext *context);
 
+
 // move on to next token
 static void advance(Parser *parser) {
   parser->previous = parser->current;
   parser->current = next_token(parser->lexer);
+}
+
+// Resynchronizes the parser after an error to avoid cascading false-positive errors
+static void synchronize(Parser *parser, TokenType safe_token) {
+  advance(parser);
+
+  while (parser->current.type != TOKEN_EOF && parser->current.type != safe_token)advance(parser);
+
+
 }
 
 static void consume(Parser *parser, TokenType type, const char *errorMessage) {
@@ -36,36 +46,14 @@ static void consume(Parser *parser, TokenType type, const char *errorMessage) {
 
   // Prevent cascaded errors at EOF if we already reported an error
   if (parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0) {
-      return;
+    return;
   }
 
   error(parser, errorMessage, SYNTAXERROR);
-  advance(parser);
+  synchronize(parser, TOKEN_SEMICOLON);
 }
 
-// Resynchronizes the parser after an error to avoid cascading false-positive errors
-static void synchronize(Parser *parser) {
-  advance(parser);
 
-  while (parser->current.type != TOKEN_EOF) {
-    if (parser->previous.type == TOKEN_SEMICOLON) return;
-
-    switch (parser->current.type) {
-      case TOKEN_VAR:
-      case TOKEN_FOR:
-      case TOKEN_IF:
-      case TOKEN_WHILE:
-      case TOKEN_PRINTLN:
-      case TOKEN_FXN:
-        return;
-      default:
-        // Keep advancing until a statement boundary is found
-        ;
-    }
-
-    advance(parser);
-  }
-}
 
 /*------------------ARITHMETICS------------------*/
 
@@ -100,7 +88,7 @@ static ASTNode *parse_primary(Parser *parser) {
   }
 
   if (!(parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0)) {
-      error(parser, "Expected expression value.", SYNTAXERROR);
+    error(parser, "Expected expression value.", SYNTAXERROR);
   }
   advance(parser);
   return NULL;
@@ -307,10 +295,21 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
         : consume(parser, TOKEN_NULL, "Expected null literal");
 
     value = create_literal_node(value_token);
+
     register_variable(context, name, variable.type);
     break;
   }
 
+  case TOKEN_LPARETH:{
+    value = parse_logical_or(parser);
+    consume(parser, TOKEN_RPARETH, "Expected closing ')'");
+    datatype inferred = infer_expr_type(parser, context, value);
+    variable = (Variable){inferred, NULL, 0, parser->current.line};
+    register_variable(context, name, variable.type);
+    break;
+    
+
+  }
   default: {
 
     if (!declaring) {
@@ -344,7 +343,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
 
   if (!sym) {
     error(parser, "Unrecognized Token.", REFERROR);
-    synchronize(parser);
+    synchronize(parser, TOKEN_SEMICOLON);
     return NULL;
   }
 
@@ -595,12 +594,12 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 
   case TOKEN_FOR:
   case TOKEN_WHILE:
-      case TOKEN_IF:
+  case TOKEN_IF:
     return parse_condition(parser, context);
 
   default:
     error(parser, "Unrecognized token in body statement.", SYNTAXERROR);
-    synchronize(parser);
+    synchronize(parser, TOKEN_RBRACE);
     return NULL;
   }
 }
@@ -659,15 +658,15 @@ void register_and_form_fxn(Parser *parser, CodegenContext *context) {
 
   if (lookup_token(context, name)) {
     error(parser, "Cannot redefine function.", SEMANTICERROR);
-    advance(parser);
+    synchronize(parser, TOKEN_RBRACE);
   }
+
 
   register_fxn(context, name, TYPE_NULL);
   function(parser, context, name);
 }
 
 void parse_function(Parser *parser, CodegenContext *context) {
-  // consume(parser, TOKEN_FXN, "Expected function declaration keyword 'fxn'.");
   advance(parser);
 
   switch (parser->current.type) {
@@ -709,7 +708,7 @@ void compile_parse(Lexer *lexer, errorStack *s) {
   fclose(code_writer.file);
   free_codegen_context(&code_writer, s);
 
-  printf("Checking errors before compilation...");
+  printf("Checking errors before compilation...\n\n");
 }
 
 /*--------------------------------------------------------------------------------

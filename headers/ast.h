@@ -91,46 +91,44 @@ struct ASTNode {
     } var_ref;
 
     struct {
-    const char *name;
-    int name_length;
-    ASTNode *value;
-    
-  } var_assign;
+      const char *name;
+      int name_length;
+      ASTNode *value;
 
-  struct{
-    ASTNode *left;
-    ASTNode *right;
+    } var_assign;
 
-  } str_concat;
+    struct {
+      ASTNode *left;
+      ASTNode *right;
 
-  struct {
-    ASTNode *condition;
-    ASTNode *then_block;
-    ASTNode *else_block;
-} if_stmt;
+    } str_concat;
 
-struct {
-  ASTNode *condition;
-  ASTNode *then_block;
-}while_lp;
+    struct {
+      ASTNode *condition;
+      ASTNode *then_block;
+      ASTNode *else_block;
+    } if_stmt;
 
-struct {
-  ASTNode* variable;
-  ASTNode* condtion;
-  ASTNode* var_operation;
-  ASTNode* then_block;
+    struct {
+      ASTNode *condition;
+      ASTNode *then_block;
+    } while_lp;
 
-}for_lp;
+    struct {
+      ASTNode *variable;
+      ASTNode *condtion;
+      ASTNode *var_operation;
+      ASTNode *then_block;
 
-struct {
-  const char *name;
-  int name_length;
-  datatype return_type;
-}call_fxn;
+    } for_lp;
 
+    struct {
+      const char *name;
+      int name_length;
+      datatype return_type;
+    } call_fxn;
   };
 };
-
 
 /*--------------------------------------------------------------------------------
 
@@ -187,7 +185,8 @@ ASTNode *create_var_ref_node(const char *name, int name_length);
  * @param name_length Length of the variable's LLVM name.
  * @param value The AST node representing the new value expression.
  */
-ASTNode *create_var_assign_node(const char *name, int name_length, ASTNode *value);
+ASTNode *create_var_assign_node(const char *name, int name_length,
+                                ASTNode *value);
 
 /**
  * Creates an AST node representing a string concatenation.
@@ -200,16 +199,19 @@ ASTNode *create_concat_node(ASTNode *left, ASTNode *right);
  * Creates an AST node representing conditional branching (if/elif/else).
  * @param condition The AST node evaluating to the boolean condition.
  * @param then_block The AST block to execute if the condition is true.
- * @param else_block The AST block or next conditional node if the condition is false.
+ * @param else_block The AST block or next conditional node if the condition is
+ * false.
  */
-ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block, ASTNode *else_block);
+ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
+                        ASTNode *else_block);
 
 /**
  * Creates an AST node representing a while loop.
  * @param condition The AST node evaluating to the loop condition.
- * @param then_block The AST block to execute repeatedly while condition is true.
+ * @param then_block The AST block to execute repeatedly while condition is
+ * true.
  */
-ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block);
+ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block);
 
 /**
  * Creates an AST node representing a for loop.
@@ -217,8 +219,8 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode*then_block);
  * @param condition The AST node representing loop continuation condition.
  * @param var_operation The AST node representing loop variable step/update.
  */
-ASTNode *create_for_node(ASTNode *variable, ASTNode *condition, ASTNode *var_operation, ASTNode* then_block);
-
+ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
+                         ASTNode *var_operation, ASTNode *then_block);
 
 /**
  * Creates an AST node representing fxn call.
@@ -226,8 +228,8 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition, ASTNode *var_ope
  * @param name_length The AST node representing the length of the name.
  * @param return_type The AST node representing the return type of the fxn.
  */
-ASTNode *create_fxn_call_node(char* name, int name_length, datatype return_type);
-
+ASTNode *create_fxn_call_node(char *name, int name_length,
+                              datatype return_type);
 
 /*--------------------------------------------------------------------------------
 
@@ -235,15 +237,12 @@ ASTNode *create_fxn_call_node(char* name, int name_length, datatype return_type)
 
 ---------------------------------------------------------------------------------*/
 
-
-
 /**
  * Adds a new block to the AST.
  * @param block The AST node representing the block to add.
  * @param statement The type of statement the block falls under.
  */
 void block_add_statement(ASTNode *block, ASTNode *statement);
-
 
 void gen_println_from_ast(CodegenContext *context, ASTNode *println_node);
 ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr);
@@ -255,6 +254,5 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node);
 void gen_while_from_ast(CodegenContext *context, ASTNode *while_node);
 void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
 void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node);
-
 
 #endif

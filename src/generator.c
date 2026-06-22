@@ -1011,6 +1011,10 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
     exit(EXIT_FAILURE);
   }
 
+  if(strcmp(llvm_op, "sdiv") == 0 && strcmp(right.value, "0") == 0 ){
+    fprintf(stderr, "CRITICAL: CANNOT DIVIDE BY ZERO.\n");
+    exit(EXIT_FAILURE);
+  }
   fprintf(context->file, "%%tmp_%d = %s i32 %s, %s\n", id, llvm_op, left.value,
           right.value);
 
