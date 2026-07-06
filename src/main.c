@@ -37,11 +37,11 @@ static char *read_file(const char *filename) {
 
 // Automatically runs the program after successfully compilation.
 void llvm_compilation() {
-  int result = system("clang -O3 output.ll -o program.exe");
+  int result = system("clang -O3 temp\\output.ll -o temp\\program.exe");
 
   if (result == 0) {
     printf("--- Running Apollo Program Output ---\n");
-    system(".\\program.exe");
+    system("temp\\program.exe");
     printf("-------------------------------------\n");
     exit(EXIT_FAILURE);
   } else {
@@ -72,6 +72,9 @@ int main(int argc, char **argv) {
   lexer.errors = &err_stack;
 
   errorStack_init(&err_stack);
+
+  // Ensure temp directory exists before parsing/codegen
+  system("mkdir temp 2> nul");
 
   // Pass the raw lexer configuration over to the syntax parser engine
   compile_parse(&lexer, &err_stack);

@@ -1,7 +1,7 @@
 output/
 *.exe
-.vscode
 *.ll
 run/
 *.apl
 tests/__pycache__/
+temp/

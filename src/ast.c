@@ -100,7 +100,7 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block) {
   return node;
 }
 
-ASTNode *create_block_node(void) {
+ASTNode *create_block_node() {
   ASTNode *node = allocate_node(AST_BLOCK);
   node->block.count = 0;
   node->block.capacity = 8;
@@ -111,7 +111,7 @@ ASTNode *create_block_node(void) {
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
                          ASTNode *var_operation, ASTNode *then_block) {
   ASTNode *node = allocate_node(AST_FOR);
-  node->for_lp.var_operation = var_operation;
+  node->for_lp.var_operation = var_operation; 
   node->for_lp.condtion = condition;
   node->for_lp.variable = variable;
   node->for_lp.then_block = then_block;

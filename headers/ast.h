@@ -170,7 +170,7 @@ ASTNode *create_println_node(ASTNode *value);
 /**
  * Creates an empty AST block container to hold statements.
  */
-ASTNode *create_block_node(void);
+ASTNode *create_block_node();
 
 /**
  * Creates an AST node representing a reference to a variable by name.
@@ -238,7 +238,7 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
 ---------------------------------------------------------------------------------*/
 
 /**
- * Adds a new block to the AST.
+ * Realloc more memory to the AST block
  * @param block The AST node representing the block to add.
  * @param statement The type of statement the block falls under.
  */

@@ -219,7 +219,7 @@ static ASTNode *println(Parser *parser, CodegenContext *context) {
   ASTNode *println_node = create_println_node(expr);
 
   consume(parser, TOKEN_RPARETH,
-          "Expected close parenthesis ')' after arguments. Found [%c]");
+          "Expected close parenthesis ')' after arguments");
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return println_node;
 }
@@ -642,6 +642,8 @@ void function(Parser *parser, CodegenContext *context, char *name) {
 
   ASTNode *body = parse_block(parser, context);
 
+
+  //Won't generate AST if there's an error.
   if (parser->lexer->errors->size == 0) {
     gen_block_from_ast(context, body);
   }
@@ -695,7 +697,7 @@ void compile_parse(Lexer *lexer, errorStack *s) {
 
   // Startup the backend
   CodegenContext code_writer = {0};
-  codegen_init(&code_writer, "output.ll");
+  codegen_init(&code_writer, "temp\\output.ll");
 
   // Now parsing the function while sharing the backend context.
   begin(&parser, &code_writer);
@@ -730,7 +732,6 @@ void register_variable(CodegenContext *context, const char *name,
   sym->llvm_name = new_space;
   strcpy(sym->name, name);
   sym->type = variable_type;
-  // snprintf(sym->llvm_name, sizeof(sym->llvm_name), "%s", name);
 
   (variable_type == TYPE_STRING)
       ? sym->str_length = context->string_constant_count++
