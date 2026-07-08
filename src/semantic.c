@@ -124,7 +124,6 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                 datatype inferred = infer_expr_type(context, node->var_decl.value);
                 node->var_decl.value_type = inferred; // update the AST node's type
                 register_variable(context->codegen, name, inferred,node->var_decl.fxn_name,node->var_decl.level);
-                printf("symbol count: %d \n", context->codegen->symbol_count);
             
             } else {
                 node->var_decl.value_type = TYPE_NULL;

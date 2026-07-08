@@ -45,3 +45,14 @@ Symbol *lookup_token(CodegenContext *context, const char *name, const char* fxn_
   }
   return NULL;
 }
+
+Symbol *get_token(CodegenContext *context, const char *name) {
+  for (int i = 0; i < context->symbol_count; i++) {
+    if (strcmp(context->symbols[i].name, name) == 0) {
+      return &context->symbols[i];
+    }
+  }
+  return NULL;
+}
+
+
