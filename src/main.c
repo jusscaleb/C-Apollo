@@ -6,8 +6,11 @@
 #include <string.h>
 
 #include "../headers/error.h"
+#include "../headers/ast.h"
+#include "../headers/semantic.h"
+#include "../headers/defs.h"
 
-void compile_parse(Lexer *lexer, errorStack *s);
+ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context);
 
 static char *read_file(const char *filename) {
   FILE *file = fopen(filename, "rb");
@@ -70,15 +73,49 @@ int main(int argc, char **argv) {
   lexer.current = source;
   lexer.line = 1;
   lexer.errors = &err_stack;
+  lexer.scope_level = 0;
 
   errorStack_init(&err_stack);
 
   // Ensure temp directory exists before parsing/codegen
   system("mkdir temp 2> nul");
 
-  // Pass the raw lexer configuration over to the syntax parser engine
-  compile_parse(&lexer, &err_stack);
-  printf("Compilation done\n");
+  // We need the symbol table for parsing, so we init CodegenContext early.
+  CodegenContext compiler_context = {0};
+  
+  // 1. Parsing Phase
+  ASTNode *program_ast = compile_parse(&lexer, &err_stack, &compiler_context);
+  printf("Parsing done.\n");
+  
+  if (err_stack.size > 0) {
+    printf("Found : %llu Syntax Errors\n", err_stack.size);
+    errorStack_seek(&err_stack);
+    errorStack_free(&err_stack);
+    free(source);
+    exit(EXIT_FAILURE);
+  }
+
+  // 2. Semantic Analysis Phase
+  SemanticContext semantic_ctx = { &err_stack, &compiler_context };
+  analyze_semantics(&semantic_ctx, program_ast);
+  printf("Semantic analysis done.\n");
+
+  if (err_stack.size > 0) {
+    printf("Found : %llu Semantic Errors\n", err_stack.size);
+    errorStack_seek(&err_stack);
+    errorStack_free(&err_stack);
+    free(source);
+    exit(EXIT_FAILURE);
+  }
+
+  // 3. Code Generation Phase
+  codegen_init(&compiler_context, "temp\\output.ll");
+  gen_program_from_ast(&compiler_context, program_ast);
+  
+  fclose(compiler_context.file);
+  free_codegen_context(&compiler_context, &err_stack);
+
+  printf("Compilation done.\n");
   free(source);
 
   printf("Found : %llu Errors\n", err_stack.size);

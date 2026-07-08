@@ -49,7 +49,7 @@ apl.exe <active-file-path> <project-root>
 ## Manual Build
 
 ```powershell
-gcc src/main.c src/lexer.c src/parser.c src/generator.c src/ast.c src/memory.c src/error.c -o run/main.exe
+gcc src/main.c src/lexer.c src/parser.c src/generator.c src/ast.c src/memory.c src/error.c src/variables.c src/semantic.c -o run/main.exe
 .\run\main.exe .\main.apl
 ```
 
@@ -60,9 +60,10 @@ You can replace `.\main.apl` with any `.apl` file path.
 1. `src/main.c` reads the Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens. It catches lexical errors such as unterminated strings.
 3. `src/parser.c` validates the Apollo grammar and builds a structured AST for the entire program. It utilizes Panic-Mode Error Recovery (`synchronize()`) to prevent cascading phantom errors when encountering syntax issues.
-4. If no errors were detected, `src/generator.c` walks the AST and writes optimized LLVM IR to `output.ll`. If errors exist, codegen is safely skipped to avoid compiling a malformed AST.
-5. Clang compiles `output.ll` with `-O3` optimization into a native `program.exe`.
-6. The generated program runs and prints its output.
+4. `src/semantic.c` performs a semantic analysis pass over the AST. It enforces type checking, validates variable and function assignments, and handles scope, utilizing the symbol table in `src/variables.c`.
+5. If no errors were detected, `src/generator.c` walks the AST and writes optimized LLVM IR to `output.ll`. If errors exist, codegen is safely skipped to avoid compiling a malformed AST.
+6. Clang compiles `output.ll` with `-O3` optimization into a native `program.exe`.
+7. The generated program runs and prints its output.
 
 ## Error Handling
 

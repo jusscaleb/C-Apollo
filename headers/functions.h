@@ -17,6 +17,6 @@ typedef struct {
 } FXN;
  
 void register_fxn(CodegenContext *context, const char *name,
-                  datatype return_type);
+                  datatype return_type, int level);
 
 #endif

@@ -59,12 +59,26 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
     case AST_CALL_FXN:
       gen_fxn_call_from_ast(context, stmt);
       break;
+    case AST_FUNCTION: {
+      gen_function_start(context, stmt->function.name);
+      gen_block_from_ast(context, stmt->function.body);
+      gen_function_end(context, strcmp(stmt->function.name, "run") == 0);
+      break;
+    }
 
     default:
       fprintf(stderr, "Unsupported statement type in block codegen.\n");
       exit(EXIT_FAILURE);
     }
   }
+}
+
+void gen_program_from_ast(CodegenContext *context, ASTNode *program_node) {
+  if (program_node == NULL || program_node->Type != AST_PROGRAM)
+    return;
+  
+  // The program node holds a block of functions
+  gen_block_from_ast(context, program_node->program.function);
 }
 
 // Opens the LLVM output file and resets the counters used for generated names.
@@ -259,7 +273,7 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
 
     snprintf(var_name, sizeof(var_name), "%.*s", NAME_LENGTH,
              value->var_ref.name);
-    gen_println_variable(context, var_name);
+    gen_println_variable(context, var_name, 0);
     return;
   }
 
@@ -587,14 +601,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
   }
 }
 
-Symbol *lookup_token(CodegenContext *context, const char *name) {
-  for (int i = 0; i < context->symbol_count; i++) {
-    if (strcmp(context->symbols[i].name, name) == 0) {
-      return &context->symbols[i];
-    }
-  }
-  return NULL;
-}
+
 
 /*--------------------------------------------------------------------------------
 
@@ -1187,7 +1194,7 @@ static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
   fprintf(context->file, "bool_end_%d:\n", id);
 }
 
-void gen_println_variable(CodegenContext *context, char *name) {
+void gen_println_variable(CodegenContext *context, char *name, int scope_level) {
   Symbol *sym = lookup_token(context, name);
 
   if (sym->type == TYPE_STRING) {

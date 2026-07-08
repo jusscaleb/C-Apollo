@@ -16,7 +16,7 @@ typedef enum {
 } ExprType;
 
 // Stores the expression result
-typedef struct {
+typedef struct ExprResult {
   ExprType type;
   char value[64]; // literal like "45" or LLVM temp like "%tmp_0"
   int str_len;    // For strings, holds the character length

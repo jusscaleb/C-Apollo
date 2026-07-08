@@ -953,6 +953,13 @@ export default function App() {
               Parser &amp; AST Construction
             </button>
             <button 
+              className={`nav-link ${activeTab === 'semantic' ? 'active' : ''}`}
+              onClick={() => setActiveTab('semantic')}
+            >
+              <GitBranch size={16} />
+              Semantic Analysis
+            </button>
+            <button 
               className={`nav-link ${activeTab === 'generator' ? 'active' : ''}`}
               onClick={() => setActiveTab('generator')}
             >
@@ -1083,7 +1090,7 @@ export default function App() {
 
             <section>
               <p>
-                The Apollo compiler operates as a single-pass compiler that parses source code directly into an Abstract Syntax Tree (AST) while building intermediate symbol definitions. It then traverses this AST to generate standard LLVM Assembly language.
+                The Apollo compiler operates as a multi-pass compiler. It first parses source code into an Abstract Syntax Tree (AST), then runs a Semantic Analysis pass to verify types and construct the symbol table, and finally traverses this AST to generate standard LLVM Assembly language.
               </p>
 
               {/* Pipeline Flow Visual */}
@@ -1109,6 +1116,11 @@ export default function App() {
                 </div>
                 <div className="pipeline-arrow"><ChevronRight size={18} /></div>
                 <div className="pipeline-node">
+                  <div className="pipeline-node-title">Semantic</div>
+                  <div className="pipeline-node-desc">semantic.c</div>
+                </div>
+                <div className="pipeline-arrow"><ChevronRight size={18} /></div>
+                <div className="pipeline-node">
                   <div className="pipeline-node-title">Generator</div>
                   <div className="pipeline-node-desc">generator.c</div>
                 </div>
@@ -1119,7 +1131,7 @@ export default function App() {
                 </div>
               </div>
 
-              <h2 className="section-title">The Five Compiler Steps</h2>
+              <h2 className="section-title">The Six Compiler Steps</h2>
               <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
                 <li style={{ marginBottom: '1rem' }}>
                   <strong style={{ color: 'var(--text-primary)' }}>Source Intake:</strong> 
@@ -1134,8 +1146,12 @@ export default function App() {
                   The parser evaluates the token sequence against grammar rules. If a token violates expectations, Panic-Mode Error recovery is engaged to synchronize states at statements boundaries.
                 </li>
                 <li style={{ marginBottom: '1rem' }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>Semantic Analysis:</strong> 
+                  A semantic pass validates type assignments, computes variable operations, checks scopes, and populates the global symbol table.
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
                   <strong style={{ color: 'var(--text-primary)' }}>LLVM Code Generation:</strong> 
-                  Once a clean AST is parsed, the code generator emits compliant LLVM Intermediate Representation (IR).
+                  Once a clean AST is parsed and semantically validated, the code generator emits compliant LLVM Intermediate Representation (IR).
                 </li>
                 <li style={{ marginBottom: '1rem' }}>
                   <strong style={{ color: 'var(--text-primary)' }}>Native Optimization &amp; Linking:</strong> 
@@ -1247,6 +1263,46 @@ export default function App() {
               <p>
                 The parser loops through statements until it hits <code>TOKEN_EOF</code>. Inside blocks, statements are accumulated into arrays. If compilation encounters syntax errors, code generation is skipped.
               </p>
+            </section>
+          </div>
+        )}
+
+        {/* tab: SEMANTIC */}
+        {activeTab === 'semantic' && (
+          <div>
+            <div className="docs-header">
+              <h1 className="docs-title">Semantic Analysis</h1>
+              <div className="docs-description">Validating types and constructing the Symbol Table.</div>
+            </div>
+
+            <section>
+              <p>
+                Once the Parser constructs the AST, the Semantic Analyzer (<code>src/semantic.c</code>) walks the AST to enforce language rules that cannot be captured by grammar alone.
+              </p>
+
+              <h2 className="section-title">The Symbol Table</h2>
+              <p>
+                Apollo uses a symbol table (<code>src/variables.c</code>) to keep track of declared variables and functions. When the semantic analyzer visits an AST node that declares a variable, it registers it in the symbol table. Subsequent references to that variable are validated against the table to ensure they exist and are correctly typed.
+              </p>
+
+              <div className="code-block-wrapper">
+                <div className="code-block-header">
+                  <div className="code-block-title">
+                    <FileText size={14} />
+                    headers/variables.h (Symbol Table)
+                  </div>
+                </div>
+                <pre className="code-block-content">
+                  <code>
+{`typedef struct {
+  const char *name;      // Source variable name
+  char *llvm_name;       // Allocated name in LLVM
+  datatype type;         // Deduced Data Type
+  int length;
+} Symbol;`}
+                  </code>
+                </pre>
+              </div>
             </section>
           </div>
         )}
@@ -1434,16 +1490,22 @@ declare i32 @snprintf(i8*, i64, i8*, ...)`}
                           2. AST
                         </button>
                         <button 
+                          className={`vis-step-btn ${visStep === 'semantic' ? 'active' : ''}`}
+                          onClick={() => setVisStep('semantic')}
+                        >
+                          3. Semantic
+                        </button>
+                        <button 
                           className={`vis-step-btn ${visStep === 'llvm' ? 'active' : ''}`}
                           onClick={() => setVisStep('llvm')}
                         >
-                          3. LLVM IR
+                          4. LLVM IR
                         </button>
                         <button 
                           className={`vis-step-btn ${visStep === 'output' ? 'active' : ''}`}
                           onClick={() => setVisStep('output')}
                         >
-                          4. Binary Run
+                          5. Binary Run
                         </button>
                       </div>
 
@@ -1463,6 +1525,31 @@ declare i32 @snprintf(i8*, i64, i8*, ...)`}
                         {visStep === 'ast' && (
                           <div style={{ textAlign: 'left' }}>
                             {renderASTNode(pipelineResults.ast)}
+                          </div>
+                        )}
+
+                        {visStep === 'semantic' && (
+                          <div style={{ textAlign: 'left', padding: '1rem' }}>
+                            <div className="callout callout-info">
+                              <div className="callout-icon">
+                                <Code size={20} style={{ color: 'var(--color-blue-primary)' }} />
+                              </div>
+                              <div className="callout-content">
+                                <h4 className="callout-title">Semantic Validation Complete</h4>
+                                <p className="callout-text">
+                                  Variable declarations and scopes checked. Type inference succeeded. Symbol table populated successfully!
+                                </p>
+                              </div>
+                            </div>
+                            <pre style={{ margin: 0, marginTop: '1rem', textAlign: 'left', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                              <code>{`// Emulated Symbol Table
+{
+  "variables": 1,
+  "functions": 1,
+  "types_inferred": true,
+  "status": "VALID"
+}`}</code>
+                            </pre>
                           </div>
                         )}
 

@@ -43,6 +43,7 @@ static TokenType check_keyword(const char *start, int length) {
 
   if (length == 3 && strncmp(start, "run", 3) == 0)
     return TOKEN_RUN;
+  
   if (length == 4 && strncmp(start, "void", 4) == 0)
     return TOKEN_VOID;
   if (length == 7 && strncmp(start, "println", 7) == 0)
@@ -114,11 +115,13 @@ Token next_token(Lexer *lexer) {
   switch (c) {
   case '}': {
     Token token = {TOKEN_RBRACE, start, 1, lexer->line};
+    lexer->scope_level--;
     return token;
   }
 
   case '{': {
     Token token = {TOKEN_LBRACE, start, 1, lexer->line};
+    lexer->scope_level++;
     return token;
   }
 
@@ -398,6 +401,7 @@ Token next_token(Lexer *lexer) {
 
     // check for the type of token
     TokenType type = check_keyword(start, length);
+    
     Token token = {type, start, length, lexer->line};
 
     return token;

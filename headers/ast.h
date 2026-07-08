@@ -238,6 +238,20 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
 ---------------------------------------------------------------------------------*/
 
 /**
+ * Creates an AST node representing a function definition.
+ * @param name The name of the function.
+ * @param name_length Length of the function name.
+ * @param body The AST block node representing the function body.
+ */
+ASTNode *create_function_node(const char *name, int name_length, ASTNode *body);
+
+/**
+ * Creates an AST node representing the entire program.
+ * @param block The block containing top-level declarations/functions.
+ */
+ASTNode *create_program_node(ASTNode *block);
+
+/**
  * Realloc more memory to the AST block
  * @param block The AST node representing the block to add.
  * @param statement The type of statement the block falls under.
@@ -254,5 +268,6 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node);
 void gen_while_from_ast(CodegenContext *context, ASTNode *while_node);
 void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
 void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node);
+void gen_program_from_ast(CodegenContext *context, ASTNode *program_node);
 
 #endif

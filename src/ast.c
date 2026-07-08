@@ -137,3 +137,17 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
 
   return node;
 }
+
+ASTNode *create_function_node(const char *name, int name_length, ASTNode *body) {
+  ASTNode *node = allocate_node(AST_FUNCTION);
+  node->function.name = name;
+  node->function.name_length = name_length;
+  node->function.body = body;
+  return node;
+}
+
+ASTNode *create_program_node(ASTNode *block) {
+  ASTNode *node = allocate_node(AST_PROGRAM);
+  node->program.function = block; // Using 'function' field to store the block of functions for now
+  return node;
+}

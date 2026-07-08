@@ -14,9 +14,9 @@ int main(int argc, char **argv) {
   snprintf(build_command, sizeof(build_command),
            "gcc \"%s\\src\\main.c\" \"%s\\src\\lexer.c\" \"%s\\src\\parser.c\" "
            "\"%s\\src\\generator.c\" \"%s\\src\\ast.c\" \"%s\\src\\memory.c\" "
-           "\"%s\\src\\error.c\" -o \"%s\\run\\main.exe\"",
+           "\"%s\\src\\error.c\" \"%s\\src\\variables.c\" \"%s\\src\\semantic.c\" -o \"%s\\run\\main.exe\"",
            project_root, project_root, project_root, project_root, project_root,
-           project_root, project_root, project_root);
+           project_root, project_root, project_root, project_root, project_root);
 
   int run = system(build_command);
 

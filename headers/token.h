@@ -6,6 +6,7 @@ Where the tokens used in the compiler are stored.
 
 #include "defs.h"
 #include <stdio.h>
+#include "functions.h"
 
 typedef struct errorStack errorStack;
 
@@ -93,6 +94,8 @@ typedef struct {
   const char *current;
   int line;
   int column;
+  int scope_level;
+  char *fxn_name;
   errorStack *errors;
 } Lexer;
 

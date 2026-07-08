@@ -24,6 +24,10 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context);
 
 // move on to next token
 static void advance(Parser *parser) {
+  if(parser->previous.type == TOKEN_FXN){
+    snprintf(parser->lexer->fxn_name, parser->previous.length + 1, "%.*s", parser->previous.length, parser->previous.start);
+  }
+
   parser->previous = parser->current;
   parser->current = next_token(parser->lexer);
 }
@@ -169,44 +173,7 @@ static ASTNode *parse_logical_or(Parser *parser) {
   return left;
 }
 
-static datatype infer_expr_type(Parser *parser, CodegenContext *context,
-                                ASTNode *expr) {
-  if (expr->Type == AST_LITERAL_EXPR) {
-    if (expr->literal_expr.token.type == TOKEN_FLOAT)
-      return TYPE_FLOAT;
-    if (expr->literal_expr.token.type == TOKEN_BOOL)
-      return TYPE_BOOL;
-    if (expr->literal_expr.token.type == TOKEN_NULL)
-      return TYPE_NULL;
-    return TYPE_INT;
-  }
-
-  if (expr->Type == AST_BINARY_EXPR) {
-    datatype left_type =
-        infer_expr_type(parser, context, expr->binary_expr.left);
-    datatype right_type =
-        infer_expr_type(parser, context, expr->binary_expr.right);
-
-    return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT
-                                                                 : TYPE_INT;
-  }
-
-  if (expr->Type == AST_VAR_REF) {
-    // char var_name[64];
-    const int NAME_LENGTH = expr->var_ref.name_length;
-    char var_name[NAME_LENGTH + 1];
-    snprintf(var_name, sizeof(var_name), "%.*s", NAME_LENGTH,
-             expr->var_ref.name);
-    Symbol *sym = lookup_token(context, var_name);
-
-    if (sym) {
-      return sym->type;
-    }
-  }
-
-  error(parser, "Could not infer expression type.", TYPEERROR);
-  return TYPE_NULL;
-}
+// infer_expr_type moved to semantic.c
 
 static ASTNode *println(Parser *parser, CodegenContext *context) {
   advance(parser); // Move past TOKEN_PRINTLN
@@ -234,13 +201,6 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
   char name[NAME_LENGTH + 1];
   snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, name_token.start);
 
-  Symbol *sym = lookup_token(context, name);
-  if (sym) {
-    error(parser, "Multiple definition of variable.", REFERROR);
-    advance(parser);
-  }
-
-  Variable variable;
   ASTNode *value;
 
   consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
@@ -249,131 +209,37 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
     declaring = true;
     Token null_token = {TOKEN_NULL, "null", 4, parser->current.line};
     value = create_literal_node(null_token);
-
-    variable = (Variable){TYPE_NULL, "null", 4, parser->current.line};
-    register_variable(context, name, variable.type);
   }
 
-  if (!declaring)
+  if (!declaring) {
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
-
-  switch (parser->current.type) {
-
-  case TOKEN_INT:
-  case TOKEN_FLOAT:
-  case TOKEN_IDENTIFIER: {
     value = parse_logical_or(parser);
-    datatype inferred = infer_expr_type(parser, context, value);
-    variable = (Variable){inferred, NULL, 0, parser->current.line};
-    register_variable(context, name, variable.type);
-    break;
-  }
-
-  case TOKEN_STRING: {
-    Token value_token = parser->current;
-    variable = (Variable){TYPE_STRING, parser->current.start,
-                          parser->current.length, parser->current.line};
-    consume(parser, TOKEN_STRING,
-            "Expected string literal for variable assignment.");
-    value = create_literal_node(value_token);
-    register_variable(context, name, variable.type);
-    break;
-  }
-
-  case TOKEN_NULL:
-  case TOKEN_BOOL: {
-    Token value_token = parser->current;
-    variable = (parser->current.type == TOKEN_BOOL)
-                   ? (Variable){TYPE_BOOL, parser->current.start,
-                                parser->current.length, parser->current.line}
-                   : (Variable){TYPE_NULL, parser->current.start,
-                                parser->current.length, parser->current.line};
-
-    (parser->current.type == TOKEN_BOOL)
-        ? consume(parser, TOKEN_BOOL,
-                  "Expected boolean literal for variable assignment.")
-        : consume(parser, TOKEN_NULL, "Expected null literal");
-
-    value = create_literal_node(value_token);
-
-    register_variable(context, name, variable.type);
-    break;
-  }
-
-  case TOKEN_LPARETH:{
-    value = parse_logical_or(parser);
-    consume(parser, TOKEN_RPARETH, "Expected closing ')'");
-    datatype inferred = infer_expr_type(parser, context, value);
-    variable = (Variable){inferred, NULL, 0, parser->current.line};
-    register_variable(context, name, variable.type);
-    break;
-    
-
-  }
-  default: {
-
-    if (!declaring) {
-      error(parser, "Expected a variable value", SYNTAXERROR);
-      advance(parser);
-    }
-  }
   }
 
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
-                                           variable.type, value);
+                                           TYPE_NULL, value);
 
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
 }
 
-static ASTNode *parse_assignment_or_increment(Parser *parser,
-                                              CodegenContext *context) {
+static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *context, char *potential_var_name, int NAME_LENGTH) {
   ASTNode *value;
   set incrementation = false;
 
-  TokenType alternatives[] = {TOKEN_AEQ, TOKEN_SEQ, TOKEN_MEQ, TOKEN_DEQ,
-                              TOKEN_PEQ};
-
-  const int NAME_LENGTH = parser->current.length;
-  char potential_var_name[NAME_LENGTH + 1];
-
-  snprintf(potential_var_name, sizeof(potential_var_name), "%.*s", NAME_LENGTH,
-           parser->current.start);
-  Symbol *sym = lookup_token(context, potential_var_name);
-
-  if (!sym) {
-    error(parser, "Unrecognized Token.", REFERROR);
-    synchronize(parser, TOKEN_SEMICOLON);
-    return NULL;
-  }
-
-  advance(parser);
+  TokenType alternatives[] = {TOKEN_AEQ, TOKEN_SEQ, TOKEN_MEQ, TOKEN_DEQ, TOKEN_PEQ};
 
   if (parser->current.type == TOKEN_INC || parser->current.type == TOKEN_DEC) {
-    if (sym->type == TYPE_INT || sym->type == TYPE_FLOAT) {
-      incrementation = true;
-      TokenType op = parser->current.type == TOKEN_INC ? TOKEN_ADD : TOKEN_SUB;
-
-      ASTNode *var_ref =
-          create_var_ref_node(sym->llvm_name, strlen(sym->llvm_name));
-      Token one_token = {.type = TOKEN_INT,
-                         .start = "1",
-                         .length = 1,
-                         .line = parser->current.line};
-      ASTNode *literal_one = create_literal_node(one_token);
-
-      value = create_binary_node(var_ref, op, literal_one);
-      advance(parser);
-
-    } else {
-      error(parser, "Needs to be of type float or int for incrementation.",
-            TYPEERROR);
-      advance(parser);
-    }
+    incrementation = true;
+    TokenType op = parser->current.type == TOKEN_INC ? TOKEN_ADD : TOKEN_SUB;
+    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH);
+    Token one_token = {.type = TOKEN_INT, .start = "1", .length = 1, .line = parser->current.line};
+    ASTNode *literal_one = create_literal_node(one_token);
+    value = create_binary_node(var_ref, op, literal_one);
+    advance(parser);
   }
 
   set is_alternative = false;
-
   for (int i = 0; i <= 4; i++) {
     if (parser->current.type == alternatives[i]) {
       is_alternative = true;
@@ -381,142 +247,53 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     }
   }
 
-  if (is_alternative) {
-    if (sym->type == TYPE_INT || sym->type == TYPE_FLOAT) {
-      incrementation = true;
-      TokenType op;
-
-      switch (parser->current.type) {
-      case TOKEN_AEQ:
-        op = TOKEN_ADD;
-        break;
-      case TOKEN_SEQ:
-        op = TOKEN_SUB;
-        break;
-      case TOKEN_MEQ:
-        op = TOKEN_MUL;
-        break;
-      case TOKEN_DEQ:
-        op = TOKEN_DIV;
-        break;
-      case TOKEN_PEQ:
-        op = TOKEN_MOD;
-        break;
-      }
-
-      ASTNode *var_ref =
-          create_var_ref_node(sym->llvm_name, strlen(sym->llvm_name));
-      advance(parser);
-      ASTNode *left = create_literal_node(parser->current);
-
-      value = create_binary_node(var_ref, op, left);
-      advance(parser);
-
-    } else {
-      error(parser, "Needs to be of type float or int for Operation.",
-            TYPEERROR);
+  if (is_alternative && !incrementation) {
+    incrementation = true;
+    TokenType op;
+    switch (parser->current.type) {
+      case TOKEN_AEQ: op = TOKEN_ADD; break;
+      case TOKEN_SEQ: op = TOKEN_SUB; break;
+      case TOKEN_MEQ: op = TOKEN_MUL; break;
+      case TOKEN_DEQ: op = TOKEN_DIV; break;
+      case TOKEN_PEQ: op = TOKEN_MOD; break;
     }
+    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH);
+    advance(parser);
+    ASTNode *left = parse_logical_or(parser);
+    value = create_binary_node(var_ref, op, left);
   }
 
   if (!incrementation) {
-
     consume(parser, TOKEN_ASSIGN, "Expected '=' after variable.");
-
-    Token t = parser->current;
-    switch (parser->current.type) {
-    case TOKEN_STRING: {
-      if (sym->type != TYPE_STRING && sym->type != TYPE_NULL) {
-        error(parser, "Incompatible assignment type. Expected String.",
-              TYPEERROR);
-        advance(parser);
-      }
-      value = create_literal_node(t);
-      advance(parser);
-      break;
-    }
-
-    case TOKEN_INT: {
-      if (sym->type != TYPE_INT && sym->type != TYPE_NULL) {
-        error(parser, "Incompatible assignment type. Expected Integer.",
-              TYPEERROR);
-        advance(parser);
-      }
-      value = parse_logical_or(parser);
-      break;
-    }
-
-    case TOKEN_FLOAT: {
-      if (sym->type != TYPE_FLOAT && sym->type != TYPE_NULL) {
-        error(parser, "Incompatible assignment type. Expected Float.",
-              TYPEERROR);
-        advance(parser);
-      }
-      value = parse_logical_or(parser);
-      break;
-    }
-
-    case TOKEN_BOOL: {
-      if (sym->type != TYPE_BOOL && sym->type != TYPE_NULL) {
-        error(parser, "Incompatible assignment type. Expected Boolean.",
-              TYPEERROR);
-        advance(parser);
-      }
-      value = create_literal_node(t);
-      advance(parser);
-      break;
-    }
-
-    case TOKEN_IDENTIFIER: {
-      const int NAME_LENGTH = parser->current.length;
-      char id_name[NAME_LENGTH + 1];
-      sprintf(id_name, "%.*s", NAME_LENGTH, parser->current.start);
-      Symbol *var = lookup_token(context, id_name);
-      if (!var) {
-        error(parser, "Unrecognized token. line 446", REFERROR);
-        advance(parser);
-
-      } else if (var->type != sym->type && sym->type != TYPE_NULL) {
-        error(parser, "Incompatible assignment type.", TYPEERROR);
-        advance(parser);
-      }
-
-      value = parse_logical_or(parser);
-
-      break;
-    }
-
-    default: {
-      error(parser, "Invalid assignment type.", TYPEERROR);
-      advance(parser);
-    }
-    }
+    value = parse_logical_or(parser);
   }
 
-  return create_var_assign_node(sym->llvm_name, strlen(sym->llvm_name), value);
+  return create_var_assign_node(potential_var_name, NAME_LENGTH, value);
 }
 
 static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
-                               Symbol *sym) {
-  advance(parser); // Move past function name identifier
+                               char *name, int name_length) {
   consume(parser, TOKEN_LPARETH, "Expected '(' after function name.");
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
-  return create_fxn_call_node((char *)sym->name, strlen(sym->name), sym->type);
+  return create_fxn_call_node(name, name_length, TYPE_NULL);
 }
 
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
   const int NAME_LENGTH = parser->current.length;
-  char potential_name[NAME_LENGTH + 1];
-  snprintf(potential_name, sizeof(potential_name), "%.*s", NAME_LENGTH,
+  char *potential_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+  sprintf(potential_name, "%.*s", NAME_LENGTH,
            parser->current.start);
-  Symbol *sym = lookup_token(context, potential_name);
-  if (sym && sym->t_type == FUNC) {
-    ASTNode *call_node = parse_fxn_call(parser, context, sym);
+           
+  advance(parser);
+
+  if (parser->current.type == TOKEN_LPARETH) {
+    ASTNode *call_node = parse_fxn_call(parser, context, potential_name, NAME_LENGTH);
     consume(parser, TOKEN_SEMICOLON,
             "Expected trailing semicolon ';' after function call.");
     return call_node;
   }
 
-  ASTNode *assign_var = parse_assignment_or_increment(parser, context);
+  ASTNode *assign_var = parse_assignment_or_increment(parser, context, potential_name, NAME_LENGTH);
   if (!assign_var) {
     return NULL;
   }
@@ -544,14 +321,14 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_LPARETH, "Expected '('");
     ASTNode *variable = var(parser, context);
 
-    if (variable->Type == TYPE_STRING || variable->Type == TYPE_BOOL) {
-      error(parser, "For loop variable must be int or float.", TYPEERROR);
-      advance(parser);
-    }
-
     ASTNode *condition = parse_logical_or(parser);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after condition.");
-    ASTNode *var_operation = parse_assignment_or_increment(parser, context);
+    
+    const int NAME_LENGTH = parser->current.length;
+    char *loop_var_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+    sprintf(loop_var_name, "%.*s", NAME_LENGTH, parser->current.start);
+    advance(parser);
+    ASTNode *var_operation = parse_assignment_or_increment(parser, context, loop_var_name, NAME_LENGTH);
     consume(parser, TOKEN_RPARETH, "Expected ')'");
 
     ASTNode *then_block = parse_block(parser, context);
@@ -623,7 +400,7 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
   return block;
 }
 
-void function(Parser *parser, CodegenContext *context, char *name) {
+ASTNode *function(Parser *parser, CodegenContext *context, char *name) {
   advance(parser);
   consume(parser, TOKEN_LPARETH,
           "Expected parameter list wrapper starting with '('.");
@@ -638,79 +415,69 @@ void function(Parser *parser, CodegenContext *context, char *name) {
   consume(parser, TOKEN_RPARETH,
           "Expected closing parenthesis ')' around return type specification.");
 
-  gen_function_start(context, name);
-
   ASTNode *body = parse_block(parser, context);
 
-
-  //Won't generate AST if there's an error.
-  if (parser->lexer->errors->size == 0) {
-    gen_block_from_ast(context, body);
-  }
-
-  gen_function_end(context, strcmp(name, "run") == 0);
+  int name_length = strlen(name);
+  return create_function_node(name, name_length, body);
 }
 
-void register_and_form_fxn(Parser *parser, CodegenContext *context) {
+ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   Token name_token = parser->current;
 
   const int NAME_LENGTH = name_token.length;
-  char name[NAME_LENGTH + 1];
+  char *name = alloc_space(NAME_LENGTH + 1 , sizeof(char));
   sprintf(name, "%.*s", NAME_LENGTH, name_token.start);
 
-  if (lookup_token(context, name)) {
-    error(parser, "Cannot redefine function.", SEMANTICERROR);
-    synchronize(parser, TOKEN_RBRACE);
-  }
-
-
-  register_fxn(context, name, TYPE_NULL);
-  function(parser, context, name);
+  return function(parser, context, name);
 }
 
-void parse_function(Parser *parser, CodegenContext *context) {
+ASTNode *parse_function(Parser *parser, CodegenContext *context) {
   advance(parser);
 
   switch (parser->current.type) {
   case TOKEN_RUN:
   case TOKEN_IDENTIFIER: {
-    register_and_form_fxn(parser, context);
-    break;
+    return register_and_form_fxn(parser, context);
   }
   default:
     error(parser, "Cannot use token to create fxn.", SYNTAXERROR);
     advance(parser);
+    return NULL;
   }
 }
 
-void begin(Parser *parser, CodegenContext *context) {
+ASTNode *begin(Parser *parser, CodegenContext *context) {
+  ASTNode *program_block = create_block_node();
+  
   while (parser->current.type == TOKEN_FXN) {
-    parse_function(parser, context);
+    ASTNode *fxn_node = parse_function(parser, context);
+    if (fxn_node) {
+      block_add_statement(program_block, fxn_node);
+    }
   }
+  
+  return create_program_node(program_block);
 }
 
-void compile_parse(Lexer *lexer, errorStack *s) {
-  Parser parser;
+ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context) {
+  Parser parser = {0};
   parser.lexer = lexer;
-  // Prime  by fetching the first token. That way parser.current is not NULL
+
+  parser.error = s;
+  // Prime by fetching the first token. That way parser.current is not NULL
   advance(&parser);
 
-  // Startup the backend
-  CodegenContext code_writer = {0};
-  codegen_init(&code_writer, "temp\\output.ll");
-
-  // Now parsing the function while sharing the backend context.
-  begin(&parser, &code_writer);
+  // Now parsing the function while sharing the symbol context.
+  ASTNode *program_node = begin(&parser, context);
 
   // Checks the end of the file.
   consume(
       &parser, TOKEN_EOF,
       "Unexpected trailing syntax tokens encountered after main entry block.");
 
-  fclose(code_writer.file);
-  free_codegen_context(&code_writer, s);
-
   printf("Checking errors before compilation...\n\n");
+  
+  return program_node;
 }
 
 /*--------------------------------------------------------------------------------
@@ -719,38 +486,4 @@ void compile_parse(Lexer *lexer, errorStack *s) {
 
 ---------------------------------------------------------------------------------*/
 
-/*Register Variable in Symbol Table*/
-void register_variable(CodegenContext *context, const char *name,
-                       datatype variable_type) {
 
-  grow_symbols_if_needed(context);
-
-  Symbol *sym = &context->symbols[context->symbol_count++];
-
-  char *new_space = realloc_space(sym->name, strlen(name) + 1);
-  sym->name = new_space;
-  sym->llvm_name = new_space;
-  strcpy(sym->name, name);
-  sym->type = variable_type;
-
-  (variable_type == TYPE_STRING)
-      ? sym->str_length = context->string_constant_count++
-      : 0;
-
-  sym->t_type = VAR;
-}
-
-void register_fxn(CodegenContext *context, const char *name,
-                  datatype return_type) {
-
-  grow_symbols_if_needed(context);
-  Symbol *sym = &context->symbols[context->symbol_count++];
-
-  char *new_space = realloc_space(sym->name, strlen(name) + 1);
-  sym->name = new_space;
-  sym->llvm_name = new_space;
-  strcpy(sym->name, name);
-  sym->type = return_type;
-  sym->str_length = 0;
-  sym->t_type = FUNC;
-}

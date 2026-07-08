@@ -1,0 +1,217 @@
+#include "../headers/semantic.h"
+#include "../headers/variables.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../headers/functions.h"
+
+// Forward declarations for internal tree-walking functions
+static void analyze_node(SemanticContext* context, ASTNode* node);
+static void analyze_block(SemanticContext* context, ASTNode* block_node);
+
+// Helper to push semantic errors
+static void report_semantic_error(SemanticContext* context, const char* msg) {
+    Error *e = malloc(sizeof(Error));
+    e->token = (Token){0};
+    e->type = SEMANTICERROR;
+    e->message = strdup(msg);
+    e->got = strdup("semantic_analysis");
+    // Token could be left empty or filled if node has line info.
+    errorStack_push(context->errors, e);
+}
+
+// Helper to infer expression type
+static datatype infer_expr_type(SemanticContext *context, ASTNode *expr) {
+    if (!expr) return TYPE_NULL;
+
+    if (expr->Type == AST_LITERAL_EXPR) {
+        if (expr->literal_expr.token.type == TOKEN_FLOAT) return TYPE_FLOAT;
+        if (expr->literal_expr.token.type == TOKEN_BOOL) return TYPE_BOOL;
+        if (expr->literal_expr.token.type == TOKEN_NULL) return TYPE_NULL;
+        if (expr->literal_expr.token.type == TOKEN_STRING) return TYPE_STRING;
+        return TYPE_INT;
+    }
+
+    if (expr->Type == AST_BINARY_EXPR) {
+        datatype left_type = infer_expr_type(context, expr->binary_expr.left);
+        datatype right_type = infer_expr_type(context, expr->binary_expr.right);
+        return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT : TYPE_INT;
+    }
+
+    if (expr->Type == AST_CONCAT_STR) {
+        return TYPE_STRING;
+    }
+
+    if (expr->Type == AST_VAR_REF) {
+        const int NAME_LENGTH = expr->var_ref.name_length;
+        char var_name[NAME_LENGTH + 1];
+        snprintf(var_name, sizeof(var_name), "%.*s", NAME_LENGTH, expr->var_ref.name);
+        Symbol *sym = lookup_token(context->codegen, var_name);
+        if (sym) {
+            return sym->type;
+        } else {
+            report_semantic_error(context, "Unrecognized variable referenced in expression.");
+        }
+    }
+
+    if (expr->Type == AST_CALL_FXN) {
+        const int NAME_LENGTH = expr->call_fxn.name_length;
+        char fn_name[NAME_LENGTH + 1];
+        snprintf(fn_name, sizeof(fn_name), "%.*s", NAME_LENGTH, expr->call_fxn.name);
+        Symbol *sym = lookup_token(context->codegen, fn_name);
+        if (sym) {
+            return sym->type;
+        }
+    }
+
+    report_semantic_error(context, "Could not infer expression type.");
+    return TYPE_NULL;
+}
+
+// Main entry point
+void analyze_semantics(SemanticContext* context, ASTNode* node) {
+    if (!node) return;
+    
+    // Typically the root is an AST_PROGRAM
+    analyze_node(context, node);
+}
+
+// Recursive tree-walker
+static void analyze_node(SemanticContext* context, ASTNode* node) {
+    if (!node) return;
+
+    switch (node->Type) {
+        case AST_PROGRAM:
+            if (node->program.function) {
+                analyze_node(context, node->program.function);
+            }
+            break;
+
+        case AST_FUNCTION:
+            // Register function
+            if (lookup_token(context->codegen, node->function.name)) {
+                report_semantic_error(context, "Cannot redefine function.");
+            } else {
+                register_fxn(context->codegen, node->function.name, TYPE_NULL, 0);
+            }
+
+            if (node->function.body) {
+                analyze_node(context, node->function.body);
+            }
+            break;
+
+        case AST_BLOCK:
+            analyze_block(context, node);
+            break;
+
+        case AST_VAR_DECL: {
+            const int NAME_LENGTH = node->var_decl.name_length;
+            char name[NAME_LENGTH + 1];
+            snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, node->var_decl.name);
+            
+            Symbol *sym = lookup_token(context->codegen, name);
+            if (sym) {
+                report_semantic_error(context, "Multiple definition of variable.");
+            }
+            
+            if (node->var_decl.value) {
+                analyze_node(context, node->var_decl.value);
+                datatype inferred = infer_expr_type(context, node->var_decl.value);
+                node->var_decl.value_type = inferred; // update the AST node's type
+                register_variable(context->codegen, name, inferred, 0);
+            } else {
+                node->var_decl.value_type = TYPE_NULL;
+                register_variable(context->codegen, name, TYPE_NULL, 0);
+            }
+            break;
+        }
+
+        case AST_VAR_ASS: {
+            const int NAME_LENGTH = node->var_assign.name_length;
+            char name[NAME_LENGTH + 1];
+            snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, node->var_assign.name);
+
+            Symbol *sym = lookup_token(context->codegen, name);
+            if (!sym) {
+                report_semantic_error(context, "Assignment to undeclared variable.");
+            } else {
+                if (node->var_assign.value) {
+                    analyze_node(context, node->var_assign.value);
+                    datatype inferred = infer_expr_type(context, node->var_assign.value);
+                    
+                    if (sym->type != TYPE_NULL && inferred != TYPE_NULL && sym->type != inferred) {
+                        report_semantic_error(context, "Incompatible assignment type.");
+                    } else if (sym->type == TYPE_NULL && inferred != TYPE_NULL) {
+                        sym->type = inferred; // update symbol type if it was null
+                    }
+                }
+            }
+            break;
+        }
+
+        case AST_PRINTLN:
+            if (node->println.value) {
+                analyze_node(context, node->println.value);
+            }
+            break;
+
+        case AST_IF:
+            analyze_node(context, node->if_stmt.condition);
+            analyze_node(context, node->if_stmt.then_block);
+            if (node->if_stmt.else_block) {
+                analyze_node(context, node->if_stmt.else_block);
+            }
+            break;
+
+        case AST_WHILE:
+            analyze_node(context, node->while_lp.condition);
+            analyze_node(context, node->while_lp.then_block);
+            break;
+
+        case AST_FOR:
+            analyze_node(context, node->for_lp.variable);
+            analyze_node(context, node->for_lp.condtion);
+            analyze_node(context, node->for_lp.var_operation);
+            analyze_node(context, node->for_lp.then_block);
+            break;
+
+        case AST_BINARY_EXPR:
+            analyze_node(context, node->binary_expr.left);
+            analyze_node(context, node->binary_expr.right);
+            break;
+
+        case AST_CONCAT_STR:
+            analyze_node(context, node->str_concat.left);
+            analyze_node(context, node->str_concat.right);
+            break;
+            
+        case AST_CALL_FXN: {
+            const int NAME_LENGTH = node->call_fxn.name_length;
+            char fn_name[NAME_LENGTH + 1];
+            snprintf(fn_name, sizeof(fn_name), "%.*s", NAME_LENGTH, node->call_fxn.name);
+            Symbol *sym = lookup_token(context->codegen, fn_name);
+            if (!sym) {
+                report_semantic_error(context, "Call to undeclared function.");
+            } else {
+                node->call_fxn.return_type = sym->type;
+            }
+            break;
+        }
+
+        case AST_LITERAL_EXPR:
+        case AST_VAR_REF:
+            break;
+
+        default:
+            break;
+    }
+}
+
+// Walks through all statements in a block
+static void analyze_block(SemanticContext* context, ASTNode* block_node) {
+    if (!block_node || block_node->Type != AST_BLOCK) return;
+
+    for (int i = 0; i < block_node->block.count; ++i) {
+        analyze_node(context, block_node->block.statements[i]);
+    }
+}

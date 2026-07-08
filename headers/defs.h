@@ -24,6 +24,8 @@ typedef struct CodegenContext {
 
 } CodegenContext;
 
+typedef struct ASTNode ASTNode;
+
 char *realloc_space(char *value, int size);
 void grow_symbols_if_needed(CodegenContext *context);
 void free_codegen_context(CodegenContext *context, errorStack *s);

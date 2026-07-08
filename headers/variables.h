@@ -34,19 +34,20 @@ typedef enum{
 typedef struct {
   char* name;
   char* llvm_name;
+  int scope_level;
   datatype type;
   int str_length;
   token_type t_type;
 } Symbol;
 
 void register_variable(CodegenContext *context, const char *name,
-                       datatype variable_type);
+                       datatype variable_type, int scope_level);
 
 Symbol *lookup_token(CodegenContext *context, const char *name);
 
 void create_var(CodegenContext *context, const char *number_start, int length,
                 const char *name);
 
-void gen_println_variable(CodegenContext *context, char *name);
+void gen_println_variable(CodegenContext *context, char *name, int scope_level);
 
 #endif
