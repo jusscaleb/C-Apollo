@@ -48,30 +48,36 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
 }
 
 ASTNode *create_var_decl_node(const char *name, int name_length,
-                              datatype value_type, ASTNode *value) {
+                              datatype value_type, ASTNode *value, const char* fxn_name, int level) {
   ASTNode *node = allocate_node(AST_VAR_DECL);
 
   node->var_decl.name = name;
   node->var_decl.name_length = name_length;
   node->var_decl.value_type = value_type;
   node->var_decl.value = value;
+  node->var_decl.fxn_name = fxn_name;
+  node->var_decl.level = level;
 
   return node;
 }
 
-ASTNode *create_var_ref_node(const char *name, int name_length) {
+ASTNode *create_var_ref_node(const char *name, int name_length, const char* fxn_name, int level) {
   ASTNode *node = allocate_node(AST_VAR_REF);
   node->var_ref.name = name;
   node->var_ref.name_length = name_length;
+  node->var_ref.fxn_name = fxn_name;
+  node->var_ref.level = level;
   return node;
 }
 
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value) {
+                                ASTNode *value, const char* fxn_name, int level) {
   ASTNode *node = allocate_node(AST_VAR_ASS);
   node->var_assign.name = name;
   node->var_assign.name_length = name_length;
   node->var_assign.value = value;
+  node->var_assign.fxn_name = fxn_name;
+  node->var_assign.level = level;
   return node;
 }
 
