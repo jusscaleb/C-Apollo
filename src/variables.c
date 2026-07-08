@@ -1,17 +1,24 @@
 #include "../headers/variables.h"
 #include "../headers/defs.h"
+#include <stdio.h>
 #include <string.h>
 
 void register_variable(CodegenContext *context, const char *name,
                        datatype variable_type, const char* fxn_name, int level) {
   grow_symbols_if_needed(context);
   Symbol *sym = &context->symbols[context->symbol_count++];
+  int NAME_LENGTH = strlen(name);
 
-  char *new_space = realloc_space(sym->name, strlen(name) + 1);
-  sym->name = new_space;
-  sym->llvm_name = new_space;
-  strcpy(sym->name, name);
+  //printf(" name length: %llu\n", strlen(name) + 1);
+  
+  sym->name =  realloc_space(sym->name, NAME_LENGTH);
+  sprintf(sym->name, "%s", name);
+  sym->llvm_name = realloc_space(sym->llvm_name, NAME_LENGTH);
+
+  sprintf(sym->llvm_name, "%s", sym->name);
+  //strcpy(sym->name ,name);
   sym->type = variable_type;
+
 
   (variable_type == TYPE_STRING)
       ? sym->str_length = context->string_constant_count++

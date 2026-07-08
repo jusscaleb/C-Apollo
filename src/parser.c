@@ -216,6 +216,7 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
     value = parse_logical_or(parser);
   }
 
+
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
                                            TYPE_NULL, value, parser->lexer->fxn_name, parser->lexer->scope_level);
 

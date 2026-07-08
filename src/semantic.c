@@ -112,7 +112,8 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             
             const int NAME_LENGTH = node->var_decl.name_length;
             char *name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-            snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, node->var_decl.name);
+            snprintf(name, NAME_LENGTH+1, "%.*s", NAME_LENGTH, node->var_decl.name);
+
             
             Symbol *sym = lookup_token(context->codegen, name, node->var_decl.fxn_name, node->var_decl.level);
             if (sym) {
