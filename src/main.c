@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
   analyze_semantics(&semantic_ctx, program_ast);
   printf("Semantic analysis done.\n");
 
+  printf("ERROR: %llu \n", err_stack.size);
   if (err_stack.size > 0) {
     printf("Found : %llu Semantic Errors\n", err_stack.size);
     errorStack_seek(&err_stack);

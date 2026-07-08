@@ -95,7 +95,7 @@ typedef struct {
   int line;
   int column;
   int scope_level;
-  char *fxn_name;
+  FXN *fxn;
   errorStack *errors;
 } Lexer;
 
