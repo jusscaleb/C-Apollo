@@ -6,7 +6,6 @@
 void register_variable(CodegenContext *context, const char *name,
                        datatype variable_type, const char* fxn_name, int level) {
   
-  printf("Registering variable: %s, Type: %d, Function: %s, Level: %d\n", name, variable_type, fxn_name, level);
   grow_symbols_if_needed(context);
   Symbol *sym = &context->symbols[context->symbol_count++];
   int NAME_LENGTH = strlen(name);
