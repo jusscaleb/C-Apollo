@@ -6,6 +6,9 @@
 #include <string.h>
 
 typedef struct CodegenContext CodegenContext;
+
+
+
 typedef enum {
   TYPE_STRING,
   TYPE_INT,
@@ -32,12 +35,12 @@ typedef enum{
 }token_type;
 
 typedef struct {
-  char* name;
-  char* llvm_name;
   int scope_level;
-  datatype type;
   int str_length;
+  datatype type;
   token_type t_type;
+  char* name;
+  char* llvm_name; 
   const char* fxn_name;
 } Symbol;
 
