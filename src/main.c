@@ -82,6 +82,8 @@ int main(int argc, char **argv) {
 
   // We need the symbol table for parsing, so we init CodegenContext early.
   CodegenContext compiler_context = {0};
+  codegen_init(&compiler_context, "temp\\output.ll");
+
   
   // 1. Parsing Phase
   ASTNode *program_ast = compile_parse(&lexer, &err_stack, &compiler_context);
@@ -97,9 +99,11 @@ int main(int argc, char **argv) {
 
   // 2. Semantic Analysis Phase
   SemanticContext semantic_ctx = { &err_stack, &compiler_context };
+
   analyze_semantics(&semantic_ctx, program_ast);
   printf("Semantic analysis done.\n");
 
+  printf("ERROR: %llu \n", err_stack.size);
   if (err_stack.size > 0) {
     printf("Found : %llu Semantic Errors\n", err_stack.size);
     errorStack_seek(&err_stack);
@@ -108,8 +112,8 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
+
   // 3. Code Generation Phase
-  codegen_init(&compiler_context, "temp\\output.ll");
   gen_program_from_ast(&compiler_context, program_ast);
   
   fclose(compiler_context.file);

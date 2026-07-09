@@ -9,6 +9,7 @@
 #include "../headers/defs.h"
 #include "../headers/token.h"
 #include "../headers/variables.h"
+#include "../headers/semantic.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -1414,13 +1415,4 @@ void gen_function_end(CodegenContext *context, bool is_main) {
           -------------HELPERS-----------------
 
 ---------------------------------------------------------------------------------*/
-
-Symbol *get_token(CodegenContext *context, const char *name) {
-  for (int i = 0; i < context->symbol_count; i++) {
-    if (strcmp(context->symbols[i].name, name) == 0) {
-      return &context->symbols[i];
-    }
-  }
-  return NULL;
-}
 
