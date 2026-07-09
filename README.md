@@ -119,7 +119,8 @@ python tests/println.py
 ```
 
 Current limitations:
-- A flat (global) symbol table scope
+- Global variables are currently not supported
+- Nested block scoping (e.g., variables declared inside `if` statements or `while` loops being fully scoped) is still under development
 - No function parameters/arguments yet
 
-The next natural steps are local lexical scoping, parameter support, arrays/structs, and custom command-line options.
+The compiler currently successfully isolates function scopes (preventing variables declared in one function from being accessed in another). The next natural steps are full nested block scoping, global variable support, parameter support, arrays/structs, and custom command-line options.
