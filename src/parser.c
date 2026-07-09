@@ -30,10 +30,7 @@ static void advance(Parser *parser) {
 // Resynchronizes the parser after an error to avoid cascading false-positive errors
 static void synchronize(Parser *parser, TokenType safe_token) {
   advance(parser);
-
   while (parser->current.type != TOKEN_EOF && parser->current.type != safe_token)advance(parser);
-
-
 }
 
 static void consume(Parser *parser, TokenType type, const char *errorMessage) {
@@ -83,7 +80,7 @@ static ASTNode *parse_primary(Parser *parser) {
 
   if (token.type == TOKEN_IDENTIFIER) {
     consume(parser, TOKEN_IDENTIFIER, "Expected variable name.");
-    return create_var_ref_node(token.start, token.length, parser->lexer->fxn->fxn_name, parser->lexer->scope_level);
+    return create_var_ref_node(token.start, token.length, parser->lexer->fxn->name, parser->lexer->scope_level);
   }
 
   if (!(parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0)) {
@@ -213,7 +210,7 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
 
 
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
-                                           TYPE_NULL, value, parser->lexer->fxn->fxn_name, parser->lexer->scope_level);
+                                           TYPE_NULL, value, parser->lexer->fxn->name, parser->lexer->scope_level);
 
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
@@ -228,7 +225,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
   if (parser->current.type == TOKEN_INC || parser->current.type == TOKEN_DEC) {
     incrementation = true;
     TokenType op = parser->current.type == TOKEN_INC ? TOKEN_ADD : TOKEN_SUB;
-    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, parser->lexer->fxn->fxn_name, parser->lexer->scope_level);
+    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, parser->lexer->fxn->name, parser->lexer->scope_level);
     Token one_token = {.type = TOKEN_INT, .start = "1", .length = 1, .line = parser->current.line};
     ASTNode *literal_one = create_literal_node(one_token);
     value = create_binary_node(var_ref, op, literal_one);
@@ -253,7 +250,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
       case TOKEN_DEQ: op = TOKEN_DIV; break;
       case TOKEN_PEQ: op = TOKEN_MOD; break;
     }
-    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, parser->lexer->fxn->fxn_name, parser->lexer->scope_level);
+    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, parser->lexer->fxn->name, parser->lexer->scope_level);
     advance(parser);
     ASTNode *left = parse_logical_or(parser);
     value = create_binary_node(var_ref, op, left);
@@ -264,7 +261,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
     value = parse_logical_or(parser);
   }
 
-  return create_var_assign_node(potential_var_name, NAME_LENGTH, value, parser->lexer->fxn->fxn_name, parser->lexer->scope_level);
+  return create_var_assign_node(potential_var_name, NAME_LENGTH, value, parser->lexer->fxn->name, parser->lexer->scope_level);
 }
 
 static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
