@@ -137,7 +137,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
         case AST_VAR_ASS: {
             const int NAME_LENGTH = node->var_assign.name_length;
             char *name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-            snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, node->var_assign.name);
+            snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_assign.name);
 
             Symbol *sym = lookup_token(context->codegen, name, node->var_assign.fxn_name, node->var_assign.level);
             free(name);
@@ -197,7 +197,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
         case AST_CALL_FXN: {
             const int NAME_LENGTH = node->call_fxn.name_length;
             char *fn_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-            snprintf(fn_name, sizeof(fn_name), "%.*s", NAME_LENGTH, node->call_fxn.name);
+            snprintf(fn_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->call_fxn.name);
             Symbol *sym = lookup_token(context->codegen, fn_name, "", 0);
             free(fn_name);
             if (!sym) {
@@ -209,7 +209,18 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
         }
 
         case AST_LITERAL_EXPR:
+            break;
+
         case AST_VAR_REF:
+            const int NAME_LENGTH = node->var_ref.name_length;
+            char *name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+            snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_ref.name);
+
+            Symbol *sym = lookup_token(context->codegen, name, node->var_ref.fxn_name, node->var_ref.level);
+            free(name);
+            if (!sym) {
+                report_semantic_error(context, "Referenced Variable not found in the current scope.");
+            }
             break;
 
         default:

@@ -67,6 +67,7 @@ ASTNode *create_var_ref_node(const char *name, int name_length, const char* fxn_
   node->var_ref.name_length = name_length;
   node->var_ref.fxn_name = fxn_name;
   node->var_ref.level = level;
+
   return node;
 }
 
