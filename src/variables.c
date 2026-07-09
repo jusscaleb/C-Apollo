@@ -1,12 +1,14 @@
 #include "../headers/variables.h"
+#include "../headers/functions.h"
 #include "../headers/defs.h"
 #include <stdio.h>
 #include <string.h>
 
 void register_variable(CodegenContext *context, const char *name,
-                       datatype variable_type, const char* fxn_name, int level) {
+                       datatype variable_type, FXN *fxn, int level) {
   
   grow_symbols_if_needed(context);
+
   Symbol *sym = &context->symbols[context->symbol_count++];
   int NAME_LENGTH = strlen(name);
 
@@ -25,7 +27,7 @@ void register_variable(CodegenContext *context, const char *name,
 
   sym->t_type = VAR;
   sym->scope_level = level;
-  sym->fxn_name = fxn_name;
+  sym->fxn = fxn;
 
 }
 
@@ -44,11 +46,11 @@ void register_fxn(CodegenContext *context, const char *name,
   sym->scope_level = level;
 }
 
-Symbol *lookup_token(CodegenContext *context, const char *name, const char* fxn_name, int level) {
+Symbol *lookup_token(CodegenContext *context, const char *name, FXN *fxn, int level) {
   for (int i = 0; i < context->symbol_count; i++) {
     if (strcmp(context->symbols[i].name, name) == 0 &&
-        strcmp(context->symbols[i].fxn_name, fxn_name) == 0 &&
-        context->symbols[i].scope_level == level) {
+        strcmp(context->symbols[i].fxn->name , fxn->name) == 0 &&
+       strcmp(context->symbols[i].fxn->parent_fxn->name , fxn->parent_fxn->name) == 0 ) {
       return &context->symbols[i];
     }
   }

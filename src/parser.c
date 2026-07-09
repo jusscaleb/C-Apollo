@@ -80,7 +80,7 @@ static ASTNode *parse_primary(Parser *parser) {
 
   if (token.type == TOKEN_IDENTIFIER) {
     consume(parser, TOKEN_IDENTIFIER, "Expected variable name.");
-    return create_var_ref_node(token.start, token.length, parser->lexer->fxn->name, parser->lexer->scope_level);
+    return create_var_ref_node(token.start, token.length, *parser->lexer->fxn, parser->lexer->scope_level);
   }
 
   if (!(parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0)) {
@@ -210,7 +210,7 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
 
 
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
-                                           TYPE_NULL, value, parser->lexer->fxn->name, parser->lexer->scope_level);
+                                           TYPE_NULL, value, *parser->lexer->fxn, parser->lexer->scope_level);
 
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
@@ -225,7 +225,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
   if (parser->current.type == TOKEN_INC || parser->current.type == TOKEN_DEC) {
     incrementation = true;
     TokenType op = parser->current.type == TOKEN_INC ? TOKEN_ADD : TOKEN_SUB;
-    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, parser->lexer->fxn->name, parser->lexer->scope_level);
+    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, *parser->lexer->fxn, parser->lexer->scope_level);
     Token one_token = {.type = TOKEN_INT, .start = "1", .length = 1, .line = parser->current.line};
     ASTNode *literal_one = create_literal_node(one_token);
     value = create_binary_node(var_ref, op, literal_one);
@@ -250,7 +250,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
       case TOKEN_DEQ: op = TOKEN_DIV; break;
       case TOKEN_PEQ: op = TOKEN_MOD; break;
     }
-    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, parser->lexer->fxn->name, parser->lexer->scope_level);
+    ASTNode *var_ref = create_var_ref_node(potential_var_name, NAME_LENGTH, *parser->lexer->fxn, parser->lexer->scope_level);
     advance(parser);
     ASTNode *left = parse_logical_or(parser);
     value = create_binary_node(var_ref, op, left);
@@ -261,14 +261,14 @@ static ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *co
     value = parse_logical_or(parser);
   }
 
-  return create_var_assign_node(potential_var_name, NAME_LENGTH, value, parser->lexer->fxn->name, parser->lexer->scope_level);
+  return create_var_assign_node(potential_var_name, NAME_LENGTH, value, *parser->lexer->fxn, parser->lexer->scope_level);
 }
 
 static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
                                char *name, int name_length) {
   consume(parser, TOKEN_LPARETH, "Expected '(' after function name.");
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
-  return create_fxn_call_node(name, name_length, TYPE_NULL);
+  return create_fxn_call_node(name, name_length, TYPE_NULL, *parser->lexer->fxn, parser->lexer->scope_level);
 }
 
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
@@ -411,7 +411,8 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
   ASTNode *body = parse_block(parser, context);
 
   int name_length = strlen(parser->lexer->fxn->name);
-  return create_function_node(parser->lexer->fxn->name, name_length, body);
+  printf("REGISTERING FXN: %s\n", parser->lexer->fxn->name);
+  return create_function_node(parser->lexer->fxn->name, name_length, body, *parser->lexer->fxn, parser->lexer->scope_level);
 }
 
 ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
@@ -422,11 +423,17 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   char *name = alloc_space(NAME_LENGTH + 1 , sizeof(char));
   sprintf(name, "%.*s", NAME_LENGTH, name_token.start);
 
-  FXN fxn = {NAME_LENGTH, parser->lexer->line, parser->lexer->scope_level, TYPE_NULL, "global", name};
-  
-  parser->lexer->fxn = NULL;
-  parser->lexer->fxn = &fxn;
+  //FXN fxn = {NAME_LENGTH, parser->lexer->line, parser->lexer->scope_level, TYPE_NULL, name , parser->lexer->fxn};
 
+  FXN *fxn =  (FXN*)alloc_space(1, sizeof(FXN));
+
+  fxn->length = NAME_LENGTH;
+  fxn->name = name;
+  fxn->level = parser->lexer->scope_level;
+  fxn->line = parser->lexer->line;
+  fxn->parent_fxn = parser->lexer->fxn;
+  fxn->return_type = TYPE_NULL;
+  *parser->lexer->fxn = *fxn;
 
   return function(parser, context);
 }
@@ -447,6 +454,7 @@ ASTNode *parse_function(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *begin(Parser *parser, CodegenContext *context) {
+  *parser->lexer->fxn = (FXN) {0, 0, 0, TYPE_NULL, "global", NULL};
   ASTNode *program_block = create_block_node();
   
   while (parser->current.type == TOKEN_FXN) {

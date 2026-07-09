@@ -48,36 +48,36 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
 }
 
 ASTNode *create_var_decl_node(const char *name, int name_length,
-                              datatype value_type, ASTNode *value, const char* fxn_name, int level) {
+                              datatype value_type, ASTNode *value, FXN fxn, int level) {
   ASTNode *node = allocate_node(AST_VAR_DECL);
 
   node->var_decl.name = name;
   node->var_decl.name_length = name_length;
   node->var_decl.value_type = value_type;
   node->var_decl.value = value;
-  node->var_decl.fxn_name = fxn_name;
+  node->var_decl.fxn = fxn;
   node->var_decl.level = level;
 
   return node;
 }
 
-ASTNode *create_var_ref_node(const char *name, int name_length, const char* fxn_name, int level) {
+ASTNode *create_var_ref_node(const char *name, int name_length, FXN fxn, int level) {
   ASTNode *node = allocate_node(AST_VAR_REF);
   node->var_ref.name = name;
   node->var_ref.name_length = name_length;
-  node->var_ref.fxn_name = fxn_name;
+  node->var_ref.fxn = fxn;
   node->var_ref.level = level;
 
   return node;
 }
 
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, const char* fxn_name, int level) {
+                                ASTNode *value, FXN fxn, int level) {
   ASTNode *node = allocate_node(AST_VAR_ASS);
   node->var_assign.name = name;
   node->var_assign.name_length = name_length;
   node->var_assign.value = value;
-  node->var_assign.fxn_name = fxn_name;
+  node->var_assign.fxn = fxn;
   node->var_assign.level = level;
   return node;
 }
@@ -135,21 +135,25 @@ void block_add_statement(ASTNode *block, ASTNode *statement) {
 }
 
 ASTNode *create_fxn_call_node(char *name, int name_length,
-                              datatype return_type) {
+                              datatype return_type, FXN fxn, int level) {
   ASTNode *node = allocate_node(AST_CALL_FXN);
 
   node->call_fxn.name = name;
   node->call_fxn.name_length = name_length;
   node->call_fxn.return_type = return_type;
+  node->call_fxn.fxn = fxn;
+  node->call_fxn.level = level;
 
   return node;
 }
 
-ASTNode *create_function_node(const char *name, int name_length, ASTNode *body) {
+ASTNode *create_function_node(const char *name, int name_length, ASTNode *body, FXN fxn, int level) {
   ASTNode *node = allocate_node(AST_FUNCTION);
   node->function.name = name;
   node->function.name_length = name_length;
   node->function.body = body;
+  node->function.fxn = fxn;
+  node->function.level = level;
   return node;
 }
 

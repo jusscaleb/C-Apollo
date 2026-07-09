@@ -51,6 +51,8 @@ struct ASTNode {
       const char *name;
       int name_length;
       ASTNode *body;
+      int level;
+      FXN fxn;
 
     } function;
 
@@ -66,7 +68,7 @@ struct ASTNode {
       int name_length;
       datatype value_type;
       ASTNode *value;
-      const char* fxn_name;
+      FXN fxn;
       int level;
 
     } var_decl;
@@ -90,7 +92,7 @@ struct ASTNode {
     struct {
       const char *name;
       int name_length;
-      const char* fxn_name;
+      FXN fxn;
       int level;
     } var_ref;
 
@@ -98,7 +100,7 @@ struct ASTNode {
       const char *name;
       int name_length;
       ASTNode *value;
-      const char* fxn_name;
+      FXN fxn;
       int level;
 
     } var_assign;
@@ -132,6 +134,8 @@ struct ASTNode {
       const char *name;
       int name_length;
       datatype return_type;
+      FXN fxn;
+      int level;
     } call_fxn;
   };
 };
@@ -167,7 +171,7 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
  * @param level scope level of the variable.
  */
 ASTNode *create_var_decl_node(const char *name, int name_length,
-                              datatype value_type, ASTNode *value, const char* fxn_name, int level);
+                              datatype value_type, ASTNode *value, FXN fxn, int level);
 
 /**
  * Creates an AST node representing a println statement.
@@ -187,7 +191,7 @@ ASTNode *create_block_node();
  * @param fxn_name fxn the variable belongs to.
  * @param level scope level of the variable.
  */
-ASTNode *create_var_ref_node(const char *name, int name_length, const char* fxn_name, int level);
+ASTNode *create_var_ref_node(const char *name, int name_length, FXN fxn, int level);
 
 /**
  * Creates an AST node representing a variable reassignment.
@@ -198,7 +202,7 @@ ASTNode *create_var_ref_node(const char *name, int name_length, const char* fxn_
  * @param level scope level of the variable.
  */
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, const char* fxn_name, int level);
+                                ASTNode *value, FXN fxn, int level);
 
 /**
  * Creates an AST node representing a string concatenation.
@@ -241,7 +245,7 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
  * @param return_type The AST node representing the return type of the fxn.
  */
 ASTNode *create_fxn_call_node(char *name, int name_length,
-                              datatype return_type);
+                              datatype return_type, FXN fxn, int level);
 
 /*--------------------------------------------------------------------------------
 
@@ -255,7 +259,7 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
  * @param name_length Length of the function name.
  * @param body The AST block node representing the function body.
  */
-ASTNode *create_function_node(const char *name, int name_length, ASTNode *body);
+ASTNode *create_function_node(const char *name, int name_length, ASTNode *body, FXN fxn, int level);
 
 /**
  * Creates an AST node representing the entire program.
