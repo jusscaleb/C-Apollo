@@ -9,13 +9,14 @@
 #include "../headers/defs.h"
 #include "../headers/token.h"
 #include "../headers/variables.h"
+#include "../headers/semantic.h"
 
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-Symbol *lookup_token(CodegenContext *context, const char *name);
+Symbol *get_token(CodegenContext *context, const char *name);
 static void gen_println_bool(CodegenContext *context, Token token);
 static void create_var_from_expr_result(CodegenContext *context,
                                         ExprResult result, const char *name);
@@ -380,7 +381,7 @@ static void create_string_var(CodegenContext *context, const char *value_start,
 void create_var(CodegenContext *context, const char *number_start, int length,
                 const char *name) {
 
-  Symbol *sym = lookup_token(context, name);
+  Symbol *sym = get_token(context, name);
   char *llvm_name = sym->llvm_name;
 
   fprintf(context->file, "; Allocate integer variable slot\n");
@@ -407,7 +408,7 @@ void create_var(CodegenContext *context, const char *number_start, int length,
 
 static void create_var_from_expr_result(CodegenContext *context,
                                         ExprResult result, const char *name) {
-  Symbol *sym = lookup_token(context, name);
+  Symbol *sym = get_token(context, name);
   char *llvm_name = sym->llvm_name;
 
   if (result.type == EXPR_FLOAT) {
@@ -472,7 +473,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
   snprintf(name_buf, sizeof(name_buf), "%.*s", NAME_LENGTH,
            assign_node->var_assign.name);
 
-  Symbol *sym = lookup_token(context, name_buf);
+  Symbol *sym = get_token(context, name_buf);
   if (!sym) {
     fprintf(stderr, "Error: Variable '%s' not declared.\n", name_buf);
     exit(EXIT_FAILURE);
@@ -486,7 +487,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
 
     snprintf(rhs_name, sizeof(rhs_name), "%.*s", NAME_LENGTH,
              value->var_ref.name);
-    Symbol *rhs_sym = lookup_token(context, rhs_name);
+    Symbol *rhs_sym = get_token(context, rhs_name);
 
     if (rhs_sym) {
       if (rhs_sym->type == TYPE_STRING) {
@@ -663,7 +664,7 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
     const int NAME_LENGTH = expr->var_ref.name_length;
     char name[NAME_LENGTH + 1];
     snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, expr->var_ref.name);
-    Symbol *sym = lookup_token(context, name);
+    Symbol *sym = get_token(context, name);
 
     int temp_id = context->temp_count++;
 
@@ -1195,7 +1196,7 @@ static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
 }
 
 void gen_println_variable(CodegenContext *context, char *name, int scope_level) {
-  Symbol *sym = lookup_token(context, name);
+  Symbol *sym = get_token(context, name);
 
   if (sym->type == TYPE_STRING) {
     int id = context->string_constant_count++;
@@ -1407,3 +1408,11 @@ void gen_function_end(CodegenContext *context, bool is_main) {
 
   fprintf(context->file, "}\n");
 }
+
+
+/*--------------------------------------------------------------------------------
+
+          -------------HELPERS-----------------
+
+---------------------------------------------------------------------------------*/
+

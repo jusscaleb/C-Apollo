@@ -1,9 +1,10 @@
 #include "../headers/semantic.h"
 #include "../headers/variables.h"
+#include "../headers/functions.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../headers/functions.h"
+
 
 // Forward declarations for internal tree-walking functions
 static void analyze_node(SemanticContext* context, ASTNode* node);
@@ -44,9 +45,9 @@ static datatype infer_expr_type(SemanticContext *context, ASTNode *expr) {
 
     if (expr->Type == AST_VAR_REF) {
         const int NAME_LENGTH = expr->var_ref.name_length;
-        char var_name[NAME_LENGTH + 1];
+        char *var_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
         snprintf(var_name, sizeof(var_name), "%.*s", NAME_LENGTH, expr->var_ref.name);
-        Symbol *sym = lookup_token(context->codegen, var_name);
+        Symbol *sym = lookup_token(context->codegen, var_name, expr->var_ref.fxn_name, expr->var_ref.level);
         if (sym) {
             return sym->type;
         } else {
@@ -56,9 +57,9 @@ static datatype infer_expr_type(SemanticContext *context, ASTNode *expr) {
 
     if (expr->Type == AST_CALL_FXN) {
         const int NAME_LENGTH = expr->call_fxn.name_length;
-        char fn_name[NAME_LENGTH + 1];
+        char *fn_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
         snprintf(fn_name, sizeof(fn_name), "%.*s", NAME_LENGTH, expr->call_fxn.name);
-        Symbol *sym = lookup_token(context->codegen, fn_name);
+        Symbol *sym = lookup_token(context->codegen, fn_name, "", 0);
         if (sym) {
             return sym->type;
         }
@@ -78,6 +79,8 @@ void analyze_semantics(SemanticContext* context, ASTNode* node) {
 
 // Recursive tree-walker
 static void analyze_node(SemanticContext* context, ASTNode* node) {
+
+    
     if (!node) return;
 
     switch (node->Type) {
@@ -89,9 +92,10 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
 
         case AST_FUNCTION:
             // Register function
-            if (lookup_token(context->codegen, node->function.name)) {
+            if (lookup_token(context->codegen, node->function.name, "", 0)) {
                 report_semantic_error(context, "Cannot redefine function.");
             } else {
+                //register_fxn(context->codegen, node->function.name, TYPE_NULL, 0);
                 register_fxn(context->codegen, node->function.name, TYPE_NULL, 0);
             }
 
@@ -105,11 +109,13 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             break;
 
         case AST_VAR_DECL: {
-            const int NAME_LENGTH = node->var_decl.name_length;
-            char name[NAME_LENGTH + 1];
-            snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, node->var_decl.name);
             
-            Symbol *sym = lookup_token(context->codegen, name);
+            const int NAME_LENGTH = node->var_decl.name_length;
+            char *name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+            snprintf(name, NAME_LENGTH+1, "%.*s", NAME_LENGTH, node->var_decl.name);
+
+            
+            Symbol *sym = lookup_token(context->codegen, name, node->var_decl.fxn_name, node->var_decl.level);
             if (sym) {
                 report_semantic_error(context, "Multiple definition of variable.");
             }
@@ -118,20 +124,23 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                 analyze_node(context, node->var_decl.value);
                 datatype inferred = infer_expr_type(context, node->var_decl.value);
                 node->var_decl.value_type = inferred; // update the AST node's type
-                register_variable(context->codegen, name, inferred, 0);
+                register_variable(context->codegen, name, inferred,node->var_decl.fxn_name,node->var_decl.level);
+            
             } else {
                 node->var_decl.value_type = TYPE_NULL;
-                register_variable(context->codegen, name, TYPE_NULL, 0);
+                register_variable(context->codegen, name, TYPE_NULL,node->var_decl.fxn_name,node->var_decl.level);
             }
+            free(name);
             break;
         }
 
         case AST_VAR_ASS: {
             const int NAME_LENGTH = node->var_assign.name_length;
-            char name[NAME_LENGTH + 1];
+            char *name = alloc_space(NAME_LENGTH + 1, sizeof(char));
             snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, node->var_assign.name);
 
-            Symbol *sym = lookup_token(context->codegen, name);
+            Symbol *sym = lookup_token(context->codegen, name, node->var_assign.fxn_name, node->var_assign.level);
+            free(name);
             if (!sym) {
                 report_semantic_error(context, "Assignment to undeclared variable.");
             } else {
@@ -187,9 +196,10 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             
         case AST_CALL_FXN: {
             const int NAME_LENGTH = node->call_fxn.name_length;
-            char fn_name[NAME_LENGTH + 1];
+            char *fn_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
             snprintf(fn_name, sizeof(fn_name), "%.*s", NAME_LENGTH, node->call_fxn.name);
-            Symbol *sym = lookup_token(context->codegen, fn_name);
+            Symbol *sym = lookup_token(context->codegen, fn_name, "", 0);
+            free(fn_name);
             if (!sym) {
                 report_semantic_error(context, "Call to undeclared function.");
             } else {

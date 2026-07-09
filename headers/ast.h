@@ -66,6 +66,8 @@ struct ASTNode {
       int name_length;
       datatype value_type;
       ASTNode *value;
+      const char* fxn_name;
+      int level;
 
     } var_decl;
 
@@ -88,12 +90,16 @@ struct ASTNode {
     struct {
       const char *name;
       int name_length;
+      const char* fxn_name;
+      int level;
     } var_ref;
 
     struct {
       const char *name;
       int name_length;
       ASTNode *value;
+      const char* fxn_name;
+      int level;
 
     } var_assign;
 
@@ -157,9 +163,11 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
  * @param name_length Length of the variable name identifier.
  * @param value_type The compiler datatype of the variable.
  * @param value The AST node representing the initial value expression.
+ * @param fxn_name fxn the variable belongs to.
+ * @param level scope level of the variable.
  */
 ASTNode *create_var_decl_node(const char *name, int name_length,
-                              datatype value_type, ASTNode *value);
+                              datatype value_type, ASTNode *value, const char* fxn_name, int level);
 
 /**
  * Creates an AST node representing a println statement.
@@ -176,17 +184,21 @@ ASTNode *create_block_node();
  * Creates an AST node representing a reference to a variable by name.
  * @param name Pointer to the variable identifier.
  * @param name_length Length of the variable name.
+ * @param fxn_name fxn the variable belongs to.
+ * @param level scope level of the variable.
  */
-ASTNode *create_var_ref_node(const char *name, int name_length);
+ASTNode *create_var_ref_node(const char *name, int name_length, const char* fxn_name, int level);
 
 /**
  * Creates an AST node representing a variable reassignment.
  * @param name The LLVM-compatible name of the variable.
  * @param name_length Length of the variable's LLVM name.
  * @param value The AST node representing the new value expression.
+ * @param fxn_name fxn the variable belongs to.
+ * @param level scope level of the variable.
  */
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value);
+                                ASTNode *value, const char* fxn_name, int level);
 
 /**
  * Creates an AST node representing a string concatenation.
