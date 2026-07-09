@@ -46,9 +46,6 @@ void register_fxn(CodegenContext *context, const char *name,
 }
 
 Symbol *lookup_token(CodegenContext *context, const char *name, const char* fxn_name, int level) {
-  printf("TESTING: %s ", name);
-  printf("FXN NAME: %s\n", fxn_name);
-  printf("LEVEL: %d\n", level);
   for (int i = 0; i < context->symbol_count; i++) {
     if (strcmp(context->symbols[i].name, name) == 0 &&
         strcmp(context->symbols[i].fxn_name, fxn_name) == 0 &&
