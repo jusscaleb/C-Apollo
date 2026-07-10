@@ -100,6 +100,7 @@ Every statement and expression in Apollo passes through an AST node before codeg
 
 Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for high performance. It supports:
 - Variables of all supported types (integers, floats, booleans, strings, nulls)
+- Global variables (accessible across multiple functions)
 - Mathematical and logical expressions (`+`, `-`, `*`, `/`, `%`, `and`, `or`, `&&`, `||`)
 - String concatenation (`+`), including seamless concatenation with non-string types (integers, floats, booleans)
 - Control flow (`if`, `elif`, `else` conditionals)
@@ -110,17 +111,16 @@ Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for h
 
 ## Testing
 
-Apollo includes an automated integration test suite written in Python, located at `tests/println.py`. This script dynamically creates temporary `.apl` test cases, compiles them via `apl.exe`, executes the built native binaries, and asserts the `stdout` against expected results.
+Apollo includes an automated integration test suite written in Python. These scripts dynamically create temporary `.apl` test cases, compile them via `apl.exe`, execute the built native binaries, and assert the `stdout` against expected results.
 
-You can run the full test suite using:
+You can run the full test suite using the bash diagnosis script:
 
-```powershell
-python tests/println.py
+```bash
+./diagnosis.sh
 ```
 
 Current limitations:
-- Global variables are currently not supported
 - Nested block scoping (e.g., variables declared inside `if` statements or `while` loops being fully scoped) is still under development
 - No function parameters/arguments yet
 
-The compiler currently successfully isolates function scopes (preventing variables declared in one function from being accessed in another). The next natural steps are full nested block scoping, global variable support, parameter support, arrays/structs, and custom command-line options.
+The compiler currently successfully isolates function scopes and supports global variables (accessible across functions). The next natural steps are full nested block scoping, parameter support, arrays/structs, and custom command-line options.
