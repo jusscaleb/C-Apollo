@@ -1335,9 +1335,14 @@ void gen_while_from_ast(CodegenContext *context, ASTNode *while_node) {
   fprintf(context->file, "while_cond_%d:\n", label_id);
   ExprResult cond_res =
       gen_expr_from_ast(context, while_node->while_lp.condition);
+      
+  const char *cond_val = cond_res.value;
+  if (strcmp(cond_val, "true") == 0) cond_val = "1";
+  else if (strcmp(cond_val, "false") == 0) cond_val = "0";
+
   int trunc_id = context->temp_count++;
   fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id,
-          cond_res.value);
+          cond_val);
 
   fprintf(context->file,
           "  br i1 %%tmp_%d, label %%while_body_%d, label %%while_end_%d\n\n",
@@ -1374,8 +1379,13 @@ void gen_for_from_ast(CodegenContext *context, ASTNode *for_node) {
   int trunc_id = context->temp_count++;
   if (for_node->for_lp.condtion != NULL) {
     ExprResult cond_res = gen_expr_from_ast(context, for_node->for_lp.condtion);
+    
+    const char *cond_val = cond_res.value;
+    if (strcmp(cond_val, "true") == 0) cond_val = "1";
+    else if (strcmp(cond_val, "false") == 0) cond_val = "0";
+
     fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id,
-            cond_res.value);
+            cond_val);
     fprintf(context->file,
             "  br i1 %%tmp_%d, label %%for_body_%d, label %%for_end_%d\n\n",
             trunc_id, label_id, label_id);
@@ -1433,9 +1443,14 @@ void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
 
   // 1. Evaluate condition
   ExprResult cond_res = gen_expr_from_ast(context, if_node->if_stmt.condition);
+  
+  const char *cond_val = cond_res.value;
+  if (strcmp(cond_val, "true") == 0) cond_val = "1";
+  else if (strcmp(cond_val, "false") == 0) cond_val = "0";
+
   int trunc_id = context->temp_count++;
   fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i1\n", trunc_id,
-          cond_res.value);
+          cond_val);
 
   // 2. Conditional branch
   fprintf(context->file,
