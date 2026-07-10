@@ -52,7 +52,7 @@ Symbol *lookup_token(CodegenContext *context, const char *name, FXN *fxn, int le
     if (strcmp(context->symbols[i].name, name) != 0) continue;
 
     if (context->symbols[i].t_type == VAR) {
-      if (strcmp(context->symbols[i].fxn->name, fxn->name) == 0) {
+      if (strcmp(context->symbols[i].fxn->name, fxn->name) == 0 || strcmp(fxn->name, "global")) {
         return &context->symbols[i];
       }
     } else if (context->symbols[i].t_type == FUNC) {
