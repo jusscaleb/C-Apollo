@@ -28,6 +28,7 @@ void register_variable(CodegenContext *context, const char *name,
   sym->t_type = VAR;
   sym->scope_level = level;
   sym->fxn = fxn;
+  sym->is_active = true;
 
 }
 
@@ -45,13 +46,15 @@ void register_fxn(CodegenContext *context, const char *name,
   sym->t_type = FUNC;
   sym->scope_level = level;
   sym->fxn = fxn;
+  sym->is_active = true;
 }
 
 Symbol *lookup_token(CodegenContext *context, const char *name, FXN *fxn, int level) {
-  for (int i = 0; i < context->symbol_count; i++) {
+  for (int i = context->symbol_count - 1; i >= 0; i--) {
     if (strcmp(context->symbols[i].name, name) != 0) continue;
 
     if (context->symbols[i].t_type == VAR) {
+      if (!context->symbols[i].is_active) continue; 
       if (strcmp(context->symbols[i].fxn->name, fxn->name) == 0 || strcmp(fxn->name, "global")) {
         return &context->symbols[i];
       }
