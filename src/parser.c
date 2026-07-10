@@ -475,6 +475,13 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
     .parent_fxn = NULL};
   ASTNode *program_block = create_block_node();
   
+  while (parser->current.type == TOKEN_VAR){
+    ASTNode *var_node = var(parser, context);
+    if (var_node) {
+      block_add_statement(program_block, var_node);
+    }
+  }
+
   while (parser->current.type == TOKEN_FXN) {
     ASTNode *fxn_node = parse_function(parser, context);
     if (fxn_node) {
