@@ -96,7 +96,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                 report_semantic_error(context, "Cannot redefine function.");
             } else {
                 //register_fxn(context->codegen, node->function.name, TYPE_NULL, 0);
-                register_fxn(context->codegen, node->function.name, TYPE_NULL, 0);
+                register_fxn(context->codegen, node->function.name, TYPE_NULL, 0, &node->function.fxn);
             }
 
             if (node->function.body) {
@@ -205,6 +205,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             } else {
                 node->call_fxn.return_type = sym->type;
             }
+
             break;
         }
 

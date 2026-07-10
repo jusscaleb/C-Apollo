@@ -116,7 +116,7 @@ Token next_token(Lexer *lexer) {
   case '}': {
     Token token = {TOKEN_RBRACE, start, 1, lexer->line};
     lexer->scope_level--;
-    lexer->fxn = lexer->fxn->parent_fxn;
+    //lexer->fxn = lexer->fxn->parent_fxn;
     return token;
   }
 

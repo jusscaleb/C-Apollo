@@ -23,6 +23,7 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context);
 
 // move on to next token
 static void advance(Parser *parser) {
+  //printf("REGISTERING FXN(parser): %s\n", parser->lexer->fxn->name);
   parser->previous = parser->current;
   parser->current = next_token(parser->lexer);
 }
@@ -268,6 +269,7 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
                                char *name, int name_length) {
   consume(parser, TOKEN_LPARETH, "Expected '(' after function name.");
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
+  printf("\nCREATING FXN CALL NODE FOR %s  LEVEL: %d, FXN %s PARNT FXN %s", name, parser->lexer->scope_level, parser->lexer->fxn->name, parser->lexer->fxn->parent_fxn->name);
   return create_fxn_call_node(name, name_length, TYPE_NULL, *parser->lexer->fxn, parser->lexer->scope_level);
 }
 
@@ -394,6 +396,8 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *function(Parser *parser, CodegenContext *context) {
+ 
+
   advance(parser);
   consume(parser, TOKEN_LPARETH,
           "Expected parameter list wrapper starting with '('.");
@@ -408,10 +412,10 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_RPARETH,
           "Expected closing parenthesis ')' around return type specification.");
 
+
   ASTNode *body = parse_block(parser, context);
 
   int name_length = strlen(parser->lexer->fxn->name);
-  printf("REGISTERING FXN: %s\n", parser->lexer->fxn->name);
   return create_function_node(parser->lexer->fxn->name, name_length, body, *parser->lexer->fxn, parser->lexer->scope_level);
 }
 
@@ -425,17 +429,23 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
 
   //FXN fxn = {NAME_LENGTH, parser->lexer->line, parser->lexer->scope_level, TYPE_NULL, name , parser->lexer->fxn};
 
+  FXN *parent = parser->lexer->fxn;
   FXN *fxn =  (FXN*)alloc_space(1, sizeof(FXN));
 
   fxn->length = NAME_LENGTH;
   fxn->name = name;
   fxn->level = parser->lexer->scope_level;
   fxn->line = parser->lexer->line;
-  fxn->parent_fxn = parser->lexer->fxn;
+  fxn->parent_fxn = parent;
   fxn->return_type = TYPE_NULL;
-  *parser->lexer->fxn = *fxn;
 
-  return function(parser, context);
+  parser->lexer->fxn = fxn;
+
+
+  ASTNode *node = function(parser, context);
+  
+  parser->lexer->fxn = parent;
+  return node;
 }
 
 ASTNode *parse_function(Parser *parser, CodegenContext *context) {
@@ -454,7 +464,15 @@ ASTNode *parse_function(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *begin(Parser *parser, CodegenContext *context) {
-  *parser->lexer->fxn = (FXN) {0, 0, 0, TYPE_NULL, "global", NULL};
+  parser->lexer->fxn = (FXN*)alloc_space(1, sizeof(FXN));
+
+  *parser->lexer->fxn = (FXN) {
+    .length = 0, 
+    .level = 0, 
+    .line = 0, 
+    .return_type = TYPE_NULL, 
+    .name = "global", 
+    .parent_fxn = NULL};
   ASTNode *program_block = create_block_node();
   
   while (parser->current.type == TOKEN_FXN) {

@@ -4,7 +4,7 @@
 ###                  NOTE: THIS FILE ONLY RUNS ON Linux or GITBASH                             ###                                                               
 ##################################################################################################
 
-VALID_TESTS=("println"  "conditionals"  "variable")
+VALID_TESTS=("println"  "conditionals"  "variable" "fxns")
 
 
 exec_doctest() {
@@ -91,6 +91,7 @@ if [ $1 = 'help' ]; then
     echo "1) println --------------------------------> tests println()"
     echo "2) conditionals --------------------------------> tests conditionals"
     echo "3) var -----------------------------------------> tests variables"
+    echo "4) fxns ----------------------------------------> tests fxns"
 
     exit 0
 fi
