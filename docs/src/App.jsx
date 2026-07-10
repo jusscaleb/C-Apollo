@@ -1081,10 +1081,10 @@ export default function App() {
                 </table>
               </div>
 
-              <h2 className="section-title">Natural Steps For Extension</h2>
+              <h2 className="section-title">Status and Limitations</h2>
               <p>
-                Currently, Apollo features a global symbol table structure providing <strong>Global Variables</strong> support and function execution. 
-                Next natural development tasks include adding local lexical scoping levels, function parameter passing, struct/array support, and dedicated command-line compilation options.
+                Apollo natively supports <strong>Global Variables</strong>, function execution, and <strong>Nested Block Scoping</strong> with variable shadowing via Name Resolution Linking. 
+                The next natural development tasks include adding function parameter passing, struct/array support, and dedicated command-line compilation options.
               </p>
             </section>
           </div>

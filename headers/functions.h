@@ -20,6 +20,14 @@ typedef struct FXN{
 
 
 
+/**
+ * Registers a new function in the symbol table.
+ * @param context The codegen context containing the symbol table.
+ * @param name The name of the function.
+ * @param return_type The return type of the function.
+ * @param level The nesting scope level of the function.
+ * @param fxn The function structure containing metadata and parent links.
+ */
 void register_fxn(CodegenContext *context, const char *name,
                   datatype return_type, int level, FXN *fxn);
 
