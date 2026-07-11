@@ -99,7 +99,11 @@ typedef struct {
   errorStack *errors;
 } Lexer;
 
-// Called by parser.c
+/**
+ * Advances the lexer and returns the next token from the source code.
+ * @param lexer The lexer context tracking the current position and state.
+ * @return The next token extracted from the source.
+ */
 Token next_token(Lexer *lexer);
 
 // Tracks the internal stream state of parser.

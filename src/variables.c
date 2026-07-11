@@ -28,6 +28,7 @@ void register_variable(CodegenContext *context, const char *name,
   sym->t_type = VAR;
   sym->scope_level = level;
   sym->fxn = fxn;
+  sym->is_active = true;
 
 }
 
@@ -56,30 +57,16 @@ Symbol* register_fxn(CodegenContext *context, const char *name,
   sym->t_type = FUNC;
   sym->scope_level = level;
   sym->fxn = fxn;
+  sym->is_active = true;
   return sym;
 }
 
 Symbol *lookup_token(CodegenContext *context, const char *name, FXN *fxn, int level) {
-  FXN *current_room = fxn;
-  
-  while (current_room != NULL) {
-    for (int i = 0; i < context->symbol_count; i++) {
-      if (strcmp(context->symbols[i].name, name) != 0) continue;
-
-      if (context->symbols[i].t_type == VAR) {
-        if (strcmp(context->symbols[i].fxn->name, current_room->name) == 0) {
-          return &context->symbols[i];
-        }
-      } else if (context->symbols[i].t_type == FUNC) {
-
-        if (context->symbols[i].fxn->parent_fxn != NULL && 
-            strcmp(context->symbols[i].fxn->parent_fxn->name, current_room->name) == 0) {
-          return &context->symbols[i];
-        }
-      }
+  for (int i = context->symbol_count - 1; i >= 0; i--) {
+    if (strcmp(context->symbols[i].name, name) != 0) continue;
+    if (context->symbols[i].is_active) {
+      return &context->symbols[i];
     }
-    
-    current_room = current_room->parent_fxn;
   }
   return NULL;
 }

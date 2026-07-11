@@ -143,6 +143,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             if (!sym) {
                 report_semantic_error(context, "Assignment to undeclared variable.");
             } else {
+                node->var_assign.resolved_symbol = sym;
                 if (node->var_assign.value) {
                     analyze_node(context, node->var_assign.value);
                     datatype inferred = infer_expr_type(context, node->var_assign.value);
@@ -221,6 +222,8 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             free(name);
             if (!sym) {
                 report_semantic_error(context, "Referenced Variable not found in the current scope.");
+            } else {
+                node->var_ref.resolved_symbol = sym;
             }
             break;
 
@@ -233,7 +236,15 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
 static void analyze_block(SemanticContext* context, ASTNode* block_node) {
     if (!block_node || block_node->Type != AST_BLOCK) return;
 
+    int initial_symbol_count = context->codegen->symbol_count;
+
     for (int i = 0; i < block_node->block.count; ++i) {
         analyze_node(context, block_node->block.statements[i]);
     }
+
+    for (int i = initial_symbol_count; i < context->codegen->symbol_count; ++i) {
+        context->codegen->symbols[i].is_active = false;
+    }
 }
+
+
