@@ -108,6 +108,8 @@ Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for h
 - Function declarations (`fxn func_name() -> (void) { ... }`)
 - Function calls (`func_name();`)
 - Printing values and variables via `println`
+- **Infinite Function Nesting:** Functions can be deeply nested inside other functions with perfect scoping (ladder-climbing resolution).
+- **Name Mangling:** Apollo robustly handles nested function naming collisions by mangling internal LLVM names, allowing you to reuse function names (like `main`) across different scopes safely!
 
 ## Testing
 
@@ -120,7 +122,7 @@ You can run the full test suite using the bash diagnosis script:
 ```
 
 Current limitations:
-- Nested block scoping (e.g., variables declared inside `if` statements or `while` loops being fully scoped) is still under development
+- Nested block scoping for variables (e.g., variables declared inside `if` statements or `while` loops being fully scoped) is still under development
 - No function parameters/arguments yet
 
-The compiler currently successfully isolates function scopes and supports global variables (accessible across functions). The next natural steps are full nested block scoping, parameter support, arrays/structs, and custom command-line options.
+The compiler currently successfully isolates function scopes, supports global variables, and effortlessly handles deeply nested functions. The next natural steps are full nested block scoping for variables, parameter support, arrays/structs, and custom command-line options.

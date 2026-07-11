@@ -62,6 +62,13 @@ void free_codegen_context(CodegenContext *context, errorStack *s) {
     context->symbol_count = 0;
     context->symbol_capacity = 0;
   }
+  
+  if (context->deferred_functions != NULL) {
+    free(context->deferred_functions);
+    context->deferred_functions = NULL;
+    context->deferred_count = 0;
+    context->deferred_capacity = 0;
+  }
 }
 
 void realloc_errorStack(errorStack *s) {

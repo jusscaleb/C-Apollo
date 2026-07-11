@@ -12,6 +12,7 @@ typedef struct errorStack errorStack;
 
 #define EXPECTED_EXTENSION ".apl"
 typedef bool set;
+typedef struct ASTNode ASTNode;
 
 // generator
 typedef struct CodegenContext {
@@ -22,9 +23,10 @@ typedef struct CodegenContext {
   Symbol *symbols;
   int temp_count;
 
+  ASTNode **deferred_functions;
+  int deferred_count;
+  int deferred_capacity;
 } CodegenContext;
-
-typedef struct ASTNode ASTNode;
 
 char *realloc_space(char *value, int size);
 void grow_symbols_if_needed(CodegenContext *context);

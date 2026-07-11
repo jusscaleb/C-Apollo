@@ -1313,6 +1313,14 @@ export default function App() {
                   </code>
                 </pre>
               </div>
+
+              <h2 className="section-title">Name Mangling &amp; Nested Functions</h2>
+              <p>
+                A core feature of Apollo is its support for <strong>infinite function nesting</strong>. Because LLVM strictly enforces a flat global namespace, having two nested functions with the same name (like two <code>main</code> functions in different scopes) would typically crash the LLVM linker.
+              </p>
+              <p>
+                The Semantic Analyzer solves this by implementing <strong>Name Mangling</strong>. When registering nested functions into the Symbol Table, it assigns them unique mangled LLVM names (e.g. <code>main_3</code>). It binds this fully resolved <code>Symbol</code> directly back to the <code>ASTNode</code>, allowing the Code Generator to seamlessly link calls to the correct mangled LLVM symbol without naming collisions!
+              </p>
             </section>
           </div>
         )}

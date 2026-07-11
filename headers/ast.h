@@ -53,7 +53,7 @@ struct ASTNode {
       ASTNode *body;
       int level;
       FXN fxn;
-
+      Symbol *resolved_symbol;
     } function;
 
     struct {
@@ -136,6 +136,7 @@ struct ASTNode {
       datatype return_type;
       FXN fxn;
       int level;
+      Symbol *resolved_symbol;
     } call_fxn;
   };
 };

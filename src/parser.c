@@ -19,6 +19,7 @@ static ASTNode *parse_logical_and(Parser *parser);
 static ASTNode *parse_logical_or(Parser *parser);
 static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
 static ASTNode *parse_block(Parser *parser, CodegenContext *context);
+ASTNode *parse_function(Parser *parser, CodegenContext *context);
 
 
 // move on to next token
@@ -369,6 +370,9 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   case TOKEN_IF:
     return parse_condition(parser, context);
 
+
+  case TOKEN_FXN:
+    return parse_function(parser, context);
   default:
     error(parser, "Unrecognized token in body statement.", SYNTAXERROR);
     synchronize(parser, TOKEN_RBRACE);

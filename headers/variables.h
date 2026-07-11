@@ -30,9 +30,11 @@ typedef struct {
 typedef enum{
   VAR,
   FUNC,
+  FUNC_CALL,
   CLASS,
   OBJ,
   ARR,
+
 }token_type;
 
 typedef struct {
@@ -47,6 +49,9 @@ typedef struct {
 
 void register_variable(CodegenContext *context, const char *name,
                        datatype variable_type, FXN *fxn, int level);
+
+Symbol* register_fxn(CodegenContext *context, const char *name,
+                     datatype return_type, int level, FXN *fxn);
 
 Symbol *lookup_token(CodegenContext *context, const char *name, FXN *fxn, int level);
 

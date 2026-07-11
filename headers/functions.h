@@ -20,7 +20,7 @@ typedef struct FXN{
 
 
 
-void register_fxn(CodegenContext *context, const char *name,
+Symbol* register_fxn(CodegenContext *context, const char *name,
                   datatype return_type, int level, FXN *fxn);
 
 #endif

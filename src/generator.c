@@ -61,9 +61,19 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
       gen_fxn_call_from_ast(context, stmt);
       break;
     case AST_FUNCTION: {
-      gen_function_start(context, stmt->function.name);
-      gen_block_from_ast(context, stmt->function.body);
-      gen_function_end(context, strcmp(stmt->function.name, "run") == 0);
+      if (stmt->function.fxn.parent_fxn != NULL && strcmp(stmt->function.fxn.parent_fxn->name, "global") != 0) {
+        // It's a nested function, defer it to avoid nested LLVM definitions!
+        if (context->deferred_count >= context->deferred_capacity) {
+          context->deferred_capacity = context->deferred_capacity == 0 ? 8 : context->deferred_capacity * 2;
+          context->deferred_functions = realloc(context->deferred_functions, context->deferred_capacity * sizeof(ASTNode*));
+        }
+        context->deferred_functions[context->deferred_count++] = stmt;
+      } else {
+        // It's a global function, generate normally
+        gen_function_start(context, stmt->function.resolved_symbol->llvm_name);
+        gen_block_from_ast(context, stmt->function.body);
+        gen_function_end(context, strcmp(stmt->function.resolved_symbol->llvm_name, "run") == 0);
+      }
       break;
     }
 
@@ -80,6 +90,14 @@ void gen_program_from_ast(CodegenContext *context, ASTNode *program_node) {
   
   // The program node holds a block of functions
   gen_block_from_ast(context, program_node->program.function);
+  
+  // Generate all nested functions at the top level
+  for (int i = 0; i < context->deferred_count; i++) {
+    ASTNode *nested_func = context->deferred_functions[i];
+    gen_function_start(context, nested_func->function.resolved_symbol->llvm_name);
+    gen_block_from_ast(context, nested_func->function.body);
+    gen_function_end(context, false);
+  }
 }
 
 // Opens the LLVM output file and resets the counters used for generated names.
@@ -92,6 +110,10 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
   context->symbol_count = 0;
   context->symbol_capacity = 0;
   context->symbols = NULL;
+  
+  context->deferred_functions = NULL;
+  context->deferred_count = 0;
+  context->deferred_capacity = 0;
 
   if (context->file == NULL) {
     fprintf(stderr, "Could not create output file %s\n", output_filename);
@@ -754,10 +776,7 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
   }
 
   case AST_CALL_FXN: {
-    const int NAME_LENGTH = expr->call_fxn.name_length;
-    char func_name[NAME_LENGTH + 1];
-    snprintf(func_name, sizeof(func_name), "%.*s", NAME_LENGTH,
-             expr->call_fxn.name);
+    const char *func_name = expr->call_fxn.resolved_symbol->llvm_name;
 
     const char *llvm_type = llvm_datatype(expr->call_fxn.return_type);
     if (llvm_type == NULL) {
@@ -1419,11 +1438,7 @@ void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node) {
   if (call_node == NULL || call_node->Type != AST_CALL_FXN)
     return;
 
-  const int NAME_LENGTH = call_node->call_fxn.name_length;
-  char func_name[NAME_LENGTH + 1];
-
-  snprintf(func_name, sizeof(func_name), "%.*s", NAME_LENGTH + 1,
-           call_node->call_fxn.name);
+  const char *func_name = call_node->call_fxn.resolved_symbol->llvm_name;
 
   if (call_node->call_fxn.return_type == TYPE_NULL) {
     fprintf(context->file, "  call void @%s()\n", func_name);
