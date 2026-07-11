@@ -41,6 +41,7 @@ static char *read_file(const char *filename) {
 // Automatically runs the program after successfully compilation.
 void llvm_compilation() {
   int result = system("clang -O3 temp\\output.ll -o temp\\program.exe");
+  remove("temp\\output.ll");
 
   if (result == 0) {
     system("temp\\program.exe");
