@@ -60,7 +60,6 @@ typedef struct Symbol {
 void register_variable(CodegenContext *context, const char *name,
                        datatype variable_type, FXN *fxn, int level);
 
-
 /**
  * Looks up a token (variable or function) in the symbol table by searching backwards.
  * @param context The codegen context.

@@ -125,4 +125,4 @@ You can run the full test suite using the bash diagnosis script:
 Current limitations:
 - No function parameters/arguments yet
 
-The compiler currently successfully handles deeply nested functions and seamlessly integrates function scopes with block scoping via Name Resolution Linking. The next natural steps are function parameter support, arrays/structs, and custom command-line options.
+The compiler currently successfully isolates scopes, natively handles deeply nested block variables, supports global variables, and effortlessly handles deeply nested functions. The next natural steps are function parameter support, arrays/structs, and custom command-line options.
