@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
   }
 
   // 2. Semantic Analysis Phase
-  SemanticContext semantic_ctx = { &err_stack, &compiler_context };
+  SemanticContext semantic_ctx = { &err_stack, &compiler_context};
 
   analyze_semantics(&semantic_ctx, program_ast);
   printf("Semantic analysis done.\n");

@@ -291,12 +291,7 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
     return;
   }
   if (value->Type == AST_VAR_REF) {
-    const int NAME_LENGTH = value->var_ref.name_length;
-    char var_name[NAME_LENGTH + 1];
-
-    snprintf(var_name, sizeof(var_name), "%.*s", NAME_LENGTH,
-             value->var_ref.name);
-    gen_println_variable(context, var_name, 0);
+    gen_println_variable(context, (Symbol*)value->var_ref.resolved_symbol, 0);
     return;
   }
 
@@ -546,14 +541,9 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
 }
 
 void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
-  const int NAME_LENGTH = assign_node->var_assign.name_length;
-  char name_buf[NAME_LENGTH + 1];
-  snprintf(name_buf, sizeof(name_buf), "%.*s", NAME_LENGTH,
-           assign_node->var_assign.name);
-
-  Symbol *sym = get_token(context, name_buf);
+  Symbol *sym = (Symbol*)assign_node->var_assign.resolved_symbol;
   if (!sym) {
-    fprintf(stderr, "Error: Variable '%s' not declared.\n", name_buf);
+    fprintf(stderr, "Error: Variable not resolved.\n");
     exit(EXIT_FAILURE);
   }
 
@@ -569,10 +559,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
     snprintf(buf, sizeof(buf), "%s%s",     is_global ? "@" : "%", lname)
 
   if (value->Type == AST_VAR_REF) {
-    const int RHS_LEN = value->var_ref.name_length;
-    char rhs_name[RHS_LEN + 1];
-    snprintf(rhs_name, sizeof(rhs_name), "%.*s", RHS_LEN, value->var_ref.name);
-    Symbol *rhs_sym = get_token(context, rhs_name);
+    Symbol *rhs_sym = (Symbol*)value->var_ref.resolved_symbol;
     int rhs_global = rhs_sym && (rhs_sym->scope_level == 0);
 
     if (rhs_sym) {
@@ -749,11 +736,8 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
                            right);
   }
   case AST_VAR_REF: {
-    const int NAME_LENGTH = expr->var_ref.name_length;
-    char name[NAME_LENGTH + 1];
-    snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, expr->var_ref.name);
-    Symbol *sym = get_token(context, name);
-
+    Symbol *sym = (Symbol*)expr->var_ref.resolved_symbol;
+    
     int temp_id = context->temp_count++;
 
     if (sym->type == TYPE_STRING) {
@@ -1280,8 +1264,7 @@ static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
   fprintf(context->file, "bool_end_%d:\n", id);
 }
 
-void gen_println_variable(CodegenContext *context, char *name, int scope_level) {
-  Symbol *sym = get_token(context, name);
+void gen_println_variable(CodegenContext *context, Symbol *sym, int scope_level) {
   int is_global = (sym->scope_level == 0);
 
   if (sym->type == TYPE_STRING) {

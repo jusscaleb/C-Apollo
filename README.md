@@ -60,8 +60,8 @@ You can replace `.\main.apl` with any `.apl` file path.
 1. `src/main.c` reads the Apollo source from the provided `.apl` file path.
 2. `src/lexer.c` converts source characters into tokens. It catches lexical errors such as unterminated strings.
 3. `src/parser.c` validates the Apollo grammar and builds a structured AST for the entire program. It utilizes Panic-Mode Error Recovery (`synchronize()`) to prevent cascading phantom errors when encountering syntax issues.
-4. `src/semantic.c` performs a semantic analysis pass over the AST. It enforces type checking, validates variable and function assignments, and handles scope, utilizing the symbol table in `src/variables.c`.
-5. If no errors were detected, `src/generator.c` walks the AST and writes optimized LLVM IR to `output.ll`. If errors exist, codegen is safely skipped to avoid compiling a malformed AST.
+4. `src/semantic.c` performs a semantic analysis pass over the AST. It enforces type checking, validates variable and function assignments, and seamlessly handles nested block scoping and variable shadowing through Name Resolution Linking.
+5. If no errors were detected, `src/generator.c` walks the AST and writes optimized LLVM IR to `output.ll` instantly via O(1) resolved symbol pointers. If errors exist, codegen is safely skipped to avoid compiling a malformed AST.
 6. Clang compiles `output.ll` with `-O3` optimization into a native `program.exe`.
 7. The generated program runs and prints its output.
 
@@ -101,6 +101,7 @@ Every statement and expression in Apollo passes through an AST node before codeg
 Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for high performance. It supports:
 - Variables of all supported types (integers, floats, booleans, strings, nulls)
 - Global variables (accessible across multiple functions)
+- Fully strict Nested Block Scoping and Variable Shadowing (via Name Resolution Linking)
 - Mathematical and logical expressions (`+`, `-`, `*`, `/`, `%`, `and`, `or`, `&&`, `||`)
 - String concatenation (`+`), including seamless concatenation with non-string types (integers, floats, booleans)
 - Control flow (`if`, `elif`, `else` conditionals)
@@ -122,7 +123,6 @@ You can run the full test suite using the bash diagnosis script:
 ```
 
 Current limitations:
-- Nested block scoping for variables (e.g., variables declared inside `if` statements or `while` loops being fully scoped) is still under development
 - No function parameters/arguments yet
 
-The compiler currently successfully isolates function scopes, supports global variables, and effortlessly handles deeply nested functions. The next natural steps are full nested block scoping for variables, parameter support, arrays/structs, and custom command-line options.
+The compiler currently successfully handles deeply nested functions and seamlessly integrates function scopes with block scoping via Name Resolution Linking. The next natural steps are function parameter support, arrays/structs, and custom command-line options.

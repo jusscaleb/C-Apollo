@@ -11,6 +11,9 @@
 #include "variables.h"
 #include <stdio.h>
 
+struct Symbol;
+
+
 // Kind of nodes to expect
 typedef enum {
   AST_PROGRAM,
@@ -94,6 +97,7 @@ struct ASTNode {
       int name_length;
       FXN fxn;
       int level;
+      struct Symbol *resolved_symbol;
     } var_ref;
 
     struct {
@@ -102,7 +106,7 @@ struct ASTNode {
       ASTNode *value;
       FXN fxn;
       int level;
-
+      struct Symbol *resolved_symbol;
     } var_assign;
 
     struct {
@@ -278,16 +282,75 @@ ASTNode *create_program_node(ASTNode *block);
  */
 void block_add_statement(ASTNode *block, ASTNode *statement);
 
+/**
+ * Generates LLVM IR for a println statement.
+ * @param context The codegen context containing output file and state.
+ * @param println_node The AST node representing the println statement.
+ */
 void gen_println_from_ast(CodegenContext *context, ASTNode *println_node);
+
+/**
+ * Generates LLVM IR for an expression and returns its result type/value.
+ * @param context The codegen context.
+ * @param expr The AST node representing the expression.
+ * @return ExprResult containing the LLVM value string and type.
+ */
 ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr);
 
+/**
+ * Generates LLVM IR for a variable declaration.
+ * @param context The codegen context.
+ * @param var_node The AST node representing the variable declaration.
+ */
 void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node);
+
+/**
+ * Generates LLVM IR for a variable reassignment.
+ * @param context The codegen context.
+ * @param assign_node The AST node representing the reassignment.
+ */
 void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node);
+
+/**
+ * Generates LLVM IR for an if/elif/else branching structure.
+ * @param context The codegen context.
+ * @param if_node The AST node representing the conditional block.
+ */
 void gen_if_from_ast(CodegenContext *context, ASTNode *if_node);
+
+/**
+ * Generates LLVM IR for a block of statements.
+ * @param context The codegen context.
+ * @param block_node The AST block node containing statements to generate.
+ */
 void gen_block_from_ast(CodegenContext *context, ASTNode *block_node);
+
+/**
+ * Generates LLVM IR for a while loop.
+ * @param context The codegen context.
+ * @param while_node The AST node representing the while loop.
+ */
 void gen_while_from_ast(CodegenContext *context, ASTNode *while_node);
+
+/**
+ * Generates LLVM IR for a for loop.
+ * @param context The codegen context.
+ * @param for_node The AST node representing the for loop.
+ */
 void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
+
+/**
+ * Generates LLVM IR for a function call.
+ * @param context The codegen context.
+ * @param call_node The AST node representing the function call.
+ */
 void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node);
+
+/**
+ * Generates the entry point and LLVM IR for the entire program.
+ * @param context The codegen context.
+ * @param program_node The root AST program node.
+ */
 void gen_program_from_ast(CodegenContext *context, ASTNode *program_node);
 
 #endif

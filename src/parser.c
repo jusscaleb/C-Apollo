@@ -20,6 +20,7 @@ static ASTNode *parse_logical_or(Parser *parser);
 static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
 static ASTNode *parse_block(Parser *parser, CodegenContext *context);
 ASTNode *parse_function(Parser *parser, CodegenContext *context);
+void change_active_state(CodegenContext *context, Lexer *lexer);
 
 
 // move on to next token
@@ -396,6 +397,8 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
 
   consume(parser, TOKEN_RBRACE,
           "Expected closing brace '}' to terminate block.");
+  
+  change_active_state(context, parser->lexer);
   return block;
 }
 
@@ -479,6 +482,7 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
     .parent_fxn = NULL};
   ASTNode *program_block = create_block_node();
   
+  
   while (parser->current.type == TOKEN_VAR){
     ASTNode *var_node = var(parser, context);
     if (var_node) {
@@ -522,5 +526,17 @@ ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context) {
                                     HELPERS
 
 ---------------------------------------------------------------------------------*/
+void change_active_state(CodegenContext *context, Lexer *lexer){
+  int new_level = lexer->scope_level;
+  //printf("Symbol Count: %s\n", context->symbols[0].name);
+  ASTNode var;
+  printf("Node name: %s \n", var.var_decl.name);
+  printf("New Level: %d\n", new_level);
+  for (int i = context->symbol_count - 1; i >= 0; i--) {
+    if (context->symbols[i].scope_level > new_level) {
+        context->symbols[i].is_active = false;
+        printf("changing: %s\n", context->symbols[i].name);
+    }
+}
 
-
+}
