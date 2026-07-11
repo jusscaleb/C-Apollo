@@ -149,7 +149,6 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
 
 ASTNode *create_function_node(const char *name, int name_length, ASTNode *body, FXN fxn, int level) {
   ASTNode *node = allocate_node(AST_FUNCTION);
-  printf("CREATING FXN %s with parent %s\n", name, fxn.parent_fxn->name);
   node->function.name = name;
   node->function.name_length = name_length;
   node->function.body = body;

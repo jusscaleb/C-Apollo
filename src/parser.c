@@ -271,7 +271,6 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
                                char *name, int name_length) {
   consume(parser, TOKEN_LPARETH, "Expected '(' after function name.");
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
-  printf("\nCREATING FXN CALL NODE FOR %s  LEVEL: %d, FXN %s PARNT FXN %s", name, parser->lexer->scope_level, parser->lexer->fxn->name, parser->lexer->fxn->parent_fxn->name);
   return create_fxn_call_node(name, name_length, TYPE_NULL, *parser->lexer->fxn, parser->lexer->scope_level);
 }
 
@@ -515,8 +514,6 @@ ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context) {
   consume(
       &parser, TOKEN_EOF,
       "Unexpected trailing syntax tokens encountered after main entry block.");
-
-  printf("Checking errors before compilation...\n\n");
   
   return program_node;
 }
@@ -528,14 +525,9 @@ ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context) {
 ---------------------------------------------------------------------------------*/
 void change_active_state(CodegenContext *context, Lexer *lexer){
   int new_level = lexer->scope_level;
-  //printf("Symbol Count: %s\n", context->symbols[0].name);
-  ASTNode var;
-  printf("Node name: %s \n", var.var_decl.name);
-  printf("New Level: %d\n", new_level);
   for (int i = context->symbol_count - 1; i >= 0; i--) {
     if (context->symbols[i].scope_level > new_level) {
         context->symbols[i].is_active = false;
-        printf("changing: %s\n", context->symbols[i].name);
     }
 }
 

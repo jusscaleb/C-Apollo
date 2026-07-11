@@ -43,10 +43,8 @@ void llvm_compilation() {
   int result = system("clang -O3 temp\\output.ll -o temp\\program.exe");
 
   if (result == 0) {
-    printf("--- Running Apollo Program Output ---\n");
     system("temp\\program.exe");
-    printf("-------------------------------------\n");
-    exit(EXIT_FAILURE);
+    exit(EXIT_SUCCESS);
   } else {
     fprintf(stderr,
             "[DRIVER] Compilation Error: Clang failed to build the IR.\n");
@@ -87,8 +85,6 @@ int main(int argc, char **argv) {
   
   // 1. Parsing Phase
   ASTNode *program_ast = compile_parse(&lexer, &err_stack, &compiler_context);
-  printf("Parsing done.\n");
-  
   if (err_stack.size > 0) {
     printf("Found : %llu Syntax Errors\n", err_stack.size);
     errorStack_seek(&err_stack);
@@ -101,9 +97,8 @@ int main(int argc, char **argv) {
   SemanticContext semantic_ctx = { &err_stack, &compiler_context};
 
   analyze_semantics(&semantic_ctx, program_ast);
-  printf("Semantic analysis done.\n");
 
-  printf("ERROR: %llu \n", err_stack.size);
+
   if (err_stack.size > 0) {
     printf("Found : %llu Semantic Errors\n", err_stack.size);
     errorStack_seek(&err_stack);
@@ -119,17 +114,14 @@ int main(int argc, char **argv) {
   fclose(compiler_context.file);
   free_codegen_context(&compiler_context, &err_stack);
 
-  printf("Compilation done.\n");
   free(source);
-
-  printf("Found : %llu Errors\n", err_stack.size);
   if (err_stack.size > 0) {
     errorStack_seek(&err_stack);
     errorStack_free(&err_stack);
     exit(EXIT_FAILURE);
   }
 
-  printf("SUCCESSFUL.\n");
+
   llvm_compilation();
 
   return 0;
