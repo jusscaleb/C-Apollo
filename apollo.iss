@@ -11,6 +11,7 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 ; We need admin privileges to write to system PATH
 PrivilegesRequired=admin
+ChangesEnvironment=yes
 
 [Files]
 Source: "apollo.exe"; DestDir: "{app}"; Flags: ignoreversion
