@@ -94,7 +94,6 @@ def update_performance_log(current_run_results):
     # Check if the set of benchmarks has changed (new benchmark added or removed)
     if history:
         last_run_benchmarks = set(history[-1]['results'].keys())
-        print(last_run_benchmarks)
         current_benchmarks = set(current_run_results.keys())
         if last_run_benchmarks != current_benchmarks:
             print("Notice: Benchmark suite changed. Resetting performance history.")

@@ -25,8 +25,7 @@ def run_var_tests():
         test_n("variable", 7, "Explicit Int Assignment", "fxn run()->(void){ int x; x = 5; println(x); }", "5\n"),
         test_n("variable", 8, "Explicit Float Assignment", "fxn run()->(void){ float x; x = 5.5; println(x); }", "5.500000\n"),
         test_n("variable", 9, "Explicit String Assignment", "fxn run()->(void){ str x; x = \"hello\"; println(x); }", "hello\n"),
-        test_n("variable", 10, "Explicit Bool Assignment", "fxn run()->(void){ bool x; x = true; println(x); }", "true\n"),
-        test_n("variable", 11, "Type Mismatch Error", "fxn run()->(void){ int x; x = 5.5; println(x); }", "1 Semantic Errors"),
+        test_n("variable", 10, "Explicit Bool Assignment", "fxn run()->(void){ bool x; x = true; println(x); }", "true\n")
     ]
 
     

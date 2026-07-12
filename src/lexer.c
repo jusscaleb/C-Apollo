@@ -9,7 +9,6 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 // Defining the TokenNames in token.h
@@ -332,10 +331,9 @@ Token next_token(Lexer *lexer) {
         // If it reaches \0 that means it's an unterminated string.
         if (*lexer->current == '\0') {
           int len = (int)(lexer->current - start);
-          char *temp = malloc(len + 1);
+          char temp[len + 1];
           snprintf(temp, len + 1, "%.*s", len, start);
           lex_error(lexer, "Unterminated String", temp);
-          free(temp);
           Token token = {TOKEN_EOF, start, len, lexer->line};
           return token;
         }
@@ -352,10 +350,9 @@ Token next_token(Lexer *lexer) {
     // If it reaches \0 that means it's an unterminated string.
     if (*lexer->current == '\0') {
       int len = (int)(lexer->current - start);
-      char *temp = malloc(len + 1);
+      char temp[len + 1];
       snprintf(temp, len + 1, "%.*s", len, start);
       lex_error(lexer, "Unterminated String", temp);
-      free(temp);
       Token token = {TOKEN_EOF, start, len, lexer->line};
       return token;
     }
@@ -384,10 +381,10 @@ Token next_token(Lexer *lexer) {
 
       if (!isdigit((unsigned char)*lexer->current)) {
         int len = (int)(lexer->current - start);
-        char *temp = malloc(len + 1);
+        char temp[len + 1];
         snprintf(temp, len + 1, "%.*s", len, start);
         lex_error(lexer, "Expected value int after '.' ", temp);
-        free(temp);
+        
       }
     }
     while (isdigit((unsigned char)*lexer->current)) {

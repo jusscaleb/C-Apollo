@@ -9,7 +9,6 @@
 #include "../headers/defs.h"
 #include "../headers/token.h"
 #include "../headers/variables.h"
-#include "../headers/semantic.h"
 
 #include <stdbool.h>
 #include <stdio.h>
