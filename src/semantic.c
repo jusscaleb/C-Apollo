@@ -119,12 +119,29 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                 report_semantic_error(context, "Multiple definition of variable.");
             }
             
+            datatype inferred;
             if (node->var_decl.value) {
                 analyze_node(context, node->var_decl.value);
-                datatype inferred = infer_expr_type(context, node->var_decl.value);
-                node->var_decl.value_type = inferred; // update the AST node's type
+
+                
+               if(node->var_decl.value_type == TYPE_NULL){
+               printf("Value Type: %d", node->var_decl.value_type);
+               inferred = infer_expr_type(context, node->var_decl.value);
+               node->var_decl.value_type = inferred;
+
+               }else{
+                datatype expected_type = node->var_decl.value_type;
+                inferred = infer_expr_type(context, node->var_decl.value);
+                if(inferred != expected_type){
+                    report_semantic_error(context, "Datatype Mismatch.");
+                }
+
+
+               }
+
                 register_variable(context->codegen, name, inferred, &node->var_decl.fxn,node->var_decl.level);
             
+
             } else {
                 node->var_decl.value_type = TYPE_NULL;
                 register_variable(context->codegen, name, TYPE_NULL,&node->var_decl.fxn,node->var_decl.level);

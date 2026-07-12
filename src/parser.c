@@ -168,7 +168,6 @@ static ASTNode *parse_logical_or(Parser *parser) {
   return left;
 }
 
-// infer_expr_type moved to semantic.c
 
 static ASTNode *println(Parser *parser, CodegenContext *context) {
   advance(parser); // Move past TOKEN_PRINTLN
@@ -186,8 +185,10 @@ static ASTNode *println(Parser *parser, CodegenContext *context) {
   return println_node;
 }
 
-ASTNode *var(Parser *parser, CodegenContext *context) {
+ASTNode *var(Parser *parser, CodegenContext *context, datatype var_type) {
   advance(parser);
+
+  datatype dt = (var_type) ? var_type : TYPE_NULL;
 
   set declaring = false;
 
@@ -206,6 +207,7 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
     value = create_literal_node(null_token);
   }
 
+  printf("CURRENT TOKEN %d\n", parser->current.type );
   if (!declaring) {
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
     value = parse_logical_or(parser);
@@ -213,7 +215,7 @@ ASTNode *var(Parser *parser, CodegenContext *context) {
 
 
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
-                                           TYPE_NULL, value, *parser->lexer->fxn, parser->lexer->scope_level);
+                                           dt, value, *parser->lexer->fxn, parser->lexer->scope_level);
 
   consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
@@ -316,7 +318,7 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
   if (parser->current.type == TOKEN_FOR) {
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('");
-    ASTNode *variable = var(parser, context);
+    ASTNode *variable = var(parser, context, TYPE_NULL);
 
     ASTNode *condition = parse_logical_or(parser);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after condition.");
@@ -360,7 +362,21 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     return println(parser, context);
 
   case TOKEN_VAR:
-    return var(parser, context);
+  case DECLARE_INT:
+  case DECLARE_STR:
+  case DECLARE_FLOAT:
+  case DECLARE_BOOL:
+    datatype dt = TYPE_NULL;
+    
+    switch (parser->current.type) {
+      case DECLARE_BOOL: dt = TYPE_BOOL; break;
+      case DECLARE_FLOAT: dt = TYPE_FLOAT; break;
+      case DECLARE_STR: dt = TYPE_STRING; break;
+      case DECLARE_INT: dt = TYPE_INT; break;
+      default: break;
+    }
+    return var(parser, context, dt);
+
 
   case TOKEN_NULL:
   case TOKEN_IDENTIFIER:
@@ -484,7 +500,7 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
   
   
   while (parser->current.type == TOKEN_VAR){
-    ASTNode *var_node = var(parser, context);
+    ASTNode *var_node = var(parser, context, TYPE_NULL);
     if (var_node) {
       block_add_statement(program_block, var_node);
     }

@@ -70,6 +70,11 @@ typedef enum {
                //while()
   TOKEN_FOR, //----------------------------------------------------------> for()
 
+  DECLARE_INT,
+  DECLARE_STR,
+  DECLARE_BOOL,
+  DECLARE_FLOAT
+
 } TokenType;
 
 

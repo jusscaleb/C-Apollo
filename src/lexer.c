@@ -20,7 +20,7 @@ const char *TokenNames[] = {
     "DEC",    "AEQ",    "SEQ",    "MEQ",    "DEQ",        "PEQ",   "PRINTLN",
     "VAR",    "ASSIGN", "BOOL",   "NULL",   "EQT",        "NEQ",   "GT",
     "ST",     "GE",     "SE",     "AND",    "OR",         "IF",    "ELIF",
-    "ELSE",   "WHILE",  "FOR"};
+    "ELSE",   "WHILE",  "FOR", "INT", "STR", "BOOL", "FLOAT"};
 
 // FOR ERROR HANDLING
 void lex_error(Lexer *lexer, const char *message, const char *got) {
@@ -82,6 +82,19 @@ static TokenType check_keyword(const char *start, int length) {
 
   if (length == 3 && strncmp(start, "for", 3) == 0)
     return TOKEN_FOR;
+
+  if(length == 3 && strncmp(start, "int", 3) == 0)
+    return DECLARE_INT;
+
+  if(length == 3 && strncmp(start, "str", 3) == 0)
+    return DECLARE_STR;
+
+  if(length == 4 && strncmp(start, "bool", 4) == 0)
+    return DECLARE_BOOL;
+
+  if(length == 5 && strncmp(start, "float", 5) == 0)
+    return DECLARE_FLOAT;
+
 
   return TOKEN_IDENTIFIER;
 }
