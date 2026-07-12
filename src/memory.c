@@ -32,8 +32,7 @@ char *alloc_space(int num_elements, int element_size) {
 void grow_symbols_if_needed(CodegenContext *context) {
   if (context->symbol_count >= context->symbol_capacity) {
 
-    int new_capacity =
-        context->symbol_capacity == 0 ? 8 : context->symbol_capacity * 2;
+    int new_capacity = context->symbol_capacity == 0 ? 8 : context->symbol_capacity * 2;
 
     Symbol *new_symbols =
         realloc(context->symbols, new_capacity * sizeof(Symbol));

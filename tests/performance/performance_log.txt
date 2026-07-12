@@ -1,0 +1,170 @@
+Apollo Performance Log
+========================
+
+Date and Time: 2026-07-12 16:46:22
+Overall Total Speed: 19.1365 seconds
+  - small_program:
+      Compile: 2.2265s
+      Execute: 0.0217s
+      Total:   2.2482s
+  - large_compilation:
+      Compile: 2.2186s
+      Execute: 0.0189s
+      Total:   2.2375s
+  - for_loop:
+      Compile: 6.0937s
+      Execute: 2.3392s
+      Total:   8.4329s
+  - for_loop_v1:
+      Compile: 2.0688s
+      Execute: 0.0110s
+      Total:   2.0798s
+  - var_decl_with_dt:
+      Compile: 1.9550s
+      Execute: 0.0131s
+      Total:   1.9680s
+  - var_decl_no_dt:
+      Compile: 2.1480s
+      Execute: 0.0221s
+      Total:   2.1700s
+----------------------------------------
+Date and Time: 2026-07-12 16:47:19
+Overall Total Speed: 18.8851 seconds
+  - small_program:
+      Compile: 2.0448s
+      Execute: 0.0212s
+      Total:   2.0660s
+  - large_compilation:
+      Compile: 2.0701s
+      Execute: 0.0202s
+      Total:   2.0903s
+  - for_loop:
+      Compile: 5.8881s
+      Execute: 2.3633s
+      Total:   8.2514s
+  - for_loop_v1:
+      Compile: 2.1477s
+      Execute: 0.0184s
+      Total:   2.1661s
+  - var_decl_with_dt:
+      Compile: 2.1514s
+      Execute: 0.0164s
+      Total:   2.1678s
+  - var_decl_no_dt:
+      Compile: 2.1357s
+      Execute: 0.0078s
+      Total:   2.1435s
+----------------------------------------
+Date and Time: 2026-07-12 16:47:55
+Overall Total Speed: 18.6271 seconds
+  - small_program:
+      Compile: 2.1912s
+      Execute: 0.0210s
+      Total:   2.2122s
+  - large_compilation:
+      Compile: 1.9771s
+      Execute: 0.0086s
+      Total:   1.9857s
+  - for_loop:
+      Compile: 5.8112s
+      Execute: 2.3384s
+      Total:   8.1496s
+  - for_loop_v1:
+      Compile: 2.1076s
+      Execute: 0.0172s
+      Total:   2.1247s
+  - var_decl_with_dt:
+      Compile: 2.0608s
+      Execute: 0.0172s
+      Total:   2.0780s
+  - var_decl_no_dt:
+      Compile: 2.0660s
+      Execute: 0.0109s
+      Total:   2.0769s
+----------------------------------------
+Date and Time: 2026-07-12 16:48:37
+Overall Total Speed: 19.9906 seconds
+  - small_program:
+      Compile: 2.1346s
+      Execute: 0.0236s
+      Total:   2.1582s
+  - large_compilation:
+      Compile: 1.9370s
+      Execute: 0.0099s
+      Total:   1.9468s
+  - for_loop:
+      Compile: 6.5121s
+      Execute: 2.5180s
+      Total:   9.0301s
+  - for_loop_v1:
+      Compile: 2.4100s
+      Execute: 0.0081s
+      Total:   2.4182s
+  - var_decl_with_dt:
+      Compile: 2.3230s
+      Execute: 0.0078s
+      Total:   2.3308s
+  - var_decl_no_dt:
+      Compile: 2.0957s
+      Execute: 0.0108s
+      Total:   2.1065s
+----------------------------------------
+Date and Time: 2026-07-12 18:29:44
+Overall Total Speed: 25.8829 seconds
+  - small_program:
+      Compile: 4.3879s
+      Execute: 0.0170s
+      Total:   4.4048s
+  - large_compilation:
+      Compile: 6.2151s
+      Execute: 0.0178s
+      Total:   6.2330s
+  - for_loop:
+      Compile: 6.4513s
+      Execute: 2.3094s
+      Total:   8.7607s
+  - for_loop_v1:
+      Compile: 2.2626s
+      Execute: 0.0149s
+      Total:   2.2776s
+  - var_decl_with_dt:
+      Compile: 2.0725s
+      Execute: 0.0087s
+      Total:   2.0812s
+  - var_decl_no_dt:
+      Compile: 2.1072s
+      Execute: 0.0184s
+      Total:   2.1256s
+----------------------------------------
+Date and Time: 2026-07-12 18:32:17
+Overall Total Speed: 18.8259 seconds
+  - small_program:
+      Compile: 2.0777s
+      Execute: 0.0163s
+      Total:   2.0941s
+  - large_compilation:
+      Compile: 2.0812s
+      Execute: 0.0114s
+      Total:   2.0926s
+  - for_loop:
+      Compile: 6.0506s
+      Execute: 2.2761s
+      Total:   8.3268s
+  - for_loop_v1:
+      Compile: 2.0406s
+      Execute: 0.0127s
+      Total:   2.0533s
+  - var_decl_with_dt:
+      Compile: 1.9775s
+      Execute: 0.0270s
+      Total:   2.0045s
+  - var_decl_no_dt:
+      Compile: 2.2387s
+      Execute: 0.0159s
+      Total:   2.2546s
+----------------------------------------
+
+Summary Statistics
+========================
+Average Speed (last 6 runs): 20.2247 seconds
+Percentage Difference: -27.27% (Faster than last run)

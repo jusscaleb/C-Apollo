@@ -122,10 +122,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             datatype inferred;
             if (node->var_decl.value) {
                 analyze_node(context, node->var_decl.value);
-
-                
                if(node->var_decl.value_type == TYPE_NULL){
-               printf("Value Type: %d", node->var_decl.value_type);
                inferred = infer_expr_type(context, node->var_decl.value);
                node->var_decl.value_type = inferred;
 

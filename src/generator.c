@@ -424,15 +424,27 @@ static void create_global_var(CodegenContext *context,
 
   const char *llvm_type = llvm_datatype(sym->type);
   if (llvm_type == NULL) {
-    create_global_string_var(context, number_start, length, llvm_name);
+    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+      create_global_string_var(context, "\"\"", 1, llvm_name);
+    } else {
+      create_global_string_var(context, number_start, length, llvm_name);
+    }
   } else if (sym->type == TYPE_BOOL || sym->type == TYPE_NULL) {
     int val = 2;
-    if (strncmp(number_start, "true", length) == 0)  val = 1;
-    else if (strncmp(number_start, "false", length) == 0) val = 0;
+    if (length == 4 && strncmp(number_start, "true", 4) == 0)  val = 1;
+    else if (length == 5 && strncmp(number_start, "false", 5) == 0) val = 0;
     fprintf(context->file, "@%s = global i8 %d\n\n", llvm_name, val);
   } else {
-    fprintf(context->file, "@%s = global %s %.*s\n\n",
-            llvm_name, llvm_type, length, number_start);
+    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+      if (sym->type == TYPE_FLOAT) {
+        fprintf(context->file, "@%s = global %s 0.0\n\n", llvm_name, llvm_type);
+      } else {
+        fprintf(context->file, "@%s = global %s 0\n\n", llvm_name, llvm_type);
+      }
+    } else {
+      fprintf(context->file, "@%s = global %s %.*s\n\n",
+              llvm_name, llvm_type, length, number_start);
+    }
   }
 }
 
@@ -447,21 +459,33 @@ void create_var(CodegenContext *context, const char *number_start, int length,
 
   const char *llvm_type = llvm_datatype(sym->type);
   if (llvm_type == NULL) {
-    create_string_var(context, number_start, length, llvm_name);
+    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+      create_string_var(context, "\"\"", 1, llvm_name);
+    } else {
+      create_string_var(context, number_start, length, llvm_name);
+    }
 
   } else if (sym->type == TYPE_BOOL || sym->type == TYPE_NULL) {
     fprintf(context->file, "%%%s = alloca i8\n", llvm_name);
     int val = 2; // Default to null
-    if (strncmp(number_start, "true", length) == 0)
+    if (length == 4 && strncmp(number_start, "true", 4) == 0)
       val = 1;
-    else if (strncmp(number_start, "false", length) == 0)
+    else if (length == 5 && strncmp(number_start, "false", 5) == 0)
       val = 0;
     fprintf(context->file, "store i8 %d, i8* %%%s\n\n", val, llvm_name);
 
   } else {
     fprintf(context->file, "%%%s = alloca %s\n", llvm_name, llvm_type);
-    fprintf(context->file, "store %s %.*s, %s* %%%s\n\n", llvm_type, length,
-            number_start, llvm_type, llvm_name);
+    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+      if (sym->type == TYPE_FLOAT) {
+        fprintf(context->file, "store %s 0.0, %s* %%%s\n\n", llvm_type, llvm_type, llvm_name);
+      } else {
+        fprintf(context->file, "store %s 0, %s* %%%s\n\n", llvm_type, llvm_type, llvm_name);
+      }
+    } else {
+      fprintf(context->file, "store %s %.*s, %s* %%%s\n\n", llvm_type, length,
+              number_start, llvm_type, llvm_name);
+    }
   }
 }
 
