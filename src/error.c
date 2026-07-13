@@ -11,21 +11,21 @@
 const char *ErrorToken[] = {"Syntax Error", "Assignment Error", "Reference Error",
                             "Type Error", "Lexical Error", "Semantic Error"};
 
-void errorStack_init(errorStack *s) {
+void errorStack_init(ErrorStack *s) {
 
   s->size = 0;
   s->capacity = 0;
   s->data = NULL;
 }
 
-bool errorStack_push(errorStack *s, Error *e) {
+bool errorStack_push(ErrorStack *s, Error *e) {
   realloc_errorStack(s);
   s->data[s->size] = e;
   s->size++;
   return true;
 }
 
-Error *errorStack_pop(errorStack *s) {
+Error *errorStack_pop(ErrorStack *s) {
   if (s->size == 0) {
     return NULL;
   }
@@ -34,7 +34,7 @@ Error *errorStack_pop(errorStack *s) {
   return e;
 }
 
-void errorStack_seek(errorStack *s) {
+void errorStack_seek(ErrorStack *s) {
   while (s->size > 0) {
     Error *e = errorStack_pop(s);
     fprintf(stderr, "[%s] %s Line [%d]", ErrorToken[e->type], e->message,

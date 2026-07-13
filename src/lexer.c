@@ -13,13 +13,14 @@
 
 // Defining the TokenNames in token.h
 const char *TokenNames[] = {
-    "FXN",    "EOF",    "RUN",    "VOID",   "IDENTIFIER", "ARROW", "STRING",
-    "LPAREN", "RPAREN", "LBRACE", "RBRACE", "SEMICOLON",  "INT",   "DOUB",
-    "FLOAT",  "ADD",    "MUL",    "SUB",    "DIV",        "MOD",   "INC",
-    "DEC",    "AEQ",    "SEQ",    "MEQ",    "DEQ",        "PEQ",   "PRINTLN",
-    "VAR",    "ASSIGN", "BOOL",   "NULL",   "EQT",        "NEQ",   "GT",
-    "ST",     "GE",     "SE",     "AND",    "OR",         "IF",    "ELIF",
-    "ELSE",   "WHILE",  "FOR", "INT", "STR", "BOOL", "FLOAT"};
+    "Fxn",    "EOF",    "run",    "void",   "IDENTIFIER", "->", "STRING",
+    "(", ")", "{", "}", ";",   "INT",   "DOUB",
+    "FLOAT",  "+",    "*",    "-",    "/",    "%",   "++",
+    "--",    "+=",   "-=",   "*=",   "/=",   "%=",   "println",
+    "var",    "=",      "bool",   "NULL",   "==",        "!=",   ">",
+    "<",     ">=",     "<=",     "and",    "or",         "if",    "elif",
+    "else",   "while",  "for",    "int",    "str",        "bool",  "float",
+    ","};
 
 // FOR ERROR HANDLING
 void lex_error(Lexer *lexer, const char *message, const char *got) {
@@ -42,7 +43,7 @@ static TokenType check_keyword(const char *start, int length) {
 
   if (length == 3 && strncmp(start, "run", 3) == 0)
     return TOKEN_RUN;
-  
+
   if (length == 4 && strncmp(start, "void", 4) == 0)
     return TOKEN_VOID;
   if (length == 7 && strncmp(start, "println", 7) == 0)
@@ -82,18 +83,17 @@ static TokenType check_keyword(const char *start, int length) {
   if (length == 3 && strncmp(start, "for", 3) == 0)
     return TOKEN_FOR;
 
-  if(length == 3 && strncmp(start, "int", 3) == 0)
+  if (length == 3 && strncmp(start, "int", 3) == 0)
     return DECLARE_INT;
 
-  if(length == 3 && strncmp(start, "str", 3) == 0)
+  if (length == 3 && strncmp(start, "str", 3) == 0)
     return DECLARE_STR;
 
-  if(length == 4 && strncmp(start, "bool", 4) == 0)
+  if (length == 4 && strncmp(start, "bool", 4) == 0)
     return DECLARE_BOOL;
 
-  if(length == 5 && strncmp(start, "float", 5) == 0)
+  if (length == 5 && strncmp(start, "float", 5) == 0)
     return DECLARE_FLOAT;
-
 
   return TOKEN_IDENTIFIER;
 }
@@ -128,7 +128,7 @@ Token next_token(Lexer *lexer) {
   case '}': {
     Token token = {TOKEN_RBRACE, start, 1, lexer->line};
     lexer->scope_level--;
-    //lexer->fxn = lexer->fxn->parent_fxn;
+    // lexer->fxn = lexer->fxn->parent_fxn;
     return token;
   }
 
@@ -310,6 +310,10 @@ Token next_token(Lexer *lexer) {
     Token token = {TOKEN_EOF, start, 1, lexer->line};
     return token;
   }
+  case ',': {
+    Token token = {TOKEN_COMMA, start, 1, lexer->line};
+    return token;
+  }
   }
 
   // HANDLE STRINGS
@@ -384,7 +388,6 @@ Token next_token(Lexer *lexer) {
         char temp[len + 1];
         snprintf(temp, len + 1, "%.*s", len, start);
         lex_error(lexer, "Expected value int after '.' ", temp);
-        
       }
     }
     while (isdigit((unsigned char)*lexer->current)) {
@@ -412,7 +415,7 @@ Token next_token(Lexer *lexer) {
 
     // check for the type of token
     TokenType type = check_keyword(start, length);
-    
+
     Token token = {type, start, length, lexer->line};
 
     return token;

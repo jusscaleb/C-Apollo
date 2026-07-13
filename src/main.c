@@ -10,7 +10,7 @@
 #include "../headers/semantic.h"
 #include "../headers/defs.h"
 
-ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context);
+ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context);
 
 static char *read_file(const char *filename) {
   FILE *file = fopen(filename, "rb");
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 
   char *source = read_file(filename);
 
-  errorStack err_stack;
+  ErrorStack err_stack;
 
   Lexer lexer;
   lexer.current = source;

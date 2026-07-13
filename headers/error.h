@@ -30,18 +30,18 @@ typedef struct Error {
 
 //Error stack
 
-typedef struct errorStack {
+typedef struct ErrorStack {
     Error** data;
     size_t size;
     size_t capacity;
 
-}errorStack;
+}ErrorStack;
 
 /**
  * Initializes a new error stack.
  * @param s The error stack to initialize.
  */
-void errorStack_init(errorStack *s);
+void errorStack_init(ErrorStack *s);
 
 /**
  * Pushes a new error onto the error stack.
@@ -49,32 +49,32 @@ void errorStack_init(errorStack *s);
  * @param e The error object to push.
  * @return True if successful, false otherwise.
  */
-bool errorStack_push(errorStack *s, Error *e);
+bool errorStack_push(ErrorStack *s, Error *e);
 
 /**
  * Pops the top error from the error stack.
  * @param s The error stack.
  * @return The popped error object.
  */
-Error* errorStack_pop(errorStack *s);
+Error* errorStack_pop(ErrorStack *s);
 
 /**
  * Reallocates memory for the error stack to increase capacity.
  * @param s The error stack.
  */
-void realloc_errorStack(errorStack *s);
+void realloc_errorStack(ErrorStack *s);
 
 /**
  * Iterates through the error stack and prints all accumulated errors.
  * @param s The error stack.
  */
-void errorStack_seek(errorStack *s);
+void errorStack_seek(ErrorStack *s);
 
 /**
  * Frees the memory allocated for the error stack and its contents.
  * @param s The error stack.
  */
-void errorStack_free(errorStack *s);
+void errorStack_free(ErrorStack *s);
 
 /**
  * Reports a new error by adding it to the parser's error stack.

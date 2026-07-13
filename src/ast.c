@@ -48,7 +48,8 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
 }
 
 ASTNode *create_var_decl_node(const char *name, int name_length,
-                              datatype value_type, ASTNode *value, FXN fxn, int level) {
+                              DataType value_type, ASTNode *value, Fxn fxn,
+                              int level) {
   ASTNode *node = allocate_node(AST_VAR_DECL);
 
   node->var_decl.name = name;
@@ -61,7 +62,8 @@ ASTNode *create_var_decl_node(const char *name, int name_length,
   return node;
 }
 
-ASTNode *create_var_ref_node(const char *name, int name_length, FXN fxn, int level) {
+ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
+                             int level) {
   ASTNode *node = allocate_node(AST_VAR_REF);
   node->var_ref.name = name;
   node->var_ref.name_length = name_length;
@@ -72,7 +74,7 @@ ASTNode *create_var_ref_node(const char *name, int name_length, FXN fxn, int lev
 }
 
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, FXN fxn, int level) {
+                                ASTNode *value, Fxn fxn, int level) {
   ASTNode *node = allocate_node(AST_VAR_ASS);
   node->var_assign.name = name;
   node->var_assign.name_length = name_length;
@@ -118,7 +120,7 @@ ASTNode *create_block_node() {
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
                          ASTNode *var_operation, ASTNode *then_block) {
   ASTNode *node = allocate_node(AST_FOR);
-  node->for_lp.var_operation = var_operation; 
+  node->for_lp.var_operation = var_operation;
   node->for_lp.condtion = condition;
   node->for_lp.variable = variable;
   node->for_lp.then_block = then_block;
@@ -134,8 +136,8 @@ void block_add_statement(ASTNode *block, ASTNode *statement) {
   block->block.statements[block->block.count++] = statement;
 }
 
-ASTNode *create_fxn_call_node(char *name, int name_length,
-                              datatype return_type, FXN fxn, int level) {
+ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
+                              Fxn fxn, int level) {
   ASTNode *node = allocate_node(AST_CALL_FXN);
 
   node->call_fxn.name = name;
@@ -147,7 +149,8 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
   return node;
 }
 
-ASTNode *create_function_node(const char *name, int name_length, ASTNode *body, FXN fxn, int level) {
+ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
+                              Fxn fxn, int level) {
   ASTNode *node = allocate_node(AST_FUNCTION);
   node->function.name = name;
   node->function.name_length = name_length;
@@ -159,6 +162,7 @@ ASTNode *create_function_node(const char *name, int name_length, ASTNode *body, 
 
 ASTNode *create_program_node(ASTNode *block) {
   ASTNode *node = allocate_node(AST_PROGRAM);
-  node->program.function = block; // Using 'function' field to store the block of functions for now
+  node->program.function =
+      block; // Using 'function' field to store the block of functions for now
   return node;
 }

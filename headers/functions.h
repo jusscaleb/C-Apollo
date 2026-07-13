@@ -6,17 +6,18 @@
 #include <string.h>
 
 typedef struct CodegenContext CodegenContext;
-typedef FXN FXN ;
+typedef Fxn Fxn ;
+typedef struct Params Params;
 
-
-typedef struct FXN{
+typedef struct Fxn{
   int length;
   int line;
   int level;
-  datatype return_type;
-  const char* name; //Name of the child of the parent_fxn
-  struct FXN *parent_fxn;
-} FXN;
+  DataType return_type;
+  const char *name;
+  struct Fxn *parent_fxn;
+  Params *params;
+} Fxn;
 
 
 
@@ -29,6 +30,6 @@ typedef struct FXN{
  * @param fxn The function structure containing metadata and parent links.
  */
 Symbol* register_fxn(CodegenContext *context, const char *name,
-                  datatype return_type, int level, FXN *fxn);
+                  DataType return_type, int level, Fxn *fxn);
 
 #endif

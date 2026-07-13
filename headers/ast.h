@@ -39,6 +39,19 @@ typedef enum {
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
+typedef struct Params Params;
+typedef struct Args Args;
+
+typedef struct Params{
+  ASTNode* param;
+  struct Params* next;
+}Params;
+
+typedef struct Args{
+  ASTNode* arg;
+  struct Args* next;
+}Args;
+
 
 // Stores the specified Node in the AST.
 struct ASTNode {
@@ -55,7 +68,7 @@ struct ASTNode {
       int name_length;
       ASTNode *body;
       int level;
-      FXN fxn;
+      Fxn fxn;
       Symbol *resolved_symbol;
     } function;
 
@@ -69,9 +82,9 @@ struct ASTNode {
     struct {
       const char *name;
       int name_length;
-      datatype value_type;
+      DataType value_type;
       ASTNode *value;
-      FXN fxn;
+      Fxn fxn;
       int level;
 
     } var_decl;
@@ -95,7 +108,7 @@ struct ASTNode {
     struct {
       const char *name;
       int name_length;
-      FXN fxn;
+      Fxn fxn;
       int level;
       struct Symbol *resolved_symbol;
     } var_ref;
@@ -104,7 +117,7 @@ struct ASTNode {
       const char *name;
       int name_length;
       ASTNode *value;
-      FXN fxn;
+      Fxn fxn;
       int level;
       struct Symbol *resolved_symbol;
     } var_assign;
@@ -137,10 +150,11 @@ struct ASTNode {
     struct {
       const char *name;
       int name_length;
-      datatype return_type;
-      FXN fxn;
+      DataType return_type;
+      Fxn fxn;
       int level;
       Symbol *resolved_symbol;
+      Args *args;
     } call_fxn;
   };
 };
@@ -170,13 +184,13 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
  * Creates an AST node representing a variable declaration.
  * @param name Pointer to the variable identifier character sequence.
  * @param name_length Length of the variable name identifier.
- * @param value_type The compiler datatype of the variable.
+ * @param value_type The compiler DataType of the variable.
  * @param value The AST node representing the initial value expression.
  * @param fxn_name fxn the variable belongs to.
  * @param level scope level of the variable.
  */
 ASTNode *create_var_decl_node(const char *name, int name_length,
-                              datatype value_type, ASTNode *value, FXN fxn,
+                              DataType value_type, ASTNode *value, Fxn fxn,
                               int level);
 
 /**
@@ -197,7 +211,7 @@ ASTNode *create_block_node();
  * @param fxn_name fxn the variable belongs to.
  * @param level scope level of the variable.
  */
-ASTNode *create_var_ref_node(const char *name, int name_length, FXN fxn,
+ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
                              int level);
 
 /**
@@ -209,7 +223,7 @@ ASTNode *create_var_ref_node(const char *name, int name_length, FXN fxn,
  * @param level scope level of the variable.
  */
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, FXN fxn, int level);
+                                ASTNode *value, Fxn fxn, int level);
 
 /**
  * Creates an AST node representing a string concatenation.
@@ -251,8 +265,8 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
  * @param name_length The AST node representing the length of the name.
  * @param return_type The AST node representing the return type of the fxn.
  */
-ASTNode *create_fxn_call_node(char *name, int name_length, datatype return_type,
-                              FXN fxn, int level);
+ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
+                              Fxn fxn, int level);
 
 /*--------------------------------------------------------------------------------
 
@@ -267,7 +281,7 @@ ASTNode *create_fxn_call_node(char *name, int name_length, datatype return_type,
  * @param body The AST block node representing the function body.
  */
 ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
-                              FXN fxn, int level);
+                              Fxn fxn, int level);
 
 /**
  * Creates an AST node representing the entire program.

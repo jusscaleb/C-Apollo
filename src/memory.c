@@ -52,7 +52,7 @@ void grow_symbols_if_needed(CodegenContext *context) {
 
 }
 
-void free_codegen_context(CodegenContext *context, errorStack *s) {
+void free_codegen_context(CodegenContext *context, ErrorStack *s) {
   if (context->symbols != NULL) {
     for (int i = 0; i < context->symbol_count; i++) {
       free(context->symbols[i].name);
@@ -71,7 +71,7 @@ void free_codegen_context(CodegenContext *context, errorStack *s) {
   }
 }
 
-void realloc_errorStack(errorStack *s) {
+void realloc_errorStack(ErrorStack *s) {
   if (s->size == s->capacity) {
     s->capacity = (s->capacity == 0) ? 8 : s->capacity * 2;
     s->data = (Error **)realloc(s->data, s->capacity * sizeof(Error *));
@@ -82,7 +82,7 @@ void realloc_errorStack(errorStack *s) {
   }
 }
 
-void errorStack_free(errorStack *s) {
+void errorStack_free(ErrorStack *s) {
   if (s->data != NULL) {
     for (size_t i = 0; i < s->size; i++) {
       free(s->data[i]);

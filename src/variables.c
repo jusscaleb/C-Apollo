@@ -5,7 +5,7 @@
 #include <string.h>
 
 void register_variable(CodegenContext *context, const char *name,
-                       datatype variable_type, FXN *fxn, int level) {
+                       DataType variable_type, Fxn *fxn, int level) {
   
 
   grow_symbols_if_needed(context);
@@ -34,7 +34,7 @@ void register_variable(CodegenContext *context, const char *name,
 }
 
 Symbol* register_fxn(CodegenContext *context, const char *name,
-                     datatype return_type, int level, FXN *fxn) {
+                     DataType return_type, int level, Fxn *fxn) {
   grow_symbols_if_needed(context);
   Symbol *sym = &context->symbols[context->symbol_count++];
 
@@ -62,7 +62,7 @@ Symbol* register_fxn(CodegenContext *context, const char *name,
   return sym;
 }
 
-Symbol *lookup_token(CodegenContext *context, const char *name, FXN *fxn, int level) {
+Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn, int level) {
   for (int i = context->symbol_count - 1; i >= 0; i--) {
     if (strcmp(context->symbols[i].name, name) != 0) continue;
     if (context->symbols[i].is_active) {

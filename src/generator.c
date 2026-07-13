@@ -346,7 +346,7 @@ void gen_println_float(CodegenContext *context, const char *float_start,
 
 ---------------------------------------------------------------------------------*/
 
-static const char *llvm_datatype(datatype type) {
+static const char *llvm_datatype(DataType type) {
   switch (type) {
   case TYPE_INT:
     return "i32";

@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static ASTNode *parse_logical_and(Parser *parser);
 
@@ -21,11 +22,12 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
 static ASTNode *parse_block(Parser *parser, CodegenContext *context);
 ASTNode *parse_function(Parser *parser, CodegenContext *context);
 void change_active_state(CodegenContext *context, Lexer *lexer);
+Params* get_params(CodegenContext *context, Parser *parser);
 
 
 // move on to next token
 static void advance(Parser *parser) {
-  //printf("REGISTERING FXN(parser): %s\n", parser->lexer->fxn->name);
+  //printf("REGISTERING Fxn(parser): %s\n", parser->lexer->fxn->name);
   parser->previous = parser->current;
   parser->current = next_token(parser->lexer);
 }
@@ -185,13 +187,12 @@ static ASTNode *println(Parser *parser, CodegenContext *context) {
   return println_node;
 }
 
-ASTNode *var(Parser *parser, CodegenContext *context, datatype var_type) {
+ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   advance(parser);
+  DataType dt = var_type;
 
-
-  datatype dt = var_type;
-
-  set declaring = false;
+  bool declaring = false;
+  bool decl_param = false;
 
   Token name_token = parser->current;
   const int NAME_LENGTH = name_token.length;
@@ -201,10 +202,8 @@ ASTNode *var(Parser *parser, CodegenContext *context, datatype var_type) {
   ASTNode *value;
 
   consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
-
-  if (parser->current.type == TOKEN_SEMICOLON) {
+  if (parser->current.type == TOKEN_SEMICOLON) { 
     declaring = true;
-    //TokenType token;
     Token var_decl_token;
     switch (dt) {
       case TYPE_INT: 
@@ -237,7 +236,44 @@ ASTNode *var(Parser *parser, CodegenContext *context, datatype var_type) {
     value = create_literal_node(var_decl_token);
   }
 
-  if (!declaring) {
+  if(parser->current.type == TOKEN_COMMA || parser->current.type == TOKEN_RPARETH && dt != TYPE_NULL && !declaring){
+    decl_param = true;
+
+    Token var_decl_token;
+    switch (dt) {
+      case TYPE_INT: 
+      {
+      var_decl_token =(Token) {TOKEN_INT, "0", 1, parser->current.line};
+      break;
+      }
+      case TYPE_STRING:
+      { 
+        var_decl_token =(Token) {TOKEN_STRING, "null", 4, parser->current.line};
+        break;
+      }
+      case TYPE_FLOAT: 
+      {
+       var_decl_token =(Token) {TOKEN_FLOAT, "0.0", 3, parser->current.line};
+       break;
+
+      }
+      case TYPE_BOOL:{
+            var_decl_token =(Token) {TOKEN_BOOL, "null", 4, parser->current.line};
+            break;
+      }
+      default:{
+        error(parser, "Specify appropriate DataType for the parameter", SYNTAXERROR);
+        synchronize(parser, TOKEN_RPARETH);
+        break;
+      }
+
+  }
+
+  value = create_literal_node(var_decl_token);
+  
+}
+
+  if (!declaring && !decl_param) {
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
     value = parse_logical_or(parser);
   }
@@ -246,7 +282,7 @@ ASTNode *var(Parser *parser, CodegenContext *context, datatype var_type) {
   ASTNode *var_node = create_var_decl_node(name_token.start, name_token.length,
                                            dt, value, *parser->lexer->fxn, parser->lexer->scope_level);
 
-  consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
+  //consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
 }
 
@@ -347,9 +383,9 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('");
     ASTNode *variable = var(parser, context, TYPE_NULL);
-
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' after for-loop variable initialization.");
     ASTNode *condition = parse_logical_or(parser);
-    consume(parser, TOKEN_SEMICOLON, "Expected ';' after condition.");
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' after for-loop condition.");
     
     const int NAME_LENGTH = parser->current.length;
     char *loop_var_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
@@ -394,7 +430,7 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   case DECLARE_STR:
   case DECLARE_FLOAT:
   case DECLARE_BOOL:
-    datatype dt = TYPE_NULL;
+    DataType dt = TYPE_NULL;
     
     switch (parser->current.type) {
       case DECLARE_BOOL: dt = TYPE_BOOL; break;
@@ -447,23 +483,28 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *function(Parser *parser, CodegenContext *context) {
- 
-
   advance(parser);
   consume(parser, TOKEN_LPARETH,
           "Expected parameter list wrapper starting with '('.");
+
+
+  if(parser->current.type != TOKEN_RPARETH) {
+    parser->lexer->fxn->params = get_params(context, parser);
+  }
   consume(parser, TOKEN_RPARETH,
           "Expected closing parameter list wrapper ')'.");
-
-  consume(parser, TOKEN_ARROW, "Expected return signature pointer token '->'.");
-  consume(parser, TOKEN_LPARETH,
+  
+  
+  if(parser->current.type == TOKEN_ARROW){
+    advance(parser);
+      consume(parser, TOKEN_LPARETH,
           "Expected open parenthesis '(' around return type specification.");
-  consume(parser, TOKEN_VOID,
+      consume(parser, TOKEN_VOID,
           "Expected explicit type parameter keyword 'void'.");
-  consume(parser, TOKEN_RPARETH,
+      consume(parser, TOKEN_RPARETH,
           "Expected closing parenthesis ')' around return type specification.");
-
-
+  }
+  parser->lexer->fxn->params = get_params(context, parser);
   ASTNode *body = parse_block(parser, context);
 
   int name_length = strlen(parser->lexer->fxn->name);
@@ -478,10 +519,10 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   char *name = alloc_space(NAME_LENGTH + 1 , sizeof(char));
   sprintf(name, "%.*s", NAME_LENGTH, name_token.start);
 
-  //FXN fxn = {NAME_LENGTH, parser->lexer->line, parser->lexer->scope_level, TYPE_NULL, name , parser->lexer->fxn};
+  //Fxn fxn = {NAME_LENGTH, parser->lexer->line, parser->lexer->scope_level, TYPE_NULL, name , parser->lexer->fxn};
 
-  FXN *parent = parser->lexer->fxn;
-  FXN *fxn =  (FXN*)alloc_space(1, sizeof(FXN));
+  Fxn *parent = parser->lexer->fxn;
+  Fxn *fxn =  (Fxn*)alloc_space(1, sizeof(Fxn));
 
   fxn->length = NAME_LENGTH;
   fxn->name = name;
@@ -515,9 +556,9 @@ ASTNode *parse_function(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *begin(Parser *parser, CodegenContext *context) {
-  parser->lexer->fxn = (FXN*)alloc_space(1, sizeof(FXN));
+  parser->lexer->fxn = (Fxn*)alloc_space(1, sizeof(Fxn));
 
-  *parser->lexer->fxn = (FXN) {
+  *parser->lexer->fxn = (Fxn) {
     .length = 0, 
     .level = 0, 
     .line = 0, 
@@ -526,9 +567,10 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
     .parent_fxn = NULL};
   ASTNode *program_block = create_block_node();
   
-  
+  //Checking global variables
   while (parser->current.type == TOKEN_VAR){
     ASTNode *var_node = var(parser, context, TYPE_NULL);
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
     if (var_node) {
       block_add_statement(program_block, var_node);
     }
@@ -544,7 +586,7 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
   return create_program_node(program_block);
 }
 
-ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context) {
+ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context) {
   Parser parser = {0};
   parser.lexer = lexer;
 
@@ -577,4 +619,45 @@ void change_active_state(CodegenContext *context, Lexer *lexer){
     }
 }
 
+}
+
+Params* get_params(CodegenContext *context, Parser *parser){
+  //recursive case
+  Params *p = (Params*) alloc_space(1, sizeof(Params));
+
+  switch (parser->current.type) {
+    case DECLARE_INT:{
+      p->param = var(parser, context, TYPE_INT);
+      break;
+    }
+
+    case DECLARE_FLOAT:{
+      p->param = var(parser, context, TYPE_FLOAT);
+      break;
+    }
+
+    case DECLARE_STR:{
+      p->param = var(parser, context, TYPE_STRING);
+      break;
+    }
+
+    case DECLARE_BOOL:{
+      p->param = var(parser, context, TYPE_BOOL);
+      break;
+    }
+
+    default:{
+      //error(parser, "Unrecognized DataType", SYNTAXERROR);
+      return NULL;
+    }
+  
+  }
+  if(parser->current.type == TOKEN_COMMA){
+    advance(parser);
+    p->next = get_params(context, parser);
+  }else{
+    p->next = NULL; //base case 1
+  }
+
+  return p;
 }

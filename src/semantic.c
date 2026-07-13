@@ -22,7 +22,7 @@ static void report_semantic_error(SemanticContext* context, const char* msg) {
 }
 
 // Helper to infer expression type
-static datatype infer_expr_type(SemanticContext *context, ASTNode *expr) {
+static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
     if (!expr) return TYPE_NULL;
 
     if (expr->Type == AST_LITERAL_EXPR) {
@@ -34,8 +34,8 @@ static datatype infer_expr_type(SemanticContext *context, ASTNode *expr) {
     }
 
     if (expr->Type == AST_BINARY_EXPR) {
-        datatype left_type = infer_expr_type(context, expr->binary_expr.left);
-        datatype right_type = infer_expr_type(context, expr->binary_expr.right);
+        DataType left_type = infer_expr_type(context, expr->binary_expr.left);
+        DataType right_type = infer_expr_type(context, expr->binary_expr.right);
         return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT : TYPE_INT;
     }
 
@@ -101,6 +101,11 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             if (node->function.body) {
                 analyze_node(context, node->function.body);
             }
+
+            while(node->function.fxn.params){
+                analyze_node(context, node->function.fxn.params->param);
+                node->function.fxn.params = node->function.fxn.params->next;
+            }
             break;
 
         case AST_BLOCK:
@@ -119,7 +124,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                 report_semantic_error(context, "Multiple definition of variable.");
             }
             
-            datatype inferred;
+            DataType inferred;
             if (node->var_decl.value) {
                 analyze_node(context, node->var_decl.value);
                if(node->var_decl.value_type == TYPE_NULL){
@@ -127,7 +132,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                node->var_decl.value_type = inferred;
 
                }else{
-                datatype expected_type = node->var_decl.value_type;
+                DataType expected_type = node->var_decl.value_type;
                 inferred = infer_expr_type(context, node->var_decl.value);
                 if(inferred != expected_type){
                     report_semantic_error(context, "Datatype Mismatch.");
@@ -158,7 +163,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                 node->var_assign.resolved_symbol = sym;
                 if (node->var_assign.value) {
                     analyze_node(context, node->var_assign.value);
-                    datatype inferred = infer_expr_type(context, node->var_assign.value);
+                    DataType inferred = infer_expr_type(context, node->var_assign.value);
                     
                     if (sym->type != TYPE_NULL && inferred != TYPE_NULL && sym->type != inferred) {
                         report_semantic_error(context, "Incompatible assignment type.");

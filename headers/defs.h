@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-typedef struct errorStack errorStack;
+typedef struct ErrorStack ErrorStack;
 
 
 
@@ -48,7 +48,7 @@ void grow_symbols_if_needed(CodegenContext *context);
  * @param context The codegen context.
  * @param s The error stack.
  */
-void free_codegen_context(CodegenContext *context, errorStack *s);
+void free_codegen_context(CodegenContext *context, ErrorStack *s);
 
 /**
  * Allocates memory initialized to zero.
