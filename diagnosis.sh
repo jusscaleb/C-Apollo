@@ -4,14 +4,24 @@
 ###                  NOTE: THIS FILE ONLY RUNS ON Linux or GITBASH                             ###                                                               
 ##################################################################################################
 
-VALID_TESTS=("println"  "conditionals"  "variable" "fxns")
+
+NORMAL="\e[0m"
+WARNING="\e[33m"
+INFO="\e[34m"
+SUCCESS="\e[32m"
+ERROR="\e[31m"
+INPUT="\e[36m"
+
+
+
+VALID_TESTS=("println"  "conditionals"  "variable" "fxns" )
 
 
 exec_doctest() {
     mkdir -pv temp/$1
-    echo "Testing $1"
+    echo -e "\n${INFO}=============================Testing $1=============================${NORMAL}\n"
     python -m doctest -v $1.py
-    echo "$1 test done"
+    echo -e "\n${SUCCESS}=============================$1 test done=============================${NORMAL}\n"
 }
 
 if [[ $# > 1 ]]; then
@@ -23,21 +33,22 @@ fi
 
 cd tests
 
+echo -e "\n${INFO}RUNNING APOLLO DIAGNOSIS$NORMAL\n"
+
 
 if [ $# -eq 0 ]; then
-    echo "RUNNING APOLLO DIAGNOSIS"
 
     for test in "${!VALID_TESTS[@]}"; do
         exec_doctest "${VALID_TESTS[$test]}"
     done
 
-    echo "DIAGNOSIS COMPLETE."
+    echo -e "\n${SUCCESS}DIAGNOSIS COMPLETE.${NORMAL}\n"
 
     read -p "Delete 'temp' folder in tests? (Y/N): " del
 
     if [[ $del = "Y" ]]; then
         rm -rfv temp
-        echo "Type: 'diagonisis.sh help' for assistance"
+        echo -e "\nType: 'diagonisis.sh help' for assistance"
         exit 0
     
     elif [[ $del = "N" ]]; then
@@ -53,15 +64,14 @@ if [ $# -eq 0 ]; then
 else 
 
     if [[ $1 != 'help' ]]; then
-
         if [[ "${VALID_TESTS[*]}" =~ "$1" ]]; then
 
             mkdir -p -v temp/$1
-            echo "TESTING $1"
+            echo -e "\n${INFO}=============================TESTING $1=============================${NORMAL}\n"
             python -m doctest -v $1.py
-            echo "DIAGNOSIS COMPLETE."
+            echo -e "\n${SUCCESS}=============================DIAGNOSIS COMPLETE.=============================${NORMAL}\n"
 
-            read -p "Delete 'temp' folder in tests? (Y/N): " del
+            read -p -e "\n${INPUT}Delete 'temp' folder in tests? (Y/N):${NORMAL}\n " del
 
             if [[ $del = "Y" ]]; then
                 rm -rfv temp
@@ -70,18 +80,31 @@ else
                 exit 0
 
             else 
-                echo "Invalid input, deleting by default"
+                echo -e "\n${ERROR}Invalid input, deleting by default."
                 rm -rfv temp
                 exit 0
             fi  
 
-        fi   
-    
-    else
-        echo "Unrecognized test args"
-        echo "Type: 'diagonisis.sh help' for assistance"
-        exit 1
+        
 
+        elif [[ "$1" == "performance" ]]; then
+            echo -e "${WARNING}PLEASE NOTE: RUNNING THROUGH BASH DOESN'T PRODUCE ACCURATE RESULTS. $NORMAL"
+            read -p "Would you still like to continue? (Y/N): " c
+
+            if [[ $c = "N" ]]; then
+                exit 0
+            
+            fi
+            cd performance
+            python benchmark.py
+        
+        else
+            echo "Unrecognized test args"
+            echo "Type: 'diagonisis.sh help' for assistance"
+            exit 1
+
+        fi
+    
     fi
 
 fi
@@ -92,6 +115,7 @@ if [ $1 = 'help' ]; then
     echo "2) conditionals --------------------------------> tests conditionals"
     echo "3) var -----------------------------------------> tests variables"
     echo "4) fxns ----------------------------------------> tests fxns"
+    echo "5) performance ----------------------------------> compiler performance"
 
     exit 0
 fi

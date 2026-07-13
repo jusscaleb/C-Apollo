@@ -87,7 +87,6 @@ int main(int argc, char **argv) {
   // 1. Parsing Phase
   ASTNode *program_ast = compile_parse(&lexer, &err_stack, &compiler_context);
   if (err_stack.size > 0) {
-    printf("Found : %llu Syntax Errors\n", err_stack.size);
     errorStack_seek(&err_stack);
     errorStack_free(&err_stack);
     free(source);
@@ -101,14 +100,11 @@ int main(int argc, char **argv) {
 
 
   if (err_stack.size > 0) {
-    printf("Found : %llu Semantic Errors\n", err_stack.size);
     errorStack_seek(&err_stack);
     errorStack_free(&err_stack);
     free(source);
     exit(EXIT_FAILURE);
   }
-
-
   // 3. Code Generation Phase
   gen_program_from_ast(&compiler_context, program_ast);
   
@@ -121,7 +117,6 @@ int main(int argc, char **argv) {
     errorStack_free(&err_stack);
     exit(EXIT_FAILURE);
   }
-
 
   llvm_compilation();
 

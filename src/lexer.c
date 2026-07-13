@@ -9,7 +9,6 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 // Defining the TokenNames in token.h
@@ -20,7 +19,7 @@ const char *TokenNames[] = {
     "DEC",    "AEQ",    "SEQ",    "MEQ",    "DEQ",        "PEQ",   "PRINTLN",
     "VAR",    "ASSIGN", "BOOL",   "NULL",   "EQT",        "NEQ",   "GT",
     "ST",     "GE",     "SE",     "AND",    "OR",         "IF",    "ELIF",
-    "ELSE",   "WHILE",  "FOR"};
+    "ELSE",   "WHILE",  "FOR", "INT", "STR", "BOOL", "FLOAT"};
 
 // FOR ERROR HANDLING
 void lex_error(Lexer *lexer, const char *message, const char *got) {
@@ -82,6 +81,19 @@ static TokenType check_keyword(const char *start, int length) {
 
   if (length == 3 && strncmp(start, "for", 3) == 0)
     return TOKEN_FOR;
+
+  if(length == 3 && strncmp(start, "int", 3) == 0)
+    return DECLARE_INT;
+
+  if(length == 3 && strncmp(start, "str", 3) == 0)
+    return DECLARE_STR;
+
+  if(length == 4 && strncmp(start, "bool", 4) == 0)
+    return DECLARE_BOOL;
+
+  if(length == 5 && strncmp(start, "float", 5) == 0)
+    return DECLARE_FLOAT;
+
 
   return TOKEN_IDENTIFIER;
 }
@@ -319,10 +331,9 @@ Token next_token(Lexer *lexer) {
         // If it reaches \0 that means it's an unterminated string.
         if (*lexer->current == '\0') {
           int len = (int)(lexer->current - start);
-          char *temp = malloc(len + 1);
+          char temp[len + 1];
           snprintf(temp, len + 1, "%.*s", len, start);
           lex_error(lexer, "Unterminated String", temp);
-          free(temp);
           Token token = {TOKEN_EOF, start, len, lexer->line};
           return token;
         }
@@ -339,10 +350,9 @@ Token next_token(Lexer *lexer) {
     // If it reaches \0 that means it's an unterminated string.
     if (*lexer->current == '\0') {
       int len = (int)(lexer->current - start);
-      char *temp = malloc(len + 1);
+      char temp[len + 1];
       snprintf(temp, len + 1, "%.*s", len, start);
       lex_error(lexer, "Unterminated String", temp);
-      free(temp);
       Token token = {TOKEN_EOF, start, len, lexer->line};
       return token;
     }
@@ -371,10 +381,10 @@ Token next_token(Lexer *lexer) {
 
       if (!isdigit((unsigned char)*lexer->current)) {
         int len = (int)(lexer->current - start);
-        char *temp = malloc(len + 1);
+        char temp[len + 1];
         snprintf(temp, len + 1, "%.*s", len, start);
         lex_error(lexer, "Expected value int after '.' ", temp);
-        free(temp);
+        
       }
     }
     while (isdigit((unsigned char)*lexer->current)) {
