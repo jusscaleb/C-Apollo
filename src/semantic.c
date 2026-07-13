@@ -98,14 +98,19 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                 node->function.resolved_symbol = register_fxn(context->codegen, node->function.name, TYPE_NULL, node->function.level, &node->function.fxn);
             }
 
+            //Analyze Parameters.
+            Params *param = node->function.fxn.params;
+            while(param){
+                analyze_node(context, param->param);
+                param = param->next;
+            }
+
+            //Analyze Function Body.
             if (node->function.body) {
                 analyze_node(context, node->function.body);
             }
 
-            while(node->function.fxn.params){
-                analyze_node(context, node->function.fxn.params->param);
-                node->function.fxn.params = node->function.fxn.params->next;
-            }
+
             break;
 
         case AST_BLOCK:
@@ -221,6 +226,30 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             } else {
                 node->call_fxn.return_type = sym->type;
                 node->call_fxn.resolved_symbol = sym;
+                if(sym->fxn->params && node->call_fxn.args){
+                                    node->call_fxn.return_type = sym->type;
+                node->call_fxn.resolved_symbol = sym;
+                
+                Params *expected_param = sym->fxn->params;
+                Args *passed_arg = node->call_fxn.args;
+                
+                while (expected_param != NULL && passed_arg != NULL) {
+                    analyze_node(context, passed_arg->arg);
+                    
+                    DataType arg_type = infer_expr_type(context, passed_arg->arg);
+                    if (arg_type != expected_param->param->var_decl.value_type) {
+                        report_semantic_error(context, "Argument type mismatch in function call.");
+                    }
+                    
+                    expected_param = expected_param->next;
+                    passed_arg = passed_arg->next;
+                }
+                /*if (expected_param != NULL || passed_arg != NULL) {
+                    report_semantic_error(context, "Incorrect number of arguments passed to function.");
+                }*/
+                    
+                }
+
             }
 
             break;

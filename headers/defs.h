@@ -7,12 +7,10 @@
 #include <stdio.h>
 
 typedef struct ErrorStack ErrorStack;
-
-
+typedef struct ASTNode ASTNode;
 
 #define EXPECTED_EXTENSION ".apl"
 typedef bool set;
-typedef struct ASTNode ASTNode;
 
 // generator
 typedef struct CodegenContext {
@@ -27,7 +25,6 @@ typedef struct CodegenContext {
   int deferred_capacity;
 } CodegenContext;
 
-typedef struct ASTNode ASTNode;
 
 /**
  * Reallocates memory space for a string, ensuring null termination.
@@ -38,7 +35,8 @@ typedef struct ASTNode ASTNode;
 char *realloc_space(char *value, int size);
 
 /**
- * Grows the symbol table array inside the CodegenContext if capacity is reached.
+ * Grows the symbol table array inside the CodegenContext if capacity is
+ * reached.
  * @param context The codegen context containing the symbol table.
  */
 void grow_symbols_if_needed(CodegenContext *context);
@@ -70,7 +68,7 @@ void codegen_init(CodegenContext *context, const char *output_filename);
  * @param context The codegen context.
  * @param name The name of the function.
  */
-void gen_function_start(CodegenContext *context, const char *name);
+void gen_function_start(CodegenContext *context, ASTNode *func_node);
 
 /**
  * Emits LLVM IR to print a string literal.

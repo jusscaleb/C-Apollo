@@ -69,7 +69,7 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
         context->deferred_functions[context->deferred_count++] = stmt;
       } else {
         // It's a global function, generate normally
-        gen_function_start(context, stmt->function.resolved_symbol->llvm_name);
+        gen_function_start(context, stmt);
         gen_block_from_ast(context, stmt->function.body);
         gen_function_end(context, strcmp(stmt->function.resolved_symbol->llvm_name, "run") == 0);
       }
@@ -93,7 +93,7 @@ void gen_program_from_ast(CodegenContext *context, ASTNode *program_node) {
   // Generate all nested functions at the top level
   for (int i = 0; i < context->deferred_count; i++) {
     ASTNode *nested_func = context->deferred_functions[i];
-    gen_function_start(context, nested_func->function.resolved_symbol->llvm_name);
+    gen_function_start(context, nested_func);
     gen_block_from_ast(context, nested_func->function.body);
     gen_function_end(context, false);
   }
@@ -129,14 +129,54 @@ void codegen_init(CodegenContext *context, const char *output_filename) {
   fprintf(context->file, "declare i32 @snprintf(i8*, i64, i8*, ...)\n");
 }
 
+static const char *llvm_datatype(DataType type);
+
 // Emits the LLVM function header. Apollo's run() function becomes LLVM's
 // main().
-void gen_function_start(CodegenContext *context, const char *name) {
+void gen_function_start(CodegenContext *context, ASTNode *func_node) {
+  const char *name = func_node->function.resolved_symbol->llvm_name;
   // if it run then make that the main function.
   if (strcmp(name, "run") == 0) {
     fprintf(context->file, "define i32 @main() {\n");
   } else {
-    fprintf(context->file, "define void @%s() {", name);
+    fprintf(context->file, "define void @%s(", name);
+    
+    // Print the parameters in the signature: e.g. i32 %arg_x, i8* %arg_s
+    Params *p = func_node->function.fxn.params;
+    while(p) {
+      DataType dt = p->param->var_decl.value_type;
+      const char *type_str = llvm_datatype(dt);
+      int nl = p->param->var_decl.name_length;
+      const char *pname = p->param->var_decl.name;
+      fprintf(context->file, "%s %%arg_%.*s", type_str, nl, pname);
+      if (p->next) fprintf(context->file, ", ");
+      p = p->next;
+    }
+    
+    fprintf(context->file, ") {\n");
+    
+    // Alloca and store each parameter so the body can reference them
+    p = func_node->function.fxn.params;
+    while(p) {
+      DataType dt = p->param->var_decl.value_type;
+      const char *type_str = llvm_datatype(dt);
+      int nl = p->param->var_decl.name_length;
+      const char *pname = p->param->var_decl.name;
+
+      if (dt == TYPE_STRING) {
+        // Strings: create the _val (i8**) and _len (i32) slots that VAR_REF expects
+        fprintf(context->file, "  %%%.*s_val = alloca i8*\n", nl, pname);
+        fprintf(context->file, "  %%%.*s_len = alloca i32\n", nl, pname);
+        fprintf(context->file, "  store i8* %%arg_%.*s, i8** %%%.*s_val\n",
+                nl, pname, nl, pname);
+      } else {
+        // Scalar types (int, float, bool, char)
+        fprintf(context->file, "  %%%.*s = alloca %s\n", nl, pname, type_str);
+        fprintf(context->file, "  store %s %%arg_%.*s, %s* %%%.*s\n",
+                type_str, nl, pname, type_str, nl, pname);
+      }
+      p = p->next;
+    }
   }
 }
 
@@ -355,14 +395,29 @@ static const char *llvm_datatype(DataType type) {
     return "double";
 
   case TYPE_BOOL:
-  case TYPE_NULL:
     return "i8";
+
+  case TYPE_STRING:
+    return "i8*";
 
   case TYPE_CHAR:
     return "i8";
 
+  case TYPE_NULL:
+    return "i8";
+
   default:
-    return NULL;
+    return "i32"; // safe fallback
+  }
+}
+
+// Returns the LLVM type string for a computed ExprResult
+static const char *llvm_type_for_expr(ExprResult r) {
+  switch (r.type) {
+  case EXPR_FLOAT:  return "double";
+  case EXPR_STRING: return "i8*";
+  case EXPR_BOOL:   return "i8";
+  default:          return "i32";
   }
 }
 
@@ -421,28 +476,32 @@ static void create_global_var(CodegenContext *context,
   Symbol *sym = get_token(context, name);
   char *llvm_name = sym->llvm_name;
 
-  const char *llvm_type = llvm_datatype(sym->type);
-  if (llvm_type == NULL) {
+  if (sym->type == TYPE_STRING) {
     if (length == 4 && strncmp(number_start, "null", 4) == 0) {
       create_global_string_var(context, "\"\"", 1, llvm_name);
     } else {
       create_global_string_var(context, number_start, length, llvm_name);
     }
-  } else if (sym->type == TYPE_BOOL || sym->type == TYPE_NULL) {
-    int val = 2;
-    if (length == 4 && strncmp(number_start, "true", 4) == 0)  val = 1;
-    else if (length == 5 && strncmp(number_start, "false", 5) == 0) val = 0;
-    fprintf(context->file, "@%s = global i8 %d\n\n", llvm_name, val);
   } else {
-    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
-      if (sym->type == TYPE_FLOAT) {
-        fprintf(context->file, "@%s = global %s 0.0\n\n", llvm_name, llvm_type);
-      } else {
-        fprintf(context->file, "@%s = global %s 0\n\n", llvm_name, llvm_type);
-      }
+    const char *llvm_type = llvm_datatype(sym->type);
+    if (sym->type == TYPE_BOOL || sym->type == TYPE_NULL) {
+      int val = 2;
+      if (length == 4 && strncmp(number_start, "true", 4) == 0)
+        val = 1;
+      else if (length == 5 && strncmp(number_start, "false", 5) == 0)
+        val = 0;
+      fprintf(context->file, "@%s = global i8 %d\n\n", llvm_name, val);
     } else {
-      fprintf(context->file, "@%s = global %s %.*s\n\n",
-              llvm_name, llvm_type, length, number_start);
+      if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+        if (sym->type == TYPE_FLOAT) {
+          fprintf(context->file, "@%s = global %s 0.0\n\n", llvm_name, llvm_type);
+        } else {
+          fprintf(context->file, "@%s = global %s 0\n\n", llvm_name, llvm_type);
+        }
+      } else {
+        fprintf(context->file, "@%s = global %s %.*s\n\n",
+                llvm_name, llvm_type, length, number_start);
+      }
     }
   }
 }
@@ -456,8 +515,7 @@ void create_var(CodegenContext *context, const char *number_start, int length,
 
   fprintf(context->file, "; Allocate integer variable slot\n");
 
-  const char *llvm_type = llvm_datatype(sym->type);
-  if (llvm_type == NULL) {
+  if (sym->type == TYPE_STRING) {
     if (length == 4 && strncmp(number_start, "null", 4) == 0) {
       create_string_var(context, "\"\"", 1, llvm_name);
     } else {
@@ -474,6 +532,7 @@ void create_var(CodegenContext *context, const char *number_start, int length,
     fprintf(context->file, "store i8 %d, i8* %%%s\n\n", val, llvm_name);
 
   } else {
+    const char *llvm_type = llvm_datatype(sym->type);
     fprintf(context->file, "%%%s = alloca %s\n", llvm_name, llvm_type);
     if (length == 4 && strncmp(number_start, "null", 4) == 0) {
       if (sym->type == TYPE_FLOAT) {
@@ -572,7 +631,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
 
   ASTNode *value = assign_node->var_assign.value;
 
-  int is_global = (sym->scope_level == 0);
+  int is_global = (sym->scope_level == 0 && (!sym->fxn || strcmp(sym->fxn->name, "global") == 0));
   // Macro-like helpers to pick @ vs % prefix
   #define VAL_PTR(buf, lname)  \
     snprintf(buf, sizeof(buf), "%s%s_val", is_global ? "@" : "%", lname)
@@ -583,7 +642,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
 
   if (value->Type == AST_VAR_REF) {
     Symbol *rhs_sym = (Symbol*)value->var_ref.resolved_symbol;
-    int rhs_global = rhs_sym && (rhs_sym->scope_level == 0);
+    int rhs_global = rhs_sym && (rhs_sym->scope_level == 0 && (!rhs_sym->fxn || strcmp(rhs_sym->fxn->name, "global") == 0));
 
     if (rhs_sym) {
       if (rhs_sym->type == TYPE_STRING) {
@@ -785,25 +844,53 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
   case AST_CALL_FXN: {
     const char *func_name = expr->call_fxn.resolved_symbol->llvm_name;
 
+    // 1. Evaluate all argument expressions first, collect results
+    Args *arg = expr->call_fxn.args;
+    // We need to collect results before building the call string
+    // Use a small fixed buffer (max 32 args should be plenty)
+    ExprResult arg_results[32];
+    DataType   arg_types[32];
+    int arg_count = 0;
+    Params *param = NULL;
+    if (expr->call_fxn.resolved_symbol && expr->call_fxn.resolved_symbol->fxn) {
+      param = expr->call_fxn.resolved_symbol->fxn->params;
+    }
+    while (arg && arg_count < 32) {
+      arg_results[arg_count] = gen_expr_from_ast(context, arg->arg);
+      arg_types[arg_count] = (param) ? param->param->var_decl.value_type : TYPE_INT;
+      arg_count++;
+      arg  = arg->next;
+      if (param) param = param->next;
+    }
+
     const char *llvm_type = llvm_datatype(expr->call_fxn.return_type);
     if (llvm_type == NULL) {
       llvm_type = "void";
     }
     int temp_id = context->temp_count++;
     if (expr->call_fxn.return_type == TYPE_NULL) {
-      fprintf(context->file, "  call void @%s()\n", func_name);
+      fprintf(context->file, "  call void @%s(", func_name);
+    } else {
+      fprintf(context->file, "  %%tmp_%d = call %s @%s(", temp_id, llvm_type, func_name);
+    }
+    // 2. Emit argument list
+    for (int i = 0; i < arg_count; i++) {
+      const char *atype = llvm_datatype(arg_types[i]);
+      if (atype == NULL) atype = "i32";
+      fprintf(context->file, "%s %s", atype, arg_results[i].value);
+      if (i < arg_count - 1) fprintf(context->file, ", ");
+    }
+    fprintf(context->file, ")\n");
+
+    if (expr->call_fxn.return_type == TYPE_NULL) {
       ExprResult result;
-      result.type = EXPR_INT; // default fallback
+      result.type = EXPR_INT;
       snprintf(result.value, sizeof(result.value), "0");
       return result;
     } else {
-      fprintf(context->file, "  %%tmp_%d = call %s @%s()\n", temp_id, llvm_type,
-              func_name);
       ExprResult result;
-      result.type =
-          (expr->call_fxn.return_type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
+      result.type = (expr->call_fxn.return_type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
       snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
-
       return result;
     }
   }
@@ -819,12 +906,20 @@ ExprResult make_literal_expr(Token token) {
 
   if (token.type == TOKEN_FLOAT) {
     result.type = EXPR_FLOAT;
+    snprintf(result.value, sizeof(result.value), "%.*s", token.length,
+             token.start);
+  } else if (token.type == TOKEN_BOOL) {
+    result.type = EXPR_BOOL;
+    if (token.length == 4 && strncmp(token.start, "true", 4) == 0) {
+      snprintf(result.value, sizeof(result.value), "1");
+    } else {
+      snprintf(result.value, sizeof(result.value), "0");
+    }
   } else {
     result.type = EXPR_INT;
+    snprintf(result.value, sizeof(result.value), "%.*s", token.length,
+             token.start);
   }
-
-  snprintf(result.value, sizeof(result.value), "%.*s", token.length,
-           token.start);
 
   return result;
 }
@@ -1288,7 +1383,7 @@ static void gen_println_bool_var(CodegenContext *context, Symbol *sym) {
 }
 
 void gen_println_variable(CodegenContext *context, Symbol *sym, int scope_level) {
-  int is_global = (sym->scope_level == 0);
+  int is_global = (sym->scope_level == 0 && (!sym->fxn || strcmp(sym->fxn->name, "global") == 0));
 
   if (sym->type == TYPE_STRING) {
     int id = context->string_constant_count++;
@@ -1446,17 +1541,39 @@ void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node) {
 
   const char *func_name = call_node->call_fxn.resolved_symbol->llvm_name;
 
+  // Evaluate all argument expressions and collect results
+  ExprResult arg_results[32];
+  DataType   arg_types[32];
+  int arg_count = 0;
+  Args *arg = call_node->call_fxn.args;
+  Params *param = NULL;
+  if (call_node->call_fxn.resolved_symbol && call_node->call_fxn.resolved_symbol->fxn) {
+    param = call_node->call_fxn.resolved_symbol->fxn->params;
+  }
+  while (arg && arg_count < 32) {
+    arg_results[arg_count] = gen_expr_from_ast(context, arg->arg);
+    arg_types[arg_count] = (param) ? param->param->var_decl.value_type : TYPE_INT;
+    arg_count++;
+    arg   = arg->next;
+    if (param) param = param->next;
+  }
+
   if (call_node->call_fxn.return_type == TYPE_NULL) {
-    fprintf(context->file, "  call void @%s()\n", func_name);
+    fprintf(context->file, "  call void @%s(", func_name);
   } else {
     const char *llvm_type = llvm_datatype(call_node->call_fxn.return_type);
-    if (llvm_type == NULL) {
-      llvm_type = "void";
-    }
+    if (llvm_type == NULL) llvm_type = "void";
     int temp_id = context->temp_count++;
-    fprintf(context->file, "  %%tmp_%d = call %s @%s()\n", temp_id, llvm_type,
-            func_name);
+    fprintf(context->file, "  %%tmp_%d = call %s @%s(", temp_id, llvm_type, func_name);
   }
+  // Emit argument list
+  for (int i = 0; i < arg_count; i++) {
+    const char *atype = llvm_datatype(arg_types[i]);
+    if (atype == NULL) atype = "i32";
+    fprintf(context->file, "%s %s", atype, arg_results[i].value);
+    if (i < arg_count - 1) fprintf(context->file, ", ");
+  }
+  fprintf(context->file, ")\n");
 }
 
 void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {

@@ -430,5 +430,113 @@
                 "total_time": 1.583187899997938
             }
         }
+    },
+    {
+        "timestamp": "2026-07-13 16:24:02",
+        "total_speed": 16.46338490000926,
+        "results": {
+            "small_program": {
+                "compile_time": 3.005865900006029,
+                "run_time": 0.02106259998981841,
+                "total_time": 3.0269284999958472
+            },
+            "large_compilation": {
+                "compile_time": 2.5582871999940835,
+                "run_time": 0.010853300002054311,
+                "total_time": 2.569140499996138
+            },
+            "for_loop": {
+                "compile_time": 2.737413700000616,
+                "run_time": 0.025105799999437295,
+                "total_time": 2.762519500000053
+            },
+            "for_loop_v1": {
+                "compile_time": 2.5192580000002636,
+                "run_time": 0.012811699998565018,
+                "total_time": 2.5320696999988286
+            },
+            "var_decl_with_dt": {
+                "compile_time": 2.6601219000003766,
+                "run_time": 0.009441100002732128,
+                "total_time": 2.6695630000031088
+            },
+            "var_decl_no_dt": {
+                "compile_time": 2.889509500004351,
+                "run_time": 0.013654200010932982,
+                "total_time": 2.903163700015284
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-13 16:24:58",
+        "total_speed": 14.443721099989489,
+        "results": {
+            "small_program": {
+                "compile_time": 2.668580600002315,
+                "run_time": 0.012688400005572475,
+                "total_time": 2.6812690000078874
+            },
+            "large_compilation": {
+                "compile_time": 2.2318526999879396,
+                "run_time": 0.010177000003750436,
+                "total_time": 2.24202969999169
+            },
+            "for_loop": {
+                "compile_time": 2.6789946000062628,
+                "run_time": 0.021570400000200607,
+                "total_time": 2.7005650000064634
+            },
+            "for_loop_v1": {
+                "compile_time": 2.1466749000101117,
+                "run_time": 0.03333279999787919,
+                "total_time": 2.180007700007991
+            },
+            "var_decl_with_dt": {
+                "compile_time": 2.147700599991367,
+                "run_time": 0.012674099998548627,
+                "total_time": 2.160374699989916
+            },
+            "var_decl_no_dt": {
+                "compile_time": 2.470360299994354,
+                "run_time": 0.00911469999118708,
+                "total_time": 2.479474999985541
+            }
+        }
+    },
+    {
+        "timestamp": "2026-07-13 16:25:58",
+        "total_speed": 33.535453800010146,
+        "results": {
+            "small_program": {
+                "compile_time": 3.0778873000090243,
+                "run_time": 0.01588199999241624,
+                "total_time": 3.0937693000014406
+            },
+            "large_compilation": {
+                "compile_time": 2.865480299995397,
+                "run_time": 0.01214040000922978,
+                "total_time": 2.877620700004627
+            },
+            "for_loop": {
+                "compile_time": 11.908480700003565,
+                "run_time": 6.096049600004335,
+                "total_time": 18.0045303000079
+            },
+            "for_loop_v1": {
+                "compile_time": 3.1502983000100357,
+                "run_time": 0.010037200001534075,
+                "total_time": 3.16033550001157
+            },
+            "var_decl_with_dt": {
+                "compile_time": 3.368787399987923,
+                "run_time": 0.017080499994335696,
+                "total_time": 3.3858678999822587
+            },
+            "var_decl_no_dt": {
+                "compile_time": 2.996188199991593,
+                "run_time": 0.017141900010756217,
+                "total_time": 3.0133301000023494
+            }
+        }
     }
 ]

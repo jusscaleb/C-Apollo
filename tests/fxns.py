@@ -37,7 +37,18 @@ def run_fxns_tests():
     "var number = 6;"
     "println(number);" \
     "variables();"
-    "}", "6\n11"),  
+    "}", "6\n11"),
+    test_n("fxns", 3, "fxn_params",
+     "###STRING PARAMETERS###\n\n"
+     "fxn concatinate(str x, str y, int z){"
+     "println(x +\" was made in \" + z + \" by \" + y);" 
+     "}\n\n"
+     
+     "fxn run(){"
+     "concatinate(\"Apollo\", \"Scxrpius\", 2026);"
+     "}",
+     "Apollo was made in 2026 by Scxrpius"
+    )  
     ]
 
     for test in TESTS:

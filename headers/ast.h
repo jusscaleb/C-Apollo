@@ -255,6 +255,7 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block);
  * @param variable The AST node representing loop variable initialization.
  * @param condition The AST node representing loop continuation condition.
  * @param var_operation The AST node representing loop variable step/update.
+ * @param then_block The AST block to execute repeatedly while condition is true.
  */
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
                          ASTNode *var_operation, ASTNode *then_block);
@@ -264,9 +265,12 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
  * @param name The AST node representing the name of the fxn.
  * @param name_length The AST node representing the length of the name.
  * @param return_type The AST node representing the return type of the fxn.
+ * @param fxn Pointer to the function symbol.
+ * @param level The scope level of the function call.
+ * @param args Pointer to the list of arguments passed to the function.
  */
 ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
-                              Fxn fxn, int level);
+                              Fxn fxn, int level, Args *args);
 
 /*--------------------------------------------------------------------------------
 
