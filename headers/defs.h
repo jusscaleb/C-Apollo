@@ -22,7 +22,6 @@ typedef struct CodegenContext {
   int string_constant_count;
   Symbol *symbols;
   int temp_count;
-
   ASTNode **deferred_functions;
   int deferred_count;
   int deferred_capacity;

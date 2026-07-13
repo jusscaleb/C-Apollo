@@ -32,11 +32,9 @@ char *alloc_space(int num_elements, int element_size) {
 void grow_symbols_if_needed(CodegenContext *context) {
   if (context->symbol_count >= context->symbol_capacity) {
 
-    int new_capacity =
-        context->symbol_capacity == 0 ? 8 : context->symbol_capacity * 2;
+    int new_capacity = context->symbol_capacity == 0 ? 8 : context->symbol_capacity * 2;
 
-    Symbol *new_symbols =
-        realloc(context->symbols, new_capacity * sizeof(Symbol));
+    Symbol *new_symbols = realloc(context->symbols, new_capacity * sizeof(Symbol));
     if (new_symbols == NULL) {
       fprintf(stderr, "FATAL: Failed to allocate memory for symbol table.\n");
       exit(EXIT_FAILURE);
@@ -50,6 +48,8 @@ void grow_symbols_if_needed(CodegenContext *context) {
     context->symbols = new_symbols;
     context->symbol_capacity = new_capacity;
   }
+
+
 }
 
 void free_codegen_context(CodegenContext *context, errorStack *s) {

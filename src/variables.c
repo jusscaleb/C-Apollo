@@ -7,6 +7,7 @@
 void register_variable(CodegenContext *context, const char *name,
                        datatype variable_type, FXN *fxn, int level) {
   
+
   grow_symbols_if_needed(context);
 
   Symbol *sym = &context->symbols[context->symbol_count++];
