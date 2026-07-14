@@ -495,6 +495,18 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 
   case TOKEN_FXN:
     return parse_function(parser, context);
+
+  case TOKEN_RETURN:
+    advance(parser);
+    Fxn *fxn = (Fxn*)alloc_space(1, sizeof(Fxn));
+    fxn = parser->lexer->fxn;
+    ASTNode* value = parse_body_statement(parser, context);
+    ASTNode* ret_node = create_ret_node(context, *fxn, value);
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
+    return ret_node;
+
+
+
   default:
     error(parser, "Unrecognized token in body statement.", SYNTAXERROR);
     synchronize(parser, TOKEN_RBRACE);

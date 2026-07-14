@@ -167,3 +167,11 @@ ASTNode *create_program_node(ASTNode *block) {
       block; // Using 'function' field to store the block of functions for now
   return node;
 }
+
+ASTNode* create_ret_node(CodegenContext *context,Fxn fxn, ASTNode *value){
+  ASTNode *node = allocate_node(AST_RET_NODE);
+  node->ret_node.fxn = fxn;
+  node->ret_node.value = value;
+  return node;
+}
+

@@ -75,6 +75,7 @@ typedef enum {
   DECLARE_BOOL,
   DECLARE_FLOAT,
   TOKEN_COMMA,
+  TOKEN_RETURN,
 
 } TokenType;
 

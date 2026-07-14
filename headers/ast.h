@@ -36,6 +36,7 @@ typedef enum {
   AST_WHILE,
   AST_FOR,
   AST_CALL_FXN,
+  AST_RET_NODE,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -156,6 +157,11 @@ struct ASTNode {
       Symbol *resolved_symbol;
       Args *args;
     } call_fxn;
+
+    struct {
+      ASTNode* value;
+      Fxn fxn;
+    }ret_node;
   };
 };
 
@@ -293,6 +299,10 @@ ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
  */
 ASTNode *create_program_node(ASTNode *block);
 
+
+ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value);
+
+
 /**
  * Realloc more memory to the AST block
  * @param block The AST node representing the block to add.
@@ -363,6 +373,8 @@ void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
  * @param call_node The AST node representing the function call.
  */
 void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node);
+
+
 
 /**
  * Generates the entry point and LLVM IR for the entire program.

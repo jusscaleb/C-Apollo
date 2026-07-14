@@ -1,41 +1,37 @@
 #ifndef APOLLO_ERROR_H
 #define APOLLO_ERROR_H
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include "defs.h"
 #include "token.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-
-
-
-typedef enum{
-    SYNTAXERROR,
-    ASSIGNMENTERROR,
-    REFERROR,
-    TYPEERROR,
-    LEXERROR,
-    SEMANTICERROR,
-}ErrorType;
-
+typedef enum {
+  SYNTAXERROR,
+  ASSIGNMENTERROR,
+  REFERROR,
+  TYPEERROR,
+  LEXERROR,
+  SEMANTICERROR,
+} ErrorType;
 
 typedef struct Error {
-    Token token;
-    ErrorType type;
-    char* message;
-    char* got;
-}Error;
+  Token token;
+  ErrorType type;
+  char *message;
+  char *got;
+  int line;
+} Error;
 
-//Error stack
+// Error stack
 
 typedef struct ErrorStack {
-    Error** data;
-    size_t size;
-    size_t capacity;
+  Error **data;
+  size_t size;
+  size_t capacity;
 
-}ErrorStack;
+} ErrorStack;
 
 /**
  * Initializes a new error stack.
@@ -56,7 +52,7 @@ bool errorStack_push(ErrorStack *s, Error *e);
  * @param s The error stack.
  * @return The popped error object.
  */
-Error* errorStack_pop(ErrorStack *s);
+Error *errorStack_pop(ErrorStack *s);
 
 /**
  * Reallocates memory for the error stack to increase capacity.
