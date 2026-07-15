@@ -23,6 +23,7 @@ ASTNode *parse_function(Parser *parser, CodegenContext *context);
 void change_active_state(CodegenContext *context, Lexer *lexer);
 Params *get_params(CodegenContext *context, Parser *parser);
 Args *get_args(CodegenContext *context, Parser *parser);
+static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context, char *name, int name_length);
 
 // move on to next token
 __attribute__((always_inline)) static void advance(Parser *parser) {
@@ -81,7 +82,14 @@ static ASTNode *parse_primary(Parser *parser) {
   }
 
   if (token.type == TOKEN_IDENTIFIER) {
-    consume(parser, TOKEN_IDENTIFIER, "Expected variable name.");
+    advance(parser);
+    if (parser->current.type == TOKEN_LPARETH) {
+      char *potential_name = alloc_space(token.length + 1, sizeof(char));
+      memcpy(potential_name, token.start, token.length);
+      potential_name[token.length] = '\0';
+      ASTNode *call_node = parse_fxn_call(parser, NULL, potential_name, token.length);
+      return call_node;
+    }
     return create_var_ref_node(token.start, token.length, *parser->lexer->fxn,
                                parser->lexer->scope_level);
   }
@@ -200,8 +208,8 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   const int NAME_LENGTH = name_token.length;
   char name[NAME_LENGTH + 1];
   //snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, name_token.start);
-  memcpy(name, name_token.start, NAME_LENGTH+1);
-  name[NAME_LENGTH+1] = '\0';
+  memcpy(name, name_token.start, NAME_LENGTH);
+  name[NAME_LENGTH] = '\0';
 
   ASTNode *value;
 
@@ -371,7 +379,7 @@ static ASTNode *identifier(Parser *parser, CodegenContext *context) {
   const int NAME_LENGTH = parser->current.length;
   char *potential_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
   memcpy(potential_name, parser->current.start, NAME_LENGTH);
-  potential_name[NAME_LENGTH+1] = '\0';
+  potential_name[NAME_LENGTH] = '\0';
 
   advance(parser);
 
@@ -501,7 +509,7 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     advance(parser);
     Fxn *fxn = (Fxn*)alloc_space(1, sizeof(Fxn));
     fxn = parser->lexer->fxn;
-    ASTNode* value = parse_body_statement(parser, context);
+    ASTNode* value = parse_logical_or(parser);
     ASTNode* ret_node = create_ret_node(context, *fxn, value);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
     return ret_node;
@@ -551,12 +559,24 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
     advance(parser);
     consume(parser, TOKEN_LPARETH,
             "Expected open parenthesis '(' around return type specification.");
-    consume(parser, TOKEN_VOID,
-            "Expected explicit type parameter keyword 'void'.");
+
+    if(parser->current.type != TOKEN_RPARETH){
+      switch (parser->current.type) {
+        case DECLARE_INT: parser->lexer->fxn->return_type = TYPE_INT; break;
+        case DECLARE_STR: parser->lexer->fxn->return_type = TYPE_STRING; break;
+        case DECLARE_FLOAT: parser->lexer->fxn->return_type = TYPE_FLOAT; break;
+        case DECLARE_BOOL: parser->lexer->fxn->return_type = TYPE_BOOL; break;
+        case TOKEN_VOID: parser->lexer->fxn->return_type = TYPE_NULL; break;
+        default: error(parser, "Invalid return type", SYNTAXERROR);
+      }
+      advance(parser);
+    }
     consume(
         parser, TOKEN_RPARETH,
         "Expected closing parenthesis ')' around return type specification.");
   }
+
+  
   ASTNode *body = parse_block(parser, context);
 
   int name_length = strlen(parser->lexer->fxn->name);
@@ -571,9 +591,6 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   const int NAME_LENGTH = name_token.length;
   char *name = alloc_space(NAME_LENGTH + 1, sizeof(char));
   sprintf(name, "%.*s", NAME_LENGTH, name_token.start);
-
-  // Fxn fxn = {NAME_LENGTH, parser->lexer->line, parser->lexer->scope_level,
-  // TYPE_NULL, name , parser->lexer->fxn};
 
   Fxn *parent = parser->lexer->fxn;
   Fxn *fxn = (Fxn *)alloc_space(1, sizeof(Fxn));

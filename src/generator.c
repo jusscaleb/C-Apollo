@@ -19,6 +19,7 @@ Symbol *get_token(CodegenContext *context, const char *name);
 static void gen_println_bool(CodegenContext *context, Token token);
 static void create_var_from_expr_result(CodegenContext *context,
                                         ExprResult result, const char *name);
+static void gen_return_from_ast(CodegenContext *context, ASTNode *ret_node);
 
 /*--------------------------------------------------------------------------------
 
@@ -59,6 +60,9 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
     case AST_CALL_FXN:
       gen_fxn_call_from_ast(context, stmt);
       break;
+    case AST_RET_NODE:
+      gen_return_from_ast(context, stmt);
+      break;
     case AST_FUNCTION: {
       if (stmt->function.fxn.parent_fxn != NULL && strcmp(stmt->function.fxn.parent_fxn->name, "global") != 0) {
         // It's a nested function, defer it to avoid nested LLVM definitions!
@@ -71,13 +75,14 @@ void gen_block_from_ast(CodegenContext *context, ASTNode *block_node) {
         // It's a global function, generate normally
         gen_function_start(context, stmt);
         gen_block_from_ast(context, stmt->function.body);
-        gen_function_end(context, strcmp(stmt->function.resolved_symbol->llvm_name, "run") == 0);
+        gen_function_end(context, strcmp(stmt->function.resolved_symbol->llvm_name, "run") == 0, stmt->function.fxn.return_type);
       }
       break;
     }
 
+
     default:
-      fprintf(stderr, "Unsupported statement type in block codegen.\n");
+      fprintf(stderr, "Unsupported statement type in block codegen. %d\n", stmt->Type);
       exit(EXIT_FAILURE);
     }
   }
@@ -95,7 +100,7 @@ void gen_program_from_ast(CodegenContext *context, ASTNode *program_node) {
     ASTNode *nested_func = context->deferred_functions[i];
     gen_function_start(context, nested_func);
     gen_block_from_ast(context, nested_func->function.body);
-    gen_function_end(context, false);
+    gen_function_end(context, false, nested_func->function.fxn.return_type);
   }
 }
 
@@ -139,7 +144,10 @@ void gen_function_start(CodegenContext *context, ASTNode *func_node) {
   if (strcmp(name, "run") == 0) {
     fprintf(context->file, "define i32 @main() {\n");
   } else {
-    fprintf(context->file, "define void @%s(", name);
+    const char *ret_type_str = func_node->function.fxn.return_type == TYPE_NULL
+                                   ? "void"
+                                   : llvm_datatype(func_node->function.fxn.return_type);
+    fprintf(context->file, "define %s @%s(", ret_type_str, name);
     
     // Print the parameters in the signature: e.g. i32 %arg_x, i8* %arg_s
     Params *p = func_node->function.fxn.params;
@@ -331,6 +339,12 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node) {
   }
   if (value->Type == AST_VAR_REF) {
     gen_println_variable(context, (Symbol*)value->var_ref.resolved_symbol, 0);
+    return;
+  }
+
+  if (value->Type == AST_CALL_FXN) {
+    ExprResult result = gen_expr_from_ast(context, value);
+    gen_println_expr(context, result);
     return;
   }
 
@@ -887,9 +901,24 @@ ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr) {
       result.type = EXPR_INT;
       snprintf(result.value, sizeof(result.value), "0");
       return result;
+    } else if (expr->call_fxn.return_type == TYPE_BOOL) {
+      int ext_id = context->temp_count++;
+      fprintf(context->file, "  %%tmp_%d = zext i8 %%tmp_%d to i32\n", ext_id,
+              temp_id);
+
+      ExprResult result;
+      result.type = EXPR_BOOL;
+      snprintf(result.value, sizeof(result.value), "%%tmp_%d", ext_id);
+      return result;
     } else {
       ExprResult result;
-      result.type = (expr->call_fxn.return_type == TYPE_FLOAT) ? EXPR_FLOAT : EXPR_INT;
+      if (expr->call_fxn.return_type == TYPE_FLOAT) {
+        result.type = EXPR_FLOAT;
+      } else if (expr->call_fxn.return_type == TYPE_STRING) {
+        result.type = EXPR_STRING;
+      } else {
+        result.type = EXPR_INT;
+      }
       snprintf(result.value, sizeof(result.value), "%%tmp_%d", temp_id);
       return result;
     }
@@ -1632,11 +1661,54 @@ void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
 
 // Emits the return instruction, closes the current LLVM function, and closes
 // the file.
-__attribute__((always_inline)) void gen_function_end(CodegenContext *context, bool is_main) {
-  (is_main) ? fprintf(context->file, "ret i32 0\n")
-            : fprintf(context->file, "    ret void\n");
+__attribute__((always_inline)) void gen_function_end(CodegenContext *context, bool is_main, DataType return_type) {
+  if (is_main) {
+    fprintf(context->file, "ret i32 0\n");
+  } else if (return_type == TYPE_NULL) {
+    fprintf(context->file, "    ret void\n");
+  }
+  // Non-void functions rely on their return statements for the ret instruction
 
   fprintf(context->file, "}\n");
+}
+
+static void gen_return_from_ast(CodegenContext *context, ASTNode *ret_node) {
+  ASTNode *value = ret_node->ret_node.value;
+  Fxn fxn = ret_node->ret_node.fxn;
+  const char *type_str = llvm_datatype(fxn.return_type);
+
+  if (fxn.return_type == TYPE_STRING && value &&
+      value->Type == AST_LITERAL_EXPR &&
+      value->literal_expr.token.type == TOKEN_STRING) {
+    Token token = value->literal_expr.token;
+    int id = context->string_constant_count++;
+    int internal_len = token.length - 1;
+    int runtime_len = escaped_string_byte_count(token.start + 1, internal_len);
+    int llvm_len = runtime_len + 1;
+
+    fprintf(context->file, "  %%ret_str_mem_%d = call i8* @malloc(i64 %d)\n",
+            id, llvm_len);
+    fprintf(context->file,
+            "  %%ret_str_buf_%d = bitcast i8* %%ret_str_mem_%d to [%d x i8]*\n",
+            id, id, llvm_len);
+    fprintf(context->file, "  store [%d x i8] c\"", llvm_len);
+    emit_llvm_string_contents(context->file, token.start + 1, internal_len);
+    fprintf(context->file, "\\00\", [%d x i8]* %%ret_str_buf_%d\n", llvm_len,
+            id);
+    fprintf(context->file, "  ret i8* %%ret_str_mem_%d\n", id);
+    return;
+  }
+
+  ExprResult result = gen_expr_from_ast(context, value);
+  if (fxn.return_type == TYPE_BOOL && result.type == EXPR_BOOL) {
+    int trunc_id = context->temp_count++;
+    fprintf(context->file, "  %%tmp_%d = trunc i32 %s to i8\n", trunc_id,
+            result.value);
+    fprintf(context->file, "  ret i8 %%tmp_%d\n", trunc_id);
+    return;
+  }
+
+  fprintf(context->file, "  ret %s %s\n", type_str, result.value);
 }
 
 

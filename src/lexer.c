@@ -73,6 +73,10 @@ __attribute__((always_inline)) static TokenType check_keyword(const char *start,
       if(memcmp(start, "float", 5) == 0) token = DECLARE_FLOAT;
       break;
     
+    case 6:
+      if(memcmp(start, "return", 6) == 0) token = TOKEN_RETURN;
+      break;
+      
     case 7:
       if(memcmp(start, "println", 7) == 0) token = TOKEN_PRINTLN;
       break;
@@ -320,8 +324,8 @@ Token next_token(Lexer *lexer) {
         if (*lexer->current == '\0') {
           int len = (int)(lexer->current - start);
           char temp[len + 1];
-          memcpy(temp, start, len+1);
-          temp[len+1] = '\0'; 
+          memcpy(temp, start, len);
+          temp[len] = '\0'; 
           //snprintf(temp, len + 1, "%.*s", len, start);
           lex_error(lexer, "Unterminated String", temp);
           Token token = {TOKEN_EOF, start, len, lexer->line};
@@ -341,8 +345,8 @@ Token next_token(Lexer *lexer) {
     if (*lexer->current == '\0') {
       int len = (int)(lexer->current - start);
       char temp[len + 1];
-      memcpy(temp, start, len+1);
-      temp[len+1] = '\0';
+      memcpy(temp, start, len);
+      temp[len] = '\0';
       //snprintf(temp, len + 1, "%.*s", len, start);
       lex_error(lexer, "Unterminated String", temp);
       Token token = {TOKEN_EOF, start, len, lexer->line};
@@ -376,7 +380,7 @@ Token next_token(Lexer *lexer) {
         char temp[len + 1];
         //snprintf(temp, len + 1, "%.*s", len, start);
         memcpy(temp, start, len);
-        temp[len +1] = '\0';
+        temp[len] = '\0';
         lex_error(lexer, "Expected value int after '.' ", temp);
       }
     }

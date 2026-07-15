@@ -115,6 +115,6 @@ void gen_println_float(CodegenContext *context, const char *float_start,
  * @param context The codegen context.
  * @param is_main Boolean flag indicating if this is the program entry point.
  */
-void gen_function_end(CodegenContext *context, bool is_main);
+void gen_function_end(CodegenContext *context, bool is_main, DataType return_type);
 
 #endif

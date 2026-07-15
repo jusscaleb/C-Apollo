@@ -17,6 +17,7 @@ static void report_semantic_error(SemanticContext* context, const char* msg) {
     e->type = SEMANTICERROR;
     e->message = strdup(msg);
     e->got = strdup("semantic_analysis");
+    e->line = 0;
     // Token could be left empty or filled if node has line info.
     errorStack_push(context->errors, e);
 }
@@ -60,7 +61,7 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
         const int NAME_LENGTH = expr->call_fxn.name_length;
         char *fn_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
         memcpy(fn_name, expr->call_fxn.name, NAME_LENGTH);
-        fn_name[NAME_LENGTH+1] = '\0';
+        fn_name[NAME_LENGTH] = '\0';
         Symbol *sym = lookup_token(context->codegen, fn_name, &expr->call_fxn.fxn , expr->call_fxn.level);
         if (sym) {
             return sym->type;
@@ -96,7 +97,7 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             if (lookup_token(context->codegen, node->function.name, &node->function.fxn, node->function.level)) {
                 report_semantic_error(context, "Cannot redefine function.");
             } else {
-                node->function.resolved_symbol = register_fxn(context->codegen, node->function.name, TYPE_NULL, node->function.level, &node->function.fxn);
+                node->function.resolved_symbol = register_fxn(context->codegen, node->function.name, node->function.fxn.return_type, node->function.level, &node->function.fxn);
             }
 
             //Analyze Parameters.
@@ -159,11 +160,11 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
 
         case AST_VAR_ASS: {
             const int NAME_LENGTH = node->var_assign.name_length;
-            char name[NAME_LENGTH];
+            char name[NAME_LENGTH + 1];
             //snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_assign.name);
 
             memcpy(name, node->var_assign.name, NAME_LENGTH);
-            name[NAME_LENGTH+1] = '\0';
+            name[NAME_LENGTH] = '\0';
 
             Symbol *sym = lookup_token(context->codegen, name, &node->var_assign.fxn, node->var_assign.level);
             if (!sym) {
@@ -218,6 +219,12 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
         case AST_CONCAT_STR:
             analyze_node(context, node->str_concat.left);
             analyze_node(context, node->str_concat.right);
+            break;
+
+        case AST_RET_NODE:
+            if (node->ret_node.value) {
+                analyze_node(context, node->ret_node.value);
+            }
             break;
             
         case AST_CALL_FXN: {
