@@ -1,6 +1,12 @@
 # Apollo Programming Language
 
+**Version:** `v2.0.0`  
+**Release channel:** Unstable Preview  
+**Version format:** `MAJOR.MINOR.PATCH`
+
 Apollo is a small programming language and compiler written in C. The compiler pipeline lexes and parses an Apollo program, generates LLVM IR, and uses Clang to build a native Windows executable.
+
+> `v2.0.0` is an unstable preview release. Function return values and parameter passing are now active, but the language surface is still evolving and may change between preview builds.
 
 ## Project Layout
 
@@ -96,9 +102,13 @@ Every statement and expression in Apollo passes through an AST node before codeg
 - Clang / LLVM
 - Windows or a Windows-compatible shell environment such as MSYS2
 
+## License
+
+Apollo is released under the MIT License. You are free to use, modify, distribute, and build upon this project under the terms of that license.
+
 ## Status
 
-Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for high performance. It supports:
+Apollo `v2.0.0 (Unstable Preview)` is a small, lightweight compiler compiled with LLVM's `-O3` backend for high performance. It supports:
 - Variables of all supported types (integers, floats, booleans, strings, nulls)
 - Global variables (accessible across multiple functions)
 - Fully strict Nested Block Scoping and Variable Shadowing (via Name Resolution Linking)
@@ -106,8 +116,10 @@ Apollo is a small, lightweight compiler compiled with LLVM's `-O3` backend for h
 - String concatenation (`+`), including seamless concatenation with non-string types (integers, floats, booleans)
 - Control flow (`if`, `elif`, `else` conditionals)
 - Loop structures (`while` and `for` loops)
-- Function declarations (`fxn func_name() -> (void) { ... }`)
-- Function calls (`func_name();`)
+- Function declarations with explicit return types (`fxn func_name() -> (int) { ... }`)
+- Function parameters and arguments for supported primitive types
+- Function return values for `int`, `float`, `str`, `bool`, and `void`
+- Function calls as statements and expressions (`func_name();`, `println(func_name());`)
 - Printing values and variables via `println`
 - **Infinite Function Nesting:** Functions can be deeply nested inside other functions with perfect scoping (ladder-climbing resolution).
 - **Name Mangling:** Apollo robustly handles nested function naming collisions by mangling internal LLVM names, allowing you to reuse function names (like `main`) across different scopes safely!
@@ -123,6 +135,8 @@ You can run the full test suite using the bash diagnosis script:
 ```
 
 Current limitations:
-- No function parameters/arguments yet
+- `v2.0.0` is an unstable preview; syntax and compiler internals may change.
+- No arrays, structs/classes, imports/modules, or user-defined types yet.
+- Function parameters and return values are implemented for primitive types, but broader function semantics are still being hardened.
 
-The compiler currently successfully isolates scopes, natively handles deeply nested block variables, supports global variables, and effortlessly handles deeply nested functions. The next natural steps are function parameter support, arrays/structs, and custom command-line options.
+The compiler currently isolates scopes, natively handles deeply nested block variables, supports global variables, supports primitive function parameters/returns, and handles deeply nested functions. The next natural steps are arrays/structs, custom command-line options, and the OOP migration described in `Task.md`.

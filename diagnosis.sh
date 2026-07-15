@@ -71,7 +71,7 @@ else
             python -m doctest -v $1.py
             echo -e "\n${SUCCESS}=============================DIAGNOSIS COMPLETE.=============================${NORMAL}\n"
 
-            read -p -e "\n${INPUT}Delete 'temp' folder in tests? (Y/N):${NORMAL}\n " del
+            read -p "Delete 'temp' folder in tests? (Y/N): " del
 
             if [[ $del = "Y" ]]; then
                 rm -rfv temp
@@ -88,7 +88,7 @@ else
         
 
         elif [[ "$1" == "performance" ]]; then
-            echo -e "${WARNING}PLEASE NOTE: RUNNING THROUGH BASH DOESN'T PRODUCE ACCURATE RESULTS. $NORMAL"
+            echo -e "${WARNING}PLEASE NOTE: RUNNING THROUGH BASH DOESN'T PRODUCE ACCURATE RESULTS. $NORMAL\n"
             read -p "Would you still like to continue? (Y/N): " c
 
             if [[ $c = "N" ]]; then

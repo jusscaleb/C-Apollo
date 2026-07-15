@@ -924,7 +924,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">Apollo Compiler</div>
-          <div className="sidebar-version">v1.0.0</div>
+          <div className="sidebar-version">v2.0.0 unstable</div>
         </div>
         
         <nav className="sidebar-nav">
@@ -1011,13 +1011,25 @@ export default function App() {
           <div>
             <div className="docs-header">
               <h1 className="docs-title">Apollo Programming Language</h1>
-              <div className="docs-description">A lightweight, high-performance compiler written in C targeting LLVM IR.</div>
+              <div className="docs-description">v2.0.0 (Unstable Preview) - a lightweight compiler written in C targeting LLVM IR.</div>
             </div>
 
             <section>
               <p>
                 Apollo is a compact, custom programming language designed to demonstrate clean, modern compiler architecture. The compiler compiler driver compiles <code>.apl</code> files into LLVM intermediate representation (IR), which it then optimizes and links using Clang into native Windows executables.
               </p>
+
+              <div className="callout callout-warning">
+                <div className="callout-icon">
+                  <AlertCircle size={20} style={{ color: 'var(--text-warning)' }} />
+                </div>
+                <div className="callout-content">
+                  <h4 className="callout-title">Unstable Preview Release</h4>
+                  <p className="callout-text">
+                    Apollo uses <code>MAJOR.MINOR.PATCH</code> versioning. Version <code>v2.0.0</code> introduces primitive function parameters and return values, but the language surface is still changing.
+                  </p>
+                </div>
+              </div>
 
               <div className="callout callout-info">
                 <div className="callout-icon">
@@ -1074,8 +1086,13 @@ export default function App() {
                     </tr>
                     <tr>
                       <td><strong>Functions</strong></td>
-                      <td><code>fxn name() -&gt; (void) &#123;...&#125;</code></td>
+                      <td><code>fxn add(int x, int y) -&gt; (int) &#123; return x + y; &#125;</code></td>
                       <td><code>src/generator.c</code> (generates LLVM function definitions)</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Function Returns</strong></td>
+                      <td><code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>void</code></td>
+                      <td><code>semantic.c</code> / <code>generator.c</code></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1083,8 +1100,8 @@ export default function App() {
 
               <h2 className="section-title">Status and Limitations</h2>
               <p>
-                Apollo natively supports <strong>Global Variables</strong>, function execution, and <strong>Nested Block Scoping</strong> with variable shadowing via Name Resolution Linking. 
-                The next natural development tasks include adding function parameter passing, struct/array support, and dedicated command-line compilation options.
+                Apollo <strong>v2.0.0 (Unstable Preview)</strong> natively supports global variables, primitive function parameters, primitive return values, function execution, and nested block scoping with variable shadowing via Name Resolution Linking.
+                The next natural development tasks include struct/array support, dedicated command-line compilation options, and the larger OOP migration.
               </p>
             </section>
           </div>

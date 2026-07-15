@@ -152,7 +152,9 @@ def update_performance_log(current_run_results):
             f.write("Percentage Difference: N/A (Need at least 2 runs to compare)\n")
 
 if __name__ == "__main__":
-    print("Apollo Performance Benchmark")
+
+    print("Apollo Performance Benchmark\n")
+    print("Note: there is a 10% error margin.")
     print("=" * 30)
     setup()
     
@@ -169,14 +171,10 @@ if __name__ == "__main__":
         large_compile_code += "}\n"
         ct, rt, tt = run_benchmark("large_compilation", large_compile_code)
         current_results["large_compilation"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
-        
-        for_loop = "fxn run()->(void){\n   for(int i = 0; i < 1000000; i++){println(i);}\n}"
+
+        for_loop = "fxn run()->(void){\n   int x; for(int i = 0; i < 1000000; i++){ x += i;} println(x);\n}"
         ct, rt, tt = run_benchmark("for_loop", for_loop)
         current_results["for_loop"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
-        
-        for_loop_v1 = "fxn run()->(void){\n   int x; for(int i = 0; i < 1000000; i++){ x += i;} println(x);\n}"
-        ct, rt, tt = run_benchmark("for_loop_v1", for_loop_v1)
-        current_results["for_loop_v1"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
 
         var_decl_with_dt = "fxn run()->(void){\n   int x = 5; int z; z = x + 10; println(z);\n}"
         ct, rt, tt = run_benchmark("var_decl_with_dt", var_decl_with_dt)
@@ -185,6 +183,8 @@ if __name__ == "__main__":
         var_decl_no_dt = "fxn run()->(void){\n   var x = 5; var z; z = x + 10; println(z);\n}"
         ct, rt, tt = run_benchmark("var_decl_no_dt", var_decl_no_dt)
         current_results["var_decl_no_dt"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
+
+
 
         
         update_performance_log(current_results)

@@ -13,16 +13,17 @@
 
 // Defining the TokenNames in token.h
 const char *TokenNames[] = {
-    "FXN",    "EOF",    "RUN",    "VOID",   "IDENTIFIER", "ARROW", "STRING",
-    "LPAREN", "RPAREN", "LBRACE", "RBRACE", "SEMICOLON",  "INT",   "DOUB",
-    "FLOAT",  "ADD",    "MUL",    "SUB",    "DIV",        "MOD",   "INC",
-    "DEC",    "AEQ",    "SEQ",    "MEQ",    "DEQ",        "PEQ",   "PRINTLN",
-    "VAR",    "ASSIGN", "BOOL",   "NULL",   "EQT",        "NEQ",   "GT",
-    "ST",     "GE",     "SE",     "AND",    "OR",         "IF",    "ELIF",
-    "ELSE",   "WHILE",  "FOR", "INT", "STR", "BOOL", "FLOAT"};
+    "Fxn",    "EOF",    "run",    "void",   "IDENTIFIER", "->", "STRING",
+    "(", ")", "{", "}", ";",   "INT",   "DOUB",
+    "FLOAT",  "+",    "*",    "-",    "/",    "%",   "++",
+    "--",    "+=",   "-=",   "*=",   "/=",   "%=",   "println",
+    "var",    "=",      "bool",   "NULL",   "==",        "!=",   ">",
+    "<",     ">=",     "<=",     "and",    "or",         "if",    "elif",
+    "else",   "while",  "for",    "int",    "str",        "bool",  "float",
+    ","};
 
 // FOR ERROR HANDLING
-void lex_error(Lexer *lexer, const char *message, const char *got) {
+ __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message, const char *got) {
   Error *e = (Error *)alloc_space(1, sizeof(Error));
   e->message = _strdup(message);
   e->token.line = lexer->line;
@@ -36,66 +37,52 @@ void lex_error(Lexer *lexer, const char *message, const char *got) {
  *Checks if the keyword is reserved.
  *If not it is a user-defined keyword
  */
-static TokenType check_keyword(const char *start, int length) {
-  if (length == 3 && strncmp(start, "fxn", 3) == 0)
-    return TOKEN_FXN;
 
-  if (length == 3 && strncmp(start, "run", 3) == 0)
-    return TOKEN_RUN;
-  
-  if (length == 4 && strncmp(start, "void", 4) == 0)
-    return TOKEN_VOID;
-  if (length == 7 && strncmp(start, "println", 7) == 0)
-    return TOKEN_PRINTLN;
-  if (length == 3 && strncmp(start, "var", 3) == 0)
-    return TOKEN_VAR;
+ //TO BE MODIFIED FOR OPTIMIZATION.
+__attribute__((always_inline)) static TokenType check_keyword(const char *start, int length) {
+  //check length 3
+  TokenType token = TOKEN_IDENTIFIER;
+  switch(length){
+    case 2:
+      if(start[0] == 'o' && start[1] == 'r') token = TOKEN_OR;
+      if(start[0] == 'i' && start[1] == 'f') token = TOKEN_IF;
+      break;
+    
+    case 3:
+      if(memcmp(start, "fxn", 3) == 0) token = TOKEN_FXN;
+      if(memcmp(start, "run", 3) == 0) token = TOKEN_RUN;
+      if(memcmp(start, "var", 3) == 0) token = TOKEN_VAR;
+      if(memcmp(start, "and", 3) == 0) token = TOKEN_AND;
+      if(memcmp(start, "int", 3) == 0) token = DECLARE_INT;
+      if(memcmp(start, "for", 3) == 0) token = TOKEN_FOR;
+      if(memcmp(start, "str", 3) == 0) token = DECLARE_STR;
+      break;
 
-  // BOOLEANS
-  if (length == 4 && strncmp(start, "true", 4) == 0)
-    return TOKEN_BOOL;
-  if (length == 5 && strncmp(start, "false", 5) == 0)
-    return TOKEN_BOOL;
+    case 4:
+      if(memcmp(start, "void", 4) == 0) token = TOKEN_VOID;
+      if(memcmp(start, "true", 4) == 0) token = TOKEN_BOOL;
+      if(memcmp(start, "else", 4) == 0) token = TOKEN_ELSE;
+      if(memcmp(start, "elif", 4) == 0) token = TOKEN_ELIF;
+      if(memcmp(start, "null", 4) == 0) token = TOKEN_NULL;
+      if(memcmp(start, "bool", 4) == 0) token = DECLARE_BOOL;
+      break;
+    
+    case 5:
+      if(memcmp(start, "false", 5) == 0) token = TOKEN_BOOL;
+      if(memcmp(start, "while", 5) == 0) token = TOKEN_WHILE;
+      if(memcmp(start, "float", 5) == 0) token = DECLARE_FLOAT;
+      break;
+    
+    case 6:
+      if(memcmp(start, "return", 6) == 0) token = TOKEN_RETURN;
+      break;
+      
+    case 7:
+      if(memcmp(start, "println", 7) == 0) token = TOKEN_PRINTLN;
+      break;
+  }
 
-  // NULL VALUE
-  if (length == 4 && strncmp(start, "null", 4) == 0)
-    return TOKEN_NULL;
-
-  // Logical Conditions
-  if (length == 3 && strncmp(start, "and", 3) == 0)
-    return TOKEN_AND;
-
-  if (length == 2 && strncmp(start, "or", 2) == 0)
-    return TOKEN_OR;
-
-  // Conditions
-  if (length == 2 && strncmp(start, "if", 2) == 0)
-    return TOKEN_IF;
-  if (length == 4 && strncmp(start, "else", 4) == 0)
-    return TOKEN_ELSE;
-  if (length == 4 && strncmp(start, "elif", 4) == 0)
-    return TOKEN_ELIF;
-
-  // Loops
-  if (length == 5 && strncmp(start, "while", 5) == 0)
-    return TOKEN_WHILE;
-
-  if (length == 3 && strncmp(start, "for", 3) == 0)
-    return TOKEN_FOR;
-
-  if(length == 3 && strncmp(start, "int", 3) == 0)
-    return DECLARE_INT;
-
-  if(length == 3 && strncmp(start, "str", 3) == 0)
-    return DECLARE_STR;
-
-  if(length == 4 && strncmp(start, "bool", 4) == 0)
-    return DECLARE_BOOL;
-
-  if(length == 5 && strncmp(start, "float", 5) == 0)
-    return DECLARE_FLOAT;
-
-
-  return TOKEN_IDENTIFIER;
+  return token;
 }
 
 Token next_token(Lexer *lexer) {
@@ -128,7 +115,7 @@ Token next_token(Lexer *lexer) {
   case '}': {
     Token token = {TOKEN_RBRACE, start, 1, lexer->line};
     lexer->scope_level--;
-    //lexer->fxn = lexer->fxn->parent_fxn;
+    // lexer->fxn = lexer->fxn->parent_fxn;
     return token;
   }
 
@@ -155,18 +142,19 @@ Token next_token(Lexer *lexer) {
   }
 
   case '-': {
+    
     if (*lexer->current == '>') {
       lexer->current++;
       lexer->column++;
       Token token = {TOKEN_ARROW, start, 2, lexer->line};
       return token;
-    } else if (*lexer->current == '-') {
+    }if (*lexer->current == '-') {
       lexer->current++;
       lexer->column++;
       Token token = {TOKEN_DEC, start, 2, lexer->line};
       return token;
 
-    } else if (*lexer->current == '=') {
+    }if (*lexer->current == '=') {
       lexer->current++;
       lexer->column++;
       Token token = {TOKEN_SEQ, start, 2, lexer->line};
@@ -310,6 +298,10 @@ Token next_token(Lexer *lexer) {
     Token token = {TOKEN_EOF, start, 1, lexer->line};
     return token;
   }
+  case ',': {
+    Token token = {TOKEN_COMMA, start, 1, lexer->line};
+    return token;
+  }
   }
 
   // HANDLE STRINGS
@@ -332,7 +324,9 @@ Token next_token(Lexer *lexer) {
         if (*lexer->current == '\0') {
           int len = (int)(lexer->current - start);
           char temp[len + 1];
-          snprintf(temp, len + 1, "%.*s", len, start);
+          memcpy(temp, start, len);
+          temp[len] = '\0'; 
+          //snprintf(temp, len + 1, "%.*s", len, start);
           lex_error(lexer, "Unterminated String", temp);
           Token token = {TOKEN_EOF, start, len, lexer->line};
           return token;
@@ -351,7 +345,9 @@ Token next_token(Lexer *lexer) {
     if (*lexer->current == '\0') {
       int len = (int)(lexer->current - start);
       char temp[len + 1];
-      snprintf(temp, len + 1, "%.*s", len, start);
+      memcpy(temp, start, len);
+      temp[len] = '\0';
+      //snprintf(temp, len + 1, "%.*s", len, start);
       lex_error(lexer, "Unterminated String", temp);
       Token token = {TOKEN_EOF, start, len, lexer->line};
       return token;
@@ -382,9 +378,10 @@ Token next_token(Lexer *lexer) {
       if (!isdigit((unsigned char)*lexer->current)) {
         int len = (int)(lexer->current - start);
         char temp[len + 1];
-        snprintf(temp, len + 1, "%.*s", len, start);
+        //snprintf(temp, len + 1, "%.*s", len, start);
+        memcpy(temp, start, len);
+        temp[len] = '\0';
         lex_error(lexer, "Expected value int after '.' ", temp);
-        
       }
     }
     while (isdigit((unsigned char)*lexer->current)) {
@@ -412,7 +409,7 @@ Token next_token(Lexer *lexer) {
 
     // check for the type of token
     TokenType type = check_keyword(start, length);
-    
+
     Token token = {type, start, length, lexer->line};
 
     return token;

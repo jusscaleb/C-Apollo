@@ -8,24 +8,24 @@
 #include <stdio.h>
 #include <string.h>
 
-const char *ErrorToken[] = {"Syntax Error", "Assignment Error", "Reference Error",
-                            "Type Error", "Lexical Error", "Semantic Error"};
+const char *ErrorToken[] = {"Syntax Error",    "Assignment Error",
+                            "Reference Error", "Type Error",
+                            "Lexical Error",   "Semantic Error"};
 
-void errorStack_init(errorStack *s) {
+void errorStack_init(ErrorStack *s) {
 
   s->size = 0;
   s->capacity = 0;
   s->data = NULL;
 }
 
-bool errorStack_push(errorStack *s, Error *e) {
+bool errorStack_push(ErrorStack *s, Error *e) {
   realloc_errorStack(s);
   s->data[s->size] = e;
   s->size++;
   return true;
 }
-
-Error *errorStack_pop(errorStack *s) {
+__attribute__((always_inline)) Error *errorStack_pop(ErrorStack *s) {
   if (s->size == 0) {
     return NULL;
   }
@@ -34,11 +34,11 @@ Error *errorStack_pop(errorStack *s) {
   return e;
 }
 
-void errorStack_seek(errorStack *s) {
+void errorStack_seek(ErrorStack *s) {
   while (s->size > 0) {
     Error *e = errorStack_pop(s);
     fprintf(stderr, "[%s] %s Line [%d]", ErrorToken[e->type], e->message,
-            e->token.line);
+            e->line);
 
     if (e->got != NULL && strlen(e->got) > 0)
       fprintf(stderr, " (Found: %s)", e->got);
@@ -52,13 +52,14 @@ void error(Parser *parser, const char *errorMessage, ErrorType type) {
   e->type = type;
   e->message = _strdup(errorMessage);
   e->token = parser->current;
+  e->line = parser->current.line-1;
 
   int len = parser->current.length;
   e->got = alloc_space(len + 1, sizeof(char));
   if (parser->current.start != NULL) {
-      sprintf(e->got, "%.*s", len, parser->current.start);
+    sprintf(e->got, "%.*s", len, parser->current.start);
   } else {
-      e->got[0] = '\0';
+    e->got[0] = '\0';
   }
   e->got[len] = '\0';
 

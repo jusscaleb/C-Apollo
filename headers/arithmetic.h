@@ -1,3 +1,17 @@
+/*===================================================================
+                          arithmetic.h
+
+                        (c)2026 SCXRPIUS.dev
+
+              The Apollo Arithmetic Compile time library.
+          Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
+     
+----------------------------------------------------------------------
+    Licensed under the MIT License. See LICENSE file for details.
+====================================================================*/
+
+
+
 #ifndef ARITHMETIC_H
 #define ARITHMETIC_H
 
@@ -6,14 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 // display either an integer or float as the final answer.
-typedef enum {
-    EXPR_INT,
-    EXPR_FLOAT,
-    EXPR_STRING,
-    EXPR_BOOL
-} ExprType;
+typedef enum { EXPR_INT, EXPR_FLOAT, EXPR_STRING, EXPR_BOOL } ExprType;
 
 // Stores the expression result
 typedef struct ExprResult {
@@ -33,9 +41,11 @@ ExprResult make_literal_expr(Token token);
  * Generates LLVM IR for a binary arithmetic or comparison expression.
  * @param context The codegen context.
  * @param left The left operand expression result.
- * @param operator_type The token type of the binary operator (e.g., TOKEN_PLUS).
+ * @param operator_type The token type of the binary operator (e.g.,
+ * TOKEN_PLUS).
  * @param right The right operand expression result.
- * @return An ExprResult containing the LLVM temporary variable representing the computation result.
+ * @return An ExprResult containing the LLVM temporary variable representing the
+ * computation result.
  */
 ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
                            TokenType operator_type, ExprResult right);
@@ -46,6 +56,5 @@ ExprResult gen_binary_expr(CodegenContext *context, ExprResult left,
  * @param result The expression result to print.
  */
 void gen_println_expr(CodegenContext *context, ExprResult result);
-
 
 #endif

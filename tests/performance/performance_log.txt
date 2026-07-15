@@ -1,332 +1,146 @@
 Apollo Performance Log
 ========================
 
-Date and Time: 2026-07-12 16:46:22
-Overall Total Speed: 19.1365 seconds
+Date and Time: 2026-07-14 14:16:34
+Overall Total Speed: 9.5575 seconds
   - small_program:
-      Compile: 2.2265s
-      Execute: 0.0217s
-      Total:   2.2482s
+      Compile: 2.3894s
+      Execute: 0.0231s
+      Total:   2.4125s
   - large_compilation:
-      Compile: 2.2186s
-      Execute: 0.0189s
-      Total:   2.2375s
-  - for_loop:
-      Compile: 6.0937s
-      Execute: 2.3392s
-      Total:   8.4329s
-  - for_loop_v1:
-      Compile: 2.0688s
-      Execute: 0.0110s
-      Total:   2.0798s
-  - var_decl_with_dt:
-      Compile: 1.9550s
-      Execute: 0.0131s
-      Total:   1.9680s
-  - var_decl_no_dt:
-      Compile: 2.1480s
-      Execute: 0.0221s
-      Total:   2.1700s
-----------------------------------------
-Date and Time: 2026-07-12 16:47:19
-Overall Total Speed: 18.8851 seconds
-  - small_program:
-      Compile: 2.0448s
-      Execute: 0.0212s
-      Total:   2.0660s
-  - large_compilation:
-      Compile: 2.0701s
-      Execute: 0.0202s
-      Total:   2.0903s
-  - for_loop:
-      Compile: 5.8881s
-      Execute: 2.3633s
-      Total:   8.2514s
-  - for_loop_v1:
-      Compile: 2.1477s
-      Execute: 0.0184s
-      Total:   2.1661s
-  - var_decl_with_dt:
-      Compile: 2.1514s
-      Execute: 0.0164s
-      Total:   2.1678s
-  - var_decl_no_dt:
-      Compile: 2.1357s
-      Execute: 0.0078s
-      Total:   2.1435s
-----------------------------------------
-Date and Time: 2026-07-12 16:47:55
-Overall Total Speed: 18.6271 seconds
-  - small_program:
-      Compile: 2.1912s
-      Execute: 0.0210s
-      Total:   2.2122s
-  - large_compilation:
-      Compile: 1.9771s
-      Execute: 0.0086s
-      Total:   1.9857s
-  - for_loop:
-      Compile: 5.8112s
-      Execute: 2.3384s
-      Total:   8.1496s
-  - for_loop_v1:
-      Compile: 2.1076s
-      Execute: 0.0172s
-      Total:   2.1247s
-  - var_decl_with_dt:
-      Compile: 2.0608s
-      Execute: 0.0172s
-      Total:   2.0780s
-  - var_decl_no_dt:
-      Compile: 2.0660s
-      Execute: 0.0109s
-      Total:   2.0769s
-----------------------------------------
-Date and Time: 2026-07-12 16:48:37
-Overall Total Speed: 19.9906 seconds
-  - small_program:
-      Compile: 2.1346s
-      Execute: 0.0236s
-      Total:   2.1582s
-  - large_compilation:
-      Compile: 1.9370s
-      Execute: 0.0099s
-      Total:   1.9468s
-  - for_loop:
-      Compile: 6.5121s
-      Execute: 2.5180s
-      Total:   9.0301s
-  - for_loop_v1:
-      Compile: 2.4100s
-      Execute: 0.0081s
-      Total:   2.4182s
-  - var_decl_with_dt:
-      Compile: 2.3230s
-      Execute: 0.0078s
-      Total:   2.3308s
-  - var_decl_no_dt:
-      Compile: 2.0957s
-      Execute: 0.0108s
-      Total:   2.1065s
-----------------------------------------
-Date and Time: 2026-07-12 18:29:44
-Overall Total Speed: 25.8829 seconds
-  - small_program:
-      Compile: 4.3879s
-      Execute: 0.0170s
-      Total:   4.4048s
-  - large_compilation:
-      Compile: 6.2151s
-      Execute: 0.0178s
-      Total:   6.2330s
-  - for_loop:
-      Compile: 6.4513s
-      Execute: 2.3094s
-      Total:   8.7607s
-  - for_loop_v1:
-      Compile: 2.2626s
-      Execute: 0.0149s
-      Total:   2.2776s
-  - var_decl_with_dt:
-      Compile: 2.0725s
-      Execute: 0.0087s
-      Total:   2.0812s
-  - var_decl_no_dt:
-      Compile: 2.1072s
-      Execute: 0.0184s
-      Total:   2.1256s
-----------------------------------------
-Date and Time: 2026-07-12 18:32:17
-Overall Total Speed: 18.8259 seconds
-  - small_program:
-      Compile: 2.0777s
-      Execute: 0.0163s
-      Total:   2.0941s
-  - large_compilation:
-      Compile: 2.0812s
-      Execute: 0.0114s
-      Total:   2.0926s
-  - for_loop:
-      Compile: 6.0506s
-      Execute: 2.2761s
-      Total:   8.3268s
-  - for_loop_v1:
-      Compile: 2.0406s
-      Execute: 0.0127s
-      Total:   2.0533s
-  - var_decl_with_dt:
-      Compile: 1.9775s
-      Execute: 0.0270s
-      Total:   2.0045s
-  - var_decl_no_dt:
-      Compile: 2.2387s
-      Execute: 0.0159s
-      Total:   2.2546s
-----------------------------------------
-Date and Time: 2026-07-12 19:37:16
-Overall Total Speed: 10.3906 seconds
-  - small_program:
-      Compile: 1.9411s
-      Execute: 0.0219s
-      Total:   1.9630s
-  - large_compilation:
-      Compile: 1.6047s
-      Execute: 0.0065s
-      Total:   1.6112s
-  - for_loop:
-      Compile: 1.8223s
-      Execute: 0.0245s
-      Total:   1.8468s
-  - for_loop_v1:
-      Compile: 1.6240s
-      Execute: 0.0097s
-      Total:   1.6336s
-  - var_decl_with_dt:
-      Compile: 1.6229s
-      Execute: 0.0106s
-      Total:   1.6335s
-  - var_decl_no_dt:
-      Compile: 1.6888s
-      Execute: 0.0136s
-      Total:   1.7024s
-----------------------------------------
-Date and Time: 2026-07-12 19:38:48
-Overall Total Speed: 18.9876 seconds
-  - small_program:
-      Compile: 1.9910s
-      Execute: 0.0157s
-      Total:   2.0068s
-  - large_compilation:
-      Compile: 1.9155s
-      Execute: 0.0063s
-      Total:   1.9218s
-  - for_loop:
-      Compile: 5.9990s
-      Execute: 2.1345s
-      Total:   8.1335s
-  - for_loop_v1:
-      Compile: 3.0772s
-      Execute: 0.0112s
-      Total:   3.0884s
-  - var_decl_with_dt:
-      Compile: 1.8793s
-      Execute: 0.0116s
-      Total:   1.8909s
-  - var_decl_no_dt:
-      Compile: 1.9383s
+      Compile: 1.8706s
       Execute: 0.0079s
-      Total:   1.9462s
-----------------------------------------
-Date and Time: 2026-07-12 19:43:23
-Overall Total Speed: 9.7779 seconds
-  - small_program:
-      Compile: 1.6346s
-      Execute: 0.0136s
-      Total:   1.6481s
-  - large_compilation:
-      Compile: 1.5746s
-      Execute: 0.0085s
-      Total:   1.5831s
+      Total:   1.8785s
   - for_loop:
-      Compile: 1.8013s
-      Execute: 0.0169s
-      Total:   1.8183s
-  - for_loop_v1:
-      Compile: 1.5763s
-      Execute: 0.0073s
-      Total:   1.5836s
+      Compile: 1.5847s
+      Execute: 0.0119s
+      Total:   1.5966s
   - var_decl_with_dt:
-      Compile: 1.5536s
-      Execute: 0.0075s
-      Total:   1.5611s
+      Compile: 1.8112s
+      Execute: 0.0070s
+      Total:   1.8182s
   - var_decl_no_dt:
-      Compile: 1.5724s
-      Execute: 0.0113s
-      Total:   1.5837s
+      Compile: 1.8434s
+      Execute: 0.0083s
+      Total:   1.8517s
 ----------------------------------------
-Date and Time: 2026-07-12 20:00:47
-Overall Total Speed: 10.5251 seconds
+Date and Time: 2026-07-14 14:17:08
+Overall Total Speed: 10.3274 seconds
   - small_program:
-      Compile: 1.8527s
-      Execute: 0.0205s
-      Total:   1.8732s
+      Compile: 2.6076s
+      Execute: 0.0159s
+      Total:   2.6235s
   - large_compilation:
-      Compile: 1.5736s
-      Execute: 0.0096s
-      Total:   1.5832s
+      Compile: 2.0454s
+      Execute: 0.0081s
+      Total:   2.0535s
   - for_loop:
-      Compile: 1.7247s
-      Execute: 0.0178s
-      Total:   1.7425s
-  - for_loop_v1:
-      Compile: 2.0210s
+      Compile: 1.5835s
+      Execute: 0.0097s
+      Total:   1.5932s
+  - var_decl_with_dt:
+      Compile: 2.0284s
+      Execute: 0.0084s
+      Total:   2.0367s
+  - var_decl_no_dt:
+      Compile: 2.0133s
+      Execute: 0.0072s
+      Total:   2.0205s
+----------------------------------------
+Date and Time: 2026-07-14 14:17:24
+Overall Total Speed: 9.1794 seconds
+  - small_program:
+      Compile: 1.9274s
+      Execute: 0.0105s
+      Total:   1.9379s
+  - large_compilation:
+      Compile: 1.8813s
+      Execute: 0.0152s
+      Total:   1.8965s
+  - for_loop:
+      Compile: 1.5576s
+      Execute: 0.0114s
+      Total:   1.5690s
+  - var_decl_with_dt:
+      Compile: 1.8321s
       Execute: 0.0107s
-      Total:   2.0317s
-  - var_decl_with_dt:
-      Compile: 1.7388s
-      Execute: 0.0108s
-      Total:   1.7496s
+      Total:   1.8428s
   - var_decl_no_dt:
-      Compile: 1.5343s
-      Execute: 0.0106s
-      Total:   1.5450s
+      Compile: 1.9193s
+      Execute: 0.0139s
+      Total:   1.9333s
 ----------------------------------------
-Date and Time: 2026-07-12 20:01:08
-Overall Total Speed: 9.7919 seconds
+Date and Time: 2026-07-14 14:19:33
+Overall Total Speed: 9.4110 seconds
   - small_program:
-      Compile: 1.6447s
+      Compile: 2.1614s
       Execute: 0.0141s
-      Total:   1.6588s
+      Total:   2.1755s
   - large_compilation:
-      Compile: 1.6270s
-      Execute: 0.0108s
-      Total:   1.6378s
+      Compile: 1.7359s
+      Execute: 0.0094s
+      Total:   1.7453s
   - for_loop:
-      Compile: 1.6607s
-      Execute: 0.0165s
-      Total:   1.6771s
-  - for_loop_v1:
-      Compile: 1.6493s
-      Execute: 0.0130s
-      Total:   1.6623s
+      Compile: 1.5244s
+      Execute: 0.0150s
+      Total:   1.5394s
   - var_decl_with_dt:
-      Compile: 1.5989s
-      Execute: 0.0093s
-      Total:   1.6082s
+      Compile: 2.0097s
+      Execute: 0.0092s
+      Total:   2.0189s
   - var_decl_no_dt:
-      Compile: 1.5405s
-      Execute: 0.0072s
-      Total:   1.5476s
+      Compile: 1.9237s
+      Execute: 0.0082s
+      Total:   1.9318s
 ----------------------------------------
-Date and Time: 2026-07-12 20:02:14
-Overall Total Speed: 9.7269 seconds
+Date and Time: 2026-07-14 14:20:14
+Overall Total Speed: 12.0517 seconds
   - small_program:
-      Compile: 1.6018s
-      Execute: 0.0183s
-      Total:   1.6202s
+      Compile: 4.3308s
+      Execute: 0.0153s
+      Total:   4.3460s
   - large_compilation:
-      Compile: 1.6640s
-      Execute: 0.0100s
-      Total:   1.6740s
+      Compile: 2.0140s
+      Execute: 0.0076s
+      Total:   2.0216s
   - for_loop:
-      Compile: 1.6982s
-      Execute: 0.0165s
-      Total:   1.7146s
-  - for_loop_v1:
-      Compile: 1.5490s
-      Execute: 0.0072s
-      Total:   1.5562s
+      Compile: 1.5484s
+      Execute: 0.0076s
+      Total:   1.5560s
   - var_decl_with_dt:
-      Compile: 1.5666s
-      Execute: 0.0121s
-      Total:   1.5788s
+      Compile: 2.0765s
+      Execute: 0.0123s
+      Total:   2.0888s
   - var_decl_no_dt:
-      Compile: 1.5722s
+      Compile: 2.0319s
+      Execute: 0.0074s
+      Total:   2.0393s
+----------------------------------------
+Date and Time: 2026-07-14 14:20:27
+Overall Total Speed: 9.8214 seconds
+  - small_program:
+      Compile: 2.1375s
+      Execute: 0.0103s
+      Total:   2.1478s
+  - large_compilation:
+      Compile: 2.0447s
       Execute: 0.0110s
-      Total:   1.5832s
+      Total:   2.0556s
+  - for_loop:
+      Compile: 1.6339s
+      Execute: 0.0077s
+      Total:   1.6416s
+  - var_decl_with_dt:
+      Compile: 1.9074s
+      Execute: 0.0105s
+      Total:   1.9179s
+  - var_decl_no_dt:
+      Compile: 2.0513s
+      Execute: 0.0072s
+      Total:   2.0585s
 ----------------------------------------
 
 Summary Statistics
 ========================
-Average Speed (last 12 runs): 15.8790 seconds
-Percentage Difference: -0.66% (Faster than last run)
+Average Speed (last 6 runs): 10.0581 seconds
+Percentage Difference: -18.51% (Faster than last run)

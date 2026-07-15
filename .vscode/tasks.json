@@ -4,7 +4,7 @@
     {
       "label": "Run Apollo File",
       "type": "shell",
-      "command": "gcc \"${workspaceFolder}\\apl.c\" -o \"${workspaceFolder}\\apl.exe\"; cd \"${fileDirname}\"; & \"${workspaceFolder}\\apl.exe\" \"${file}\" \"${workspaceFolder}\"",
+      "command": "gcc -o2  \"${workspaceFolder}\\apl.c\" -o \"${workspaceFolder}\\apl.exe\"; cd \"${fileDirname}\"; & \"${workspaceFolder}\\apl.exe\" \"${file}\" \"${workspaceFolder}\"",
       "options": {
         "cwd": "${workspaceFolder}"
       },

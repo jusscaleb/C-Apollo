@@ -10,7 +10,7 @@
 #include "../headers/semantic.h"
 #include "../headers/defs.h"
 
-ASTNode *compile_parse(Lexer *lexer, errorStack *s, CodegenContext *context);
+ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context);
 
 static char *read_file(const char *filename) {
   FILE *file = fopen(filename, "rb");
@@ -40,8 +40,7 @@ static char *read_file(const char *filename) {
 
 // Automatically runs the program after successfully compilation.
 void llvm_compilation() {
-  int result = system("clang -O3 temp\\output.ll -o temp\\program.exe");
-  remove("temp\\output.ll");
+  int result = system("clang -O3 temp\\output.bc -o temp\\program.exe");
 
   if (result == 0) {
     system("temp\\program.exe");
@@ -66,7 +65,7 @@ int main(int argc, char **argv) {
 
   char *source = read_file(filename);
 
-  errorStack err_stack;
+  ErrorStack err_stack;
 
   Lexer lexer;
   lexer.current = source;
@@ -81,7 +80,7 @@ int main(int argc, char **argv) {
 
   // We need the symbol table for parsing, so we init CodegenContext early.
   CodegenContext compiler_context = {0};
-  codegen_init(&compiler_context, "temp\\output.ll");
+  codegen_init(&compiler_context, "temp\\output.bc");
 
   
   // 1. Parsing Phase

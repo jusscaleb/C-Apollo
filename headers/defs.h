@@ -1,3 +1,16 @@
+/*===================================================================
+                              defs.h
+
+                        (c)2026 SCXRPIUS.dev
+
+              The Apollo general definitions Compile Time library.
+             Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
+     
+----------------------------------------------------------------------
+    Licensed under the MIT License. See LICENSE file for details.
+====================================================================*/
+
+
 #ifndef DEFS_H
 #define DEFS_H
 
@@ -6,13 +19,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-typedef struct errorStack errorStack;
-
-
+typedef struct ErrorStack ErrorStack;
+typedef struct ASTNode ASTNode;
 
 #define EXPECTED_EXTENSION ".apl"
 typedef bool set;
-typedef struct ASTNode ASTNode;
 
 // generator
 typedef struct CodegenContext {
@@ -27,7 +38,6 @@ typedef struct CodegenContext {
   int deferred_capacity;
 } CodegenContext;
 
-typedef struct ASTNode ASTNode;
 
 /**
  * Reallocates memory space for a string, ensuring null termination.
@@ -38,7 +48,8 @@ typedef struct ASTNode ASTNode;
 char *realloc_space(char *value, int size);
 
 /**
- * Grows the symbol table array inside the CodegenContext if capacity is reached.
+ * Grows the symbol table array inside the CodegenContext if capacity is
+ * reached.
  * @param context The codegen context containing the symbol table.
  */
 void grow_symbols_if_needed(CodegenContext *context);
@@ -48,7 +59,7 @@ void grow_symbols_if_needed(CodegenContext *context);
  * @param context The codegen context.
  * @param s The error stack.
  */
-void free_codegen_context(CodegenContext *context, errorStack *s);
+void free_codegen_context(CodegenContext *context, ErrorStack *s);
 
 /**
  * Allocates memory initialized to zero.
@@ -70,7 +81,7 @@ void codegen_init(CodegenContext *context, const char *output_filename);
  * @param context The codegen context.
  * @param name The name of the function.
  */
-void gen_function_start(CodegenContext *context, const char *name);
+void gen_function_start(CodegenContext *context, ASTNode *func_node);
 
 /**
  * Emits LLVM IR to print a string literal.
@@ -104,6 +115,6 @@ void gen_println_float(CodegenContext *context, const char *float_start,
  * @param context The codegen context.
  * @param is_main Boolean flag indicating if this is the program entry point.
  */
-void gen_function_end(CodegenContext *context, bool is_main);
+void gen_function_end(CodegenContext *context, bool is_main, DataType return_type);
 
 #endif
