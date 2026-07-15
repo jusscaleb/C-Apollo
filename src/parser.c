@@ -13,7 +13,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 static ASTNode *parse_logical_and(Parser *parser);
 
@@ -26,7 +25,7 @@ Params *get_params(CodegenContext *context, Parser *parser);
 Args *get_args(CodegenContext *context, Parser *parser);
 
 // move on to next token
-static void advance(Parser *parser) {
+__attribute__((always_inline)) static void advance(Parser *parser) {
   // printf("REGISTERING Fxn(parser): %s\n", parser->lexer->fxn->name);
   parser->previous = parser->current;
   parser->current = next_token(parser->lexer);
@@ -41,18 +40,15 @@ static void synchronize(Parser *parser, TokenType safe_token) {
     advance(parser);
 }
 
-static void consume(Parser *parser, TokenType type, const char *errorMessage) {
-
+__attribute__((always_inline)) static void consume(Parser *parser, TokenType type, const char *errorMessage) {
   if (parser->current.type == type) {
     advance(parser);
     return;
   }
-
   // Prevent cascaded errors at EOF if we already reported an error
   if (parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0) {
     return;
   }
-
   error(parser, errorMessage, SYNTAXERROR);
   synchronize(parser, TOKEN_SEMICOLON);
 }
@@ -203,7 +199,9 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   Token name_token = parser->current;
   const int NAME_LENGTH = name_token.length;
   char name[NAME_LENGTH + 1];
-  snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, name_token.start);
+  //snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, name_token.start);
+  memcpy(name, name_token.start, NAME_LENGTH+1);
+  name[NAME_LENGTH+1] = '\0';
 
   ASTNode *value;
 
@@ -372,7 +370,8 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
   const int NAME_LENGTH = parser->current.length;
   char *potential_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-  sprintf(potential_name, "%.*s", NAME_LENGTH, parser->current.start);
+  memcpy(potential_name, parser->current.start, NAME_LENGTH);
+  potential_name[NAME_LENGTH+1] = '\0';
 
   advance(parser);
 
@@ -381,6 +380,8 @@ static ASTNode *identifier(Parser *parser, CodegenContext *context) {
         parse_fxn_call(parser, context, potential_name, NAME_LENGTH);
     consume(parser, TOKEN_SEMICOLON,
             "Expected trailing semicolon ';' after function call.");
+    
+    free(potential_name);
     return call_node;
   }
 

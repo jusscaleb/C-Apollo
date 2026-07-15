@@ -252,7 +252,7 @@ static void emit_llvm_string_contents(FILE *file, const char *string_start,
 }
 
 // Emits LLVM that prints an Apollo string literal with printf.
-void gen_println_statement(CodegenContext *context, const char *string_start,
+__attribute__((always_inline)) void gen_println_statement(CodegenContext *context, const char *string_start,
                            int length) {
   int id = context->string_constant_count++;
   int internal_len =
@@ -386,7 +386,7 @@ void gen_println_float(CodegenContext *context, const char *float_start,
 
 ---------------------------------------------------------------------------------*/
 
-static const char *llvm_datatype(DataType type) {
+__attribute__ ((always_inline)) static const char *llvm_datatype(DataType type) {
   switch (type) {
   case TYPE_INT:
     return "i32";
@@ -412,7 +412,7 @@ static const char *llvm_datatype(DataType type) {
 }
 
 // Returns the LLVM type string for a computed ExprResult
-static const char *llvm_type_for_expr(ExprResult r) {
+__attribute__((always_inline)) static const char *llvm_type_for_expr(ExprResult r) {
   switch (r.type) {
   case EXPR_FLOAT:  return "double";
   case EXPR_STRING: return "i8*";
@@ -477,7 +477,7 @@ static void create_global_var(CodegenContext *context,
   char *llvm_name = sym->llvm_name;
 
   if (sym->type == TYPE_STRING) {
-    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+    if (length == 4 && memcmp(number_start, "null", 4) == 0) {
       create_global_string_var(context, "\"\"", 1, llvm_name);
     } else {
       create_global_string_var(context, number_start, length, llvm_name);
@@ -486,13 +486,13 @@ static void create_global_var(CodegenContext *context,
     const char *llvm_type = llvm_datatype(sym->type);
     if (sym->type == TYPE_BOOL || sym->type == TYPE_NULL) {
       int val = 2;
-      if (length == 4 && strncmp(number_start, "true", 4) == 0)
+      if (length == 4 && memcmp(number_start, "true", 4) == 0)
         val = 1;
-      else if (length == 5 && strncmp(number_start, "false", 5) == 0)
+      else if (length == 5 && memcmp(number_start, "false", 5) == 0)
         val = 0;
       fprintf(context->file, "@%s = global i8 %d\n\n", llvm_name, val);
     } else {
-      if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+      if (length == 4 && memcmp(number_start, "null", 4) == 0) {
         if (sym->type == TYPE_FLOAT) {
           fprintf(context->file, "@%s = global %s 0.0\n\n", llvm_name, llvm_type);
         } else {
@@ -516,7 +516,7 @@ void create_var(CodegenContext *context, const char *number_start, int length,
   fprintf(context->file, "; Allocate integer variable slot\n");
 
   if (sym->type == TYPE_STRING) {
-    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+    if (length == 4 && memcmp(number_start, "null", 4) == 0) {
       create_string_var(context, "\"\"", 1, llvm_name);
     } else {
       create_string_var(context, number_start, length, llvm_name);
@@ -525,16 +525,16 @@ void create_var(CodegenContext *context, const char *number_start, int length,
   } else if (sym->type == TYPE_BOOL || sym->type == TYPE_NULL) {
     fprintf(context->file, "%%%s = alloca i8\n", llvm_name);
     int val = 2; // Default to null
-    if (length == 4 && strncmp(number_start, "true", 4) == 0)
+    if (length == 4 && memcmp(number_start, "true", 4) == 0)
       val = 1;
-    else if (length == 5 && strncmp(number_start, "false", 5) == 0)
+    else if (length == 5 && memcmp(number_start, "false", 5) == 0)
       val = 0;
     fprintf(context->file, "store i8 %d, i8* %%%s\n\n", val, llvm_name);
 
   } else {
     const char *llvm_type = llvm_datatype(sym->type);
     fprintf(context->file, "%%%s = alloca %s\n", llvm_name, llvm_type);
-    if (length == 4 && strncmp(number_start, "null", 4) == 0) {
+    if (length == 4 && memcmp(number_start, "null", 4) == 0) {
       if (sym->type == TYPE_FLOAT) {
         fprintf(context->file, "store %s 0.0, %s* %%%s\n\n", llvm_type, llvm_type, llvm_name);
       } else {
@@ -589,8 +589,11 @@ void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node) {
   const int NAME_LENGTH = var_node->var_decl.name_length;
   int level = var_node->var_decl.level;
   char name_buf[NAME_LENGTH + 1];
-  snprintf(name_buf, sizeof(name_buf), "%.*s", NAME_LENGTH,
-           var_node->var_decl.name);
+  //memcpy(name_buf, sizeof(name_buf), "%.*s", NAME_LENGTH,
+           //var_node->var_decl.name);
+  memcpy(name_buf, var_node->var_decl.name, NAME_LENGTH);
+
+  name_buf[NAME_LENGTH] = '\0';
 
   // Global variable — emit at top level with @name = global syntax
   if (level == 0) {
@@ -707,7 +710,7 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
     } else if (token.type == TOKEN_BOOL || token.type == TOKEN_NULL) {
       int val = 2;
       if (token.type == TOKEN_BOOL) {
-        val = (strncmp(token.start, "true", token.length) == 0) ? 1 : 0;
+        val = (memcmp(token.start, "true", token.length) == 0) ? 1 : 0;
       }
       char dst[80]; SYM_PTR(dst, sym->llvm_name);
       fprintf(context->file, "  store i8 %d, i8* %s\n\n", val, dst);
@@ -758,9 +761,6 @@ void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node) {
   #undef LEN_PTR
   #undef SYM_PTR
 }
-
-
-
 /*--------------------------------------------------------------------------------
 
                   VARIABLES SEGMENT -> END
@@ -910,7 +910,7 @@ ExprResult make_literal_expr(Token token) {
              token.start);
   } else if (token.type == TOKEN_BOOL) {
     result.type = EXPR_BOOL;
-    if (token.length == 4 && strncmp(token.start, "true", 4) == 0) {
+    if (token.length == 4 && memcmp(token.start, "true", 4) == 0) {
       snprintf(result.value, sizeof(result.value), "1");
     } else {
       snprintf(result.value, sizeof(result.value), "0");
@@ -1632,7 +1632,7 @@ void gen_if_from_ast(CodegenContext *context, ASTNode *if_node) {
 
 // Emits the return instruction, closes the current LLVM function, and closes
 // the file.
-void gen_function_end(CodegenContext *context, bool is_main) {
+__attribute__((always_inline)) void gen_function_end(CodegenContext *context, bool is_main) {
   (is_main) ? fprintf(context->file, "ret i32 0\n")
             : fprintf(context->file, "    ret void\n");
 

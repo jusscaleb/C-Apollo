@@ -1,3 +1,16 @@
+/*===================================================================
+                              defs.h
+
+                        (c)2026 SCXRPIUS.dev
+
+              The Apollo general definitions Compile Time library.
+             Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
+     
+----------------------------------------------------------------------
+    Licensed under the MIT License. See LICENSE file for details.
+====================================================================*/
+
+
 #ifndef DEFS_H
 #define DEFS_H
 

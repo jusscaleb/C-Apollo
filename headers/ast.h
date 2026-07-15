@@ -1,3 +1,16 @@
+/*=====================================================================
+                              ast.h
+
+                          (c)2026 SCXRPIUS.dev
+
+              The Apollo ABSTRACT SYNTAX TREE Compile Time library.
+             Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
+     
+------------------------------------------------------------------------
+    Licensed under the MIT License. See LICENSE file for details.
+=======================================================================*/
+
+
 /*--------------------------------------------------------------------------------
 
                        ABSTACT SYNTAX TREE :)

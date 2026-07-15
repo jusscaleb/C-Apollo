@@ -1,3 +1,18 @@
+/*===================================================================
+                          semantic.h
+
+                    (c)2026 SCXRPIUS.dev
+
+              The Apollo Semantics Compile Time library.
+      Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
+     
+----------------------------------------------------------------------
+    Licensed under the MIT License. See LICENSE file for details.
+====================================================================*/
+
+
+
+
 #ifndef SEMANTIC_H
 #define SEMANTIC_H
 

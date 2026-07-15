@@ -1,6 +1,16 @@
-/*
-Where the tokens used in the compiler are stored.
-*/
+/*===================================================================
+                         token.h
+
+                    (c)2026 SCXRPIUS.dev
+
+              The Apollo Token Compile Time library.
+      Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
+     
+----------------------------------------------------------------------
+    Licensed under the MIT License. See LICENSE file for details.
+====================================================================*/
+
+
 #ifndef APOLLO_TOKEN_H
 #define APOLLO_TOKEN_H
 
@@ -112,6 +122,8 @@ typedef struct {
  * @return The next token extracted from the source.
  */
 Token next_token(Lexer *lexer);
+
+__attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message, const char *got);
 
 // Tracks the internal stream state of parser.
 typedef struct {

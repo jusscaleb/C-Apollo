@@ -40,6 +40,7 @@ Symbol* register_fxn(CodegenContext *context, const char *name,
 
   char *new_space = realloc_space(sym->name, strlen(name) + 1);
   sym->name = new_space;
+
   strcpy(sym->name, name);
   
   if (strcmp(name, "run") == 0) {
@@ -48,7 +49,10 @@ Symbol* register_fxn(CodegenContext *context, const char *name,
   } else {
     // Mangle the name to ensure uniqueness across nested functions
     char mangled[256];
-    snprintf(mangled, sizeof(mangled), "%s_%d", name, context->symbol_count);
+    //snprintf(mangled, sizeof(mangled), "%s_%d", name, context->symbol_count);
+    memcpy(mangled, name, context->symbol_count);
+    mangled[context->symbol_count] = '\0';
+
     sym->llvm_name = realloc_space(sym->llvm_name, strlen(mangled) + 1);
     strcpy(sym->llvm_name, mangled);
   }

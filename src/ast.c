@@ -146,6 +146,8 @@ ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
   node->call_fxn.fxn = fxn;
   node->call_fxn.level = level;
   node->call_fxn.args = args;
+  printf("POTENTIAL NAME: %s\n", name);
+
 
   return node;
 }

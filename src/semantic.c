@@ -46,7 +46,8 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
     if (expr->Type == AST_VAR_REF) {
         const int NAME_LENGTH = expr->var_ref.name_length;
         char *var_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-        snprintf(var_name, sizeof(var_name), "%.*s", NAME_LENGTH, expr->var_ref.name);
+        memcpy(var_name, expr->var_ref.name, NAME_LENGTH);
+        var_name[NAME_LENGTH] = '\0';
         Symbol *sym = lookup_token(context->codegen, var_name, &expr->var_ref.fxn, expr->var_ref.level);
         if (sym) {
             return sym->type;
@@ -58,13 +59,13 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
     if (expr->Type == AST_CALL_FXN) {
         const int NAME_LENGTH = expr->call_fxn.name_length;
         char *fn_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-        snprintf(fn_name, sizeof(fn_name), "%.*s", NAME_LENGTH, expr->call_fxn.name);
+        memcpy(fn_name, expr->call_fxn.name, NAME_LENGTH);
+        fn_name[NAME_LENGTH+1] = '\0';
         Symbol *sym = lookup_token(context->codegen, fn_name, &expr->call_fxn.fxn , expr->call_fxn.level);
         if (sym) {
             return sym->type;
         }
     }
-
     report_semantic_error(context, "Could not infer expression type.");
     return TYPE_NULL;
 }
@@ -121,9 +122,9 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             
             const int NAME_LENGTH = node->var_decl.name_length;
             char name[NAME_LENGTH + 1];
-            snprintf(name, NAME_LENGTH+1, "%.*s", NAME_LENGTH, node->var_decl.name);
-
-            
+            //snprintf(name, NAME_LENGTH+1, "%.*s", NAME_LENGTH, node->var_decl.name);
+            memcpy(name, node->var_decl.name, NAME_LENGTH);
+            name[NAME_LENGTH] = '\0';
             Symbol *sym = lookup_token(context->codegen, name, &node->var_decl.fxn, node->var_decl.level);
             if (sym) {
                 report_semantic_error(context, "Multiple definition of variable.");
@@ -159,7 +160,10 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
         case AST_VAR_ASS: {
             const int NAME_LENGTH = node->var_assign.name_length;
             char name[NAME_LENGTH];
-            snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_assign.name);
+            //snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_assign.name);
+
+            memcpy(name, node->var_assign.name, NAME_LENGTH);
+            name[NAME_LENGTH+1] = '\0';
 
             Symbol *sym = lookup_token(context->codegen, name, &node->var_assign.fxn, node->var_assign.level);
             if (!sym) {
@@ -218,8 +222,12 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             
         case AST_CALL_FXN: {
             const int NAME_LENGTH = node->call_fxn.name_length;
-            char fn_name[NAME_LENGTH+1];
-            snprintf(fn_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->call_fxn.name);
+            char fn_name[NAME_LENGTH + 1];
+            //snprintf(fn_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->call_fxn.name);
+            memcpy(fn_name, node->call_fxn.name, NAME_LENGTH);
+            fn_name[NAME_LENGTH] = '\0';
+
+            printf("FN NAME: %s\n", fn_name);
             Symbol *sym = lookup_token(context->codegen, fn_name, &node->call_fxn.fxn, node->call_fxn.level);
             if (!sym) {
                 report_semantic_error(context, "Call to undeclared function.");
@@ -260,8 +268,10 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
 
         case AST_VAR_REF:{
             const int NAME_LENGTH = node->var_ref.name_length;
-            char name[NAME_LENGTH+1];
-            snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_ref.name);
+            char name[NAME_LENGTH + 1];
+            //snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_ref.name);
+            memcpy(name,node->var_ref.name, NAME_LENGTH);
+            name[NAME_LENGTH] = '\0';
 
             Symbol *sym = lookup_token(context->codegen, name, &node->var_ref.fxn, node->var_ref.level);
             if (!sym) {

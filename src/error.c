@@ -25,8 +25,7 @@ bool errorStack_push(ErrorStack *s, Error *e) {
   s->size++;
   return true;
 }
-
-Error *errorStack_pop(ErrorStack *s) {
+__attribute__((always_inline)) Error *errorStack_pop(ErrorStack *s) {
   if (s->size == 0) {
     return NULL;
   }

@@ -40,7 +40,7 @@ static char *read_file(const char *filename) {
 
 // Automatically runs the program after successfully compilation.
 void llvm_compilation() {
-  int result = system("clang -O3 temp\\output.ll -o temp\\program.exe");
+  int result = system("clang -O3 temp\\output.bc -o temp\\program.exe");
 
   if (result == 0) {
     printf("--- Running Apollo Program Output ---\n");
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 
   // We need the symbol table for parsing, so we init CodegenContext early.
   CodegenContext compiler_context = {0};
-  codegen_init(&compiler_context, "temp\\output.ll");
+  codegen_init(&compiler_context, "temp\\output.bc");
 
   
   // 1. Parsing Phase
