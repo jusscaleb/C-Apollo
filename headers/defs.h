@@ -21,6 +21,7 @@
 
 typedef struct ErrorStack ErrorStack;
 typedef struct ASTNode ASTNode;
+typedef struct ApolloLLVMBackend ApolloLLVMBackend;
 
 #define EXPECTED_EXTENSION ".apl"
 typedef bool set;
@@ -37,7 +38,6 @@ typedef struct CodegenContext {
   int deferred_count;
   int deferred_capacity;
 } CodegenContext;
-
 
 /**
  * Reallocates memory space for a string, ensuring null termination.
@@ -75,6 +75,18 @@ char *alloc_space(int num_elements, int element_size);
  * @param output_filename The target LLVM IR output file.
  */
 void codegen_init(CodegenContext *context, const char *output_filename);
+
+/**
+ * Initializes the LLVM backend scaffolding used for API-driven codegen.
+ * The implementation is intentionally isolated from the current text emitter.
+ */
+bool llvm_backend_init(ApolloLLVMBackend *backend, const char *module_name,
+                       const char *output_path);
+
+/**
+ * Releases any LLVM backend resources allocated by llvm_backend_init.
+ */
+void llvm_backend_dispose(ApolloLLVMBackend *backend);
 
 /**
  * Emits LLVM IR to define the start of a function.

@@ -71,6 +71,19 @@ void free_codegen_context(CodegenContext *context, ErrorStack *s) {
   }
 }
 
+void codegen_init(CodegenContext *context, const char *output_filename) {
+  context->file = NULL;
+  context->string_constant_count = 0;
+  context->temp_count = 0;
+  context->symbol_count = 0;
+  context->symbol_capacity = 0;
+  context->symbols = NULL;
+  context->deferred_functions = NULL;
+  context->deferred_count = 0;
+  context->deferred_capacity = 0;
+}
+
+
 void realloc_errorStack(ErrorStack *s) {
   if (s->size == s->capacity) {
     s->capacity = (s->capacity == 0) ? 8 : s->capacity * 2;

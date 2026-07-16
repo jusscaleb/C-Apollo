@@ -9,6 +9,7 @@
 #include "../headers/ast.h"
 #include "../headers/semantic.h"
 #include "../headers/defs.h"
+#include "../headers/llvm_backend.h"
 
 ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context);
 
@@ -108,9 +109,9 @@ int main(int argc, char **argv) {
 
 
   // 3. Code Generation Phase
-  gen_program_from_ast(&compiler_context, program_ast);
+  LLVMComponents components = {0};
+  llvm_environment_setup(&compiler_context, &components, program_ast);
   
-  fclose(compiler_context.file);
   free_codegen_context(&compiler_context, &err_stack);
 
   free(source);

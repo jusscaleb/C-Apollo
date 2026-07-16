@@ -10,13 +10,16 @@ int main(int argc, char **argv) {
            project_root);
   system(mkdir_command);
 
-  char build_command[1024];
+  char build_command[2048];
   snprintf(build_command, sizeof(build_command),
            "gcc \"%s\\src\\main.c\" \"%s\\src\\lexer.c\" \"%s\\src\\parser.c\" "
-           "\"%s\\src\\generator.c\" \"%s\\src\\ast.c\" \"%s\\src\\memory.c\" "
-           "\"%s\\src\\error.c\" \"%s\\src\\variables.c\" \"%s\\src\\semantic.c\" -o \"%s\\run\\main.exe\"",
-           project_root, project_root, project_root, project_root, project_root,
-           project_root, project_root, project_root, project_root, project_root);
+           "\"%s\\src\\ast.c\" \"%s\\src\\memory.c\" "
+           "\"%s\\src\\error.c\" \"%s\\src\\variables.c\" \"%s\\src\\semantic.c\" "
+           "\"%s\\src\\llvm_backend.c\" -IC:\\msys64\\mingw64\\include "
+           "-LC:\\msys64\\mingw64\\lib -lLLVM-19 -o \"%s\\run\\main.exe\"",
+           project_root, project_root, project_root, project_root,
+           project_root, project_root, project_root, project_root,
+           project_root, project_root);
 
   int run = system(build_command);
 

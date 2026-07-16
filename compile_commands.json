@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "C:/Users/caleb/SCXRPIUS/Apollo",
+    "command": "gcc -std=c17 -IC:/msys64/mingw64/include -D_FILE_OFFSET_BITS=64 -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -c src/llvm_backend.c",
+    "file": "C:/Users/caleb/SCXRPIUS/Apollo/src/llvm_backend.c"
+  }
+]
