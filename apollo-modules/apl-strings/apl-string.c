@@ -1,19 +1,19 @@
 #include "apl-string.h"
-#include <stdio.h>
 #include <string.h>
 
 
 
-String __apl_create_str__(const char *__str__, int __length__){
+String __apl_create_str__(const char *__str__){
     String __meta_dt__;
     __meta_dt__._str_ = __str__;
-    __meta_dt__._length_ = __length__;
+    __meta_dt__._length_ = __apl_get_length__(__str__);
     return __meta_dt__;
 
 }
 
-int __apl_get_length__(String *__str__){
-    return __str__->_length_;
+int __apl_get_length__(const char *__str__){
+    if(__str__ == NULL) return 0;
+    return strlen(__str__);
 }
 
 int __apl_compare_str__(String *_str_1, String *_str_2){

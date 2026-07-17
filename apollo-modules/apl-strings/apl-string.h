@@ -15,7 +15,7 @@
 #define APL_STRING_H
 
 #include <stdio.h>
-
+#include <string.h> 
 
 #ifdef _WIN32 //Running on Windows.
     #include <io.h>
@@ -37,9 +37,9 @@ typedef struct String{
 }String;
 
 
-String __apl_create_str__(const char* __str__, const int __length__);
+String __apl_create_str__(const char *__str__);
+int __apl_get_length__(const char *__str__);
 
-int __apl_get_length__(String *__str__);
 
 int __apl_compare_str__(String *_str_1, String *_str_2);
 
