@@ -49,11 +49,15 @@ String __apl_copy_str__(String *_str_1, String *__str_2);
 
 int __apl_index__of__(String *__str__, char _char_);
 
-char __apl_char_at__(String *__str__, int index);
+char __apl_char_at__(String *__str__, int _index_);
 
 String __apl_input__(char* __prompt__);
 
+String __apl_concat_str_int(String *_str_1, int _int_);
 
+String __apl_concat_str_bool(String *_str_1, int _bool_);
+
+String __apl_concat_str_float(String *_str_1, float _float_);
 
 
 #endif

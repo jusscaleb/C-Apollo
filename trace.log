@@ -1,0 +1,48 @@
+entered main
+reading source
+error stack initialized
+ensuring temp directory
+initializing codegen context
+starting parse
+parsing finished
+starting semantic analysis
+semantic analysis finished
+starting llvm backend emission
+llvm backend emission finished
+starting clang compilation
+entered main
+reading source
+error stack initialized
+ensuring temp directory
+initializing codegen context
+starting parse
+parsing finished
+starting semantic analysis
+semantic analysis finished
+starting llvm backend emission
+llvm backend emission finished
+starting clang compilation
+entered main
+reading source
+error stack initialized
+ensuring temp directory
+initializing codegen context
+starting parse
+parsing finished
+starting semantic analysis
+semantic analysis finished
+starting llvm backend emission
+llvm backend emission finished
+starting clang compilation
+entered main
+reading source
+error stack initialized
+ensuring temp directory
+initializing codegen context
+starting parse
+parsing finished
+starting semantic analysis
+semantic analysis finished
+starting llvm backend emission
+llvm backend emission finished
+starting clang compilation

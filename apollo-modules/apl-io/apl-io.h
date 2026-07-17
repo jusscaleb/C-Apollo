@@ -33,6 +33,14 @@ static int buf_idx = 0;
 static char str_arena[_BUFFER_SIZE];
 static int arena_offset = 0;
 
+#define TYPEOF(x) _Generic((x), \
+    int: "int", \
+    float: "float", \
+    double: "double", \
+    char: "char", \
+    char *: "string", \
+    default: "unknown" \
+)
 
 typedef struct String{
     const char* _str_;
@@ -57,6 +65,9 @@ void _apl_print_float(double val);
 __attribute__((always_inline)) static void _apl_clear_();
 
 String __apl_input__(const char* __prompt__);
+
+void _apl_print_(int count, ...);
+
 
 
 #endif

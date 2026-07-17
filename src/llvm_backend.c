@@ -1,6 +1,7 @@
 #include "../headers/llvm_backend.h"
 #include "llvm-c/Core.h"
 #include "llvm-c/Analysis.h"
+#include "llvm-c/Types.h"
 #include <string.h>
 
 void _apl_load_runtime_libraries(LLVMComponents *components) {
@@ -93,6 +94,16 @@ LLVMValueRef _apl_get_or_declare_printf(LLVMComponents *components) {
   return LLVMAddFunction(components->module, "printf", printf_ty);
 }
 
+static LLVMValueRef _apl_get_runtime_function(LLVMComponents *components,
+                                              const char *name,
+                                              LLVMTypeRef fn_type) {
+  LLVMValueRef fn = LLVMGetNamedFunction(components->module, name);
+  if (fn != NULL) {
+    return fn;
+  }
+  return LLVMAddFunction(components->module, name, fn_type);
+}
+
 void _apl_save_and_shutdown(LLVMComponents *components) {
   char *verify_msg = NULL;
   if (LLVMVerifyModule(components->module, LLVMPrintMessageAction, &verify_msg) != 0) {
@@ -143,7 +154,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       _apl_gen_println_ir(components, context, stmt);
       break;
     case AST_VAR_DECL:
-      // gen_var_decl_from_ast(context, stmt);
+      _apl_create_local_variable(components, context, stmt);
       break;
     case AST_VAR_ASS:
       // gen_var_assign_from_ast(context, stmt);
@@ -284,13 +295,55 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context, AS
     str = get_or_create_string_literal(components, "", 0 ); 
 
     }
-    LLVMValueRef printf_fn = _apl_get_or_declare_printf(components);
     LLVMTypeRef i8_ptr = LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
-    LLVMTypeRef params[] = {i8_ptr};
-    LLVMTypeRef printf_ty = LLVMFunctionType(
-        LLVMInt32TypeInContext(components->ctx), params, 1, true);
+    LLVMTypeRef print_string_ty =
+        LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), &i8_ptr, 1, false);
+    LLVMTypeRef no_args_ty =
+        LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
 
-    LLVMValueRef fmt = LLVMBuildGlobalStringPtr(components->builder, "%s\n", "println_fmt");
-    LLVMValueRef args[] = {fmt, str};
-    LLVMBuildCall2(components->builder, printf_ty, printf_fn, args, 2, "");
+    LLVMValueRef print_string_fn = _apl_get_runtime_function(components, "_apl_print_string", print_string_ty);
+    LLVMValueRef newline_fn = _apl_get_runtime_function(components, "_apl_print_newline", no_args_ty);
+    LLVMValueRef args[] = {str};
+    LLVMBuildCall2(components->builder, print_string_ty, print_string_fn, args, 1, "");
+    LLVMBuildCall2(components->builder, no_args_ty, newline_fn, NULL, 0, "");
 }
+
+
+void _apl_create_local_variable(LLVMComponents *components, CodegenContext *context, ASTNode *var_node){
+    char var_name[var_node->var_decl.name_length + 1];
+    memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
+    var_name[var_node->var_decl.name_length] = '\0';
+
+    const DataType VAR_TYPE = var_node->var_decl.value_type;
+
+
+    LLVMValueRef var_ptr;
+    LLVMValueRef assign_val;
+    LLVMValueRef var_val;
+
+    switch(VAR_TYPE){
+
+      case TYPE_INT:
+        var_ptr = LLVMBuildAlloca(components->builder, LLVMInt32TypeInContext(components->ctx), var_name);
+        assign_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), 0, false);
+        LLVMBuildStore(components->builder, assign_val, var_ptr);
+        break;      
+
+      default:
+        break;
+      
+
+    }
+
+        /*LLVMValueRef x_ptr = LLVMBuildAlloca(components->builder, LLVMInt32Type(), "x");
+
+        LLVMValueRef const_10 = LLVMConstInt(LLVMInt32Type(), 10, 0);
+        LLVMBuildStore(components->builder, const_10, x_ptr);
+
+        LLVMValueRef x_val = LLVMBuildLoad2(components->builder, LLVMInt32Type(), x_ptr, "x_val");
+
+
+        LLVMBuildRet(components->builder, x_val);*/
+}
+
+//===================================================HELPERS======================================================>

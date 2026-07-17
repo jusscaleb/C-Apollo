@@ -79,3 +79,110 @@ char __apl_char_at__(String *__str__, int index){
 
     return __str__->_str_[index];
 }
+
+
+String __apl_concat_str_int(String *_str_1, int _int_){
+    char int_buf[12];
+    char *int_ptr = int_buf + 11;
+    *int_ptr = '\0';
+
+
+    unsigned int abs_int = (_int_ < 0) ? -_int_ : _int_;
+
+    do{
+        *--int_ptr = '0' + (abs_int % 10);
+        abs_int /= 10;
+
+    }while(abs_int > 0);
+
+
+    if(_int_ < 0){
+        *--int_ptr = '-';
+    }
+
+    
+    int int_length = (int_buf + 11) - int_ptr;
+
+    int total_length = int_length + _str_1->_length_;
+
+    char __concat_val__[total_length + 1];
+
+    memcpy(__concat_val__, _str_1->_str_, _str_1->_length_);
+
+    memcpy(__concat_val__ + _str_1->_length_, int_ptr, int_length);
+
+    __concat_val__[total_length] = '\0';
+    
+    return __apl_create_str__(__concat_val__);
+
+}
+
+
+String __apl_concat_str_bool(String *_str_1, int _bool_){
+    const char* bool_str = _bool_ ? "true" : "false";
+    int bool_length = _bool_ ? 4 : 5;
+
+    int total_length = _str_1->_length_ + bool_length;
+    char __concat_val__[total_length + 1];
+
+    memcpy(__concat_val__, _str_1->_str_, _str_1->_length_);
+
+    memcpy(__concat_val__ + _str_1->_length_, bool_str, bool_length);
+
+    __concat_val__[total_length] = '\0';
+    
+    return __apl_create_str__(__concat_val__);
+}
+
+
+String __apl_concat_str_float(String *_str_1, float _float_){
+    char float_buf[32];
+    char *float_ptr = float_buf + 31;
+    *float_ptr = '\0';
+
+    //get whole part.
+    int whole_part = (int)_float_;
+
+    float decimal_part = (_float_ - whole_part) * 1000000;
+    unsigned int abs_whole = (whole_part < 0) ? -whole_part : whole_part;
+
+    unsigned int abs_decimal = (decimal_part < 10) ? -decimal_part : decimal_part;
+
+
+    //slice decimal part
+    do{
+        *--float_ptr = '0' + (abs_decimal % 10);
+        abs_decimal /= 10;
+
+    }while(abs_decimal > 0);
+
+    *--float_ptr = '.';
+
+    //slice whole part
+    do{
+        *--float_ptr = '0' + (abs_whole % 10);
+        abs_whole /= 10;
+
+    }while(abs_whole > 0);
+
+
+    if(whole_part < 0){
+        *--float_ptr = '-';
+    };
+
+    int float_length = (float_buf + 11) - float_ptr;
+
+    int total_length = float_length + _str_1->_length_;
+
+    char __concat_val__[total_length + 1];
+
+    memcpy(__concat_val__, _str_1->_str_, _str_1->_length_);
+
+    memcpy(__concat_val__ + _str_1->_length_, float_ptr, float_length);
+
+    __concat_val__[total_length] = '\0';
+
+    return __apl_create_str__(__concat_val__);
+
+}
+

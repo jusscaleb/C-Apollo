@@ -16,6 +16,7 @@
 #include <llvm-c/Types.h>
 #include "ast.h"
 #include "defs.h"
+#include "variables.h"
 #include <llvm-c/Linker.h>
 #include <llvm-c/BitReader.h>
 
@@ -53,10 +54,18 @@ void _apl_gen_function_start(LLVMComponents *components, CodegenContext *context
 
 void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context, ASTNode *block_node);
 
+void _apl_create_local_variable(LLVMComponents *components, CodegenContext *context, ASTNode *var_node);
+
+DataType _apl_get_token_datatype(LLVMComponents *components, CodegenContext *context, ASTNode *token_node);
+
+Symbol *get_token(CodegenContext *context, const char *name);
+
 LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components,Fxn *fxn);
 
 // Ensures the module has the standard printf declaration used by println.
 LLVMValueRef _apl_get_or_declare_printf(LLVMComponents *components);
+
+
 
 
 #endif

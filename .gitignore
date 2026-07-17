@@ -5,3 +5,4 @@ run/
 *.apl
 tests/__pycache__/
 temp/
+headers/trace.log
