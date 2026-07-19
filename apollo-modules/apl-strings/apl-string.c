@@ -42,10 +42,10 @@ String __apl_concat_str__(String *_str_1, String *_str_2){
     arena_offset += final._length_ + 1;
 
     if(_str_1->_length_ > 0)
-        memcpy_s(new_buf, _str_1->_length_, _str_1->_str_, _str_1->_length_);
+        memcpy(new_buf,_str_1->_str_,  _str_1->_length_);
 
     if(_str_2->_length_ > 0)
-        memcpy_s(new_buf + _str_1->_length_, _str_2->_length_, _str_2->_str_, _str_2->_length_);
+        memcpy(new_buf + _str_1->_length_, _str_2->_str_, _str_2->_length_);
 
     
     new_buf[final._length_] = '\0';
