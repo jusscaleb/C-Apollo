@@ -14,10 +14,10 @@
 // Defining the TokenNames in token.h
 const char *TokenNames[] = {
     "Fxn",    "EOF",    "run",    "void",   "IDENTIFIER", "->", "STRING",
-    "(", ")", "{", "}", ";",   "INT",   "DOUB",
+    "(", ")", "{", "}", ";",   "INT",   "DOUBLE",
     "FLOAT",  "+",    "*",    "-",    "/",    "%",   "++",
     "--",    "+=",   "-=",   "*=",   "/=",   "%=",   "println",
-    "var",    "=",      "bool",   "NULL",   "==",        "!=",   ">",
+    "var",    "=",      "bool",   "null",   "==",        "!=",   ">",
     "<",     ">=",     "<=",     "and",    "or",         "if",    "elif",
     "else",   "while",  "for",    "int",    "str",        "bool",  "float",
     ","};
@@ -86,12 +86,11 @@ __attribute__((always_inline)) static TokenType check_keyword(const char *start,
 }
 
 Token next_token(Lexer *lexer) {
-  // Loops through to consume and ignore spaces, tabs and carriage returns.
   while (*lexer->current == ' ' || *lexer->current == '\r' ||
          *lexer->current == '\t' || *lexer->current == '\n') {
     if (*lexer->current == '\n') {
       lexer->line++;
-    } // move to the next line.
+    } 
     lexer->current++;
     lexer->column++; // move pointer one character forward.
   }

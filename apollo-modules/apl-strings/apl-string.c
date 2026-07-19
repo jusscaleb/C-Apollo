@@ -1,4 +1,5 @@
 #include "apl-string.h"
+#include <stdio.h>
 #include <string.h>
 
 
