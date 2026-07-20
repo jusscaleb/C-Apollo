@@ -52,6 +52,7 @@ __attribute__((always_inline)) static void consume(Parser *parser, TokenType typ
   }
   error(parser, errorMessage, SYNTAXERROR);
   synchronize(parser, TOKEN_SEMICOLON);
+  advance(parser);
 }
 
 /*------------------ARITHMETICS------------------*/
@@ -490,7 +491,7 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     }
 
     ASTNode* var_node = var(parser, context, dt);
-    consume(parser, TOKEN_SEMICOLON, "Expected After Variable declaration.");
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' after Variable declaration.");
     return var_node;
 
   case TOKEN_NULL:
@@ -513,8 +514,6 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     ASTNode* ret_node = create_ret_node(context, *fxn, value);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
     return ret_node;
-
-
 
   default:
     error(parser, "Unrecognized token in body statement.", SYNTAXERROR);

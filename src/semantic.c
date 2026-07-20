@@ -26,6 +26,7 @@ static void report_semantic_error(SemanticContext* context, const char* msg) {
 static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
     if (!expr) return TYPE_NULL;
 
+
     if (expr->Type == AST_LITERAL_EXPR) {
         if (expr->literal_expr.token.type == TOKEN_FLOAT) return TYPE_FLOAT;
         if (expr->literal_expr.token.type == TOKEN_BOOL) return TYPE_BOOL;
@@ -81,10 +82,7 @@ void analyze_semantics(SemanticContext* context, ASTNode* node) {
 
 // Recursive tree-walker
 static void analyze_node(SemanticContext* context, ASTNode* node) {
-
-    
     if (!node) return;
-
     switch (node->Type) {
         case AST_PROGRAM:
             if (node->program.function) {
@@ -228,15 +226,17 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
             break;
             
         case AST_CALL_FXN: {
+            printf("AST CALL FUNCTION.\n");
             const int NAME_LENGTH = node->call_fxn.name_length;
             char fn_name[NAME_LENGTH + 1];
-            //snprintf(fn_name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->call_fxn.name);
             memcpy(fn_name, node->call_fxn.name, NAME_LENGTH);
             fn_name[NAME_LENGTH] = '\0';
+
 
             printf("FN NAME: %s\n", fn_name);
             Symbol *sym = lookup_token(context->codegen, fn_name, &node->call_fxn.fxn, node->call_fxn.level);
             if (!sym) {
+                printf("UNDECLARED FUNCTION\n");
                 report_semantic_error(context, "Call to undeclared function.");
             } else {
                 node->call_fxn.return_type = sym->type;
@@ -259,9 +259,6 @@ static void analyze_node(SemanticContext* context, ASTNode* node) {
                     expected_param = expected_param->next;
                     passed_arg = passed_arg->next;
                 }
-                /*if (expected_param != NULL || passed_arg != NULL) {
-                    report_semantic_error(context, "Incorrect number of arguments passed to function.");
-                }*/
                     
                 }
 
