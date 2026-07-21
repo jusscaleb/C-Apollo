@@ -99,11 +99,10 @@ typedef struct {
   const char *start; // RAM Address of Token
   int length;        //
   int line;
+  int column;
 } Token;
 
-/*Tells compiler that the variable exists in another file,
-  Check lexer.c
-*/
+
 extern const char *TokenNames[];
 
 // ACTS AS A POINTER THAT KEEPS TRACK OF POSITION IN SOURCE CODE
