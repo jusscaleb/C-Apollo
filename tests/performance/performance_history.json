@@ -1,187 +1,52 @@
 [
     {
-        "timestamp": "2026-07-14 14:16:34",
-        "total_speed": 9.557507599965902,
+        "timestamp": "2026-07-21 13:42:39",
+        "total_speed": 10.578634966683845,
         "results": {
             "small_program": {
-                "compile_time": 2.389383000001544,
-                "run_time": 0.0231056000047829,
-                "total_time": 2.412488600006327
+                "compile_time": 2.5168361666728742,
+                "compile_err": 38.34619921520864,
+                "run_time": 0.01695333333433761,
+                "run_err": 35.65552347172339,
+                "total_time": 2.5337895000072117,
+                "total_err": 38.25687852311854,
+                "repeats": 3
             },
             "large_compilation": {
-                "compile_time": 1.8706164000032004,
-                "run_time": 0.007890700013376772,
-                "total_time": 1.8785071000165772
+                "compile_time": 2.073971566671389,
+                "compile_err": 2.1154335688435078,
+                "run_time": 0.012638766662954973,
+                "run_err": 50.04811047191756,
+                "total_time": 2.086610333334344,
+                "total_err": 1.9204181444611008,
+                "repeats": 3
             },
             "for_loop": {
-                "compile_time": 1.5847071000025608,
-                "run_time": 0.011933300003875047,
-                "total_time": 1.5966404000064358
+                "compile_time": 2.0820542000049804,
+                "compile_err": 3.7747102703379753,
+                "run_time": 0.008255433334852569,
+                "run_err": 11.447228418065563,
+                "total_time": 2.090309633339833,
+                "total_err": 3.7979769046909957,
+                "repeats": 3
             },
             "var_decl_with_dt": {
-                "compile_time": 1.8111982999835163,
-                "run_time": 0.006981699989410117,
-                "total_time": 1.8181799999729265
+                "compile_time": 1.8949012333371986,
+                "compile_err": 3.6559226180242046,
+                "run_time": 0.013504133336634064,
+                "run_err": 37.25697336919431,
+                "total_time": 1.9084053666738328,
+                "total_err": 3.810824305236709,
+                "repeats": 3
             },
             "var_decl_no_dt": {
-                "compile_time": 1.843357499979902,
-                "run_time": 0.00833399998373352,
-                "total_time": 1.8516914999636356
-            }
-        }
-    },
-    {
-        "timestamp": "2026-07-14 14:17:08",
-        "total_speed": 10.327410799975041,
-        "results": {
-            "small_program": {
-                "compile_time": 2.6076417999865953,
-                "run_time": 0.01585029999841936,
-                "total_time": 2.6234920999850146
-            },
-            "large_compilation": {
-                "compile_time": 2.045448499993654,
-                "run_time": 0.008095800003502518,
-                "total_time": 2.0535442999971565
-            },
-            "for_loop": {
-                "compile_time": 1.5835010000155307,
-                "run_time": 0.009672999993199483,
-                "total_time": 1.5931740000087302
-            },
-            "var_decl_with_dt": {
-                "compile_time": 2.0283523999969475,
-                "run_time": 0.008362499997019768,
-                "total_time": 2.0367148999939673
-            },
-            "var_decl_no_dt": {
-                "compile_time": 2.01325600000564,
-                "run_time": 0.007229499984532595,
-                "total_time": 2.0204854999901727
-            }
-        }
-    },
-    {
-        "timestamp": "2026-07-14 14:17:24",
-        "total_speed": 9.17941960002645,
-        "results": {
-            "small_program": {
-                "compile_time": 1.9274383000156377,
-                "run_time": 0.010480299999471754,
-                "total_time": 1.9379186000151094
-            },
-            "large_compilation": {
-                "compile_time": 1.881269199977396,
-                "run_time": 0.015211399993859231,
-                "total_time": 1.8964805999712553
-            },
-            "for_loop": {
-                "compile_time": 1.55764780001482,
-                "run_time": 0.011363000026904047,
-                "total_time": 1.569010800041724
-            },
-            "var_decl_with_dt": {
-                "compile_time": 1.8320661000034306,
-                "run_time": 0.010691000003134832,
-                "total_time": 1.8427571000065655
-            },
-            "var_decl_no_dt": {
-                "compile_time": 1.9193248999945354,
-                "run_time": 0.013927599997259676,
-                "total_time": 1.933252499991795
-            }
-        }
-    },
-    {
-        "timestamp": "2026-07-14 14:19:33",
-        "total_speed": 9.410986300033983,
-        "results": {
-            "small_program": {
-                "compile_time": 2.1613816999888513,
-                "run_time": 0.014106599992373958,
-                "total_time": 2.1754882999812253
-            },
-            "large_compilation": {
-                "compile_time": 1.7358660000027157,
-                "run_time": 0.009447400021599606,
-                "total_time": 1.7453134000243153
-            },
-            "for_loop": {
-                "compile_time": 1.5244470000034198,
-                "run_time": 0.014995100005762652,
-                "total_time": 1.5394421000091825
-            },
-            "var_decl_with_dt": {
-                "compile_time": 2.009655300003942,
-                "run_time": 0.009247000009054318,
-                "total_time": 2.0189023000129964
-            },
-            "var_decl_no_dt": {
-                "compile_time": 1.923652299999958,
-                "run_time": 0.008187900006305426,
-                "total_time": 1.9318402000062633
-            }
-        }
-    },
-    {
-        "timestamp": "2026-07-14 14:20:14",
-        "total_speed": 12.051748699974269,
-        "results": {
-            "small_program": {
-                "compile_time": 4.330781399999978,
-                "run_time": 0.015267800015863031,
-                "total_time": 4.346049200015841
-            },
-            "large_compilation": {
-                "compile_time": 2.013964499987196,
-                "run_time": 0.007615699985763058,
-                "total_time": 2.0215801999729592
-            },
-            "for_loop": {
-                "compile_time": 1.5484005000034813,
-                "run_time": 0.007593499991344288,
-                "total_time": 1.5559939999948256
-            },
-            "var_decl_with_dt": {
-                "compile_time": 2.0764678999839816,
-                "run_time": 0.012325300020165741,
-                "total_time": 2.0887932000041474
-            },
-            "var_decl_no_dt": {
-                "compile_time": 2.03190469997935,
-                "run_time": 0.007427400007145479,
-                "total_time": 2.0393320999864955
-            }
-        }
-    },
-    {
-        "timestamp": "2026-07-14 14:20:27",
-        "total_speed": 9.821434800047427,
-        "results": {
-            "small_program": {
-                "compile_time": 2.1374989000032656,
-                "run_time": 0.01032250002026558,
-                "total_time": 2.147821400023531
-            },
-            "large_compilation": {
-                "compile_time": 2.0446584000019357,
-                "run_time": 0.010970100003760308,
-                "total_time": 2.055628500005696
-            },
-            "for_loop": {
-                "compile_time": 1.633911100012483,
-                "run_time": 0.007681899995077401,
-                "total_time": 1.6415930000075605
-            },
-            "var_decl_with_dt": {
-                "compile_time": 1.9073656999971718,
-                "run_time": 0.010503600002266467,
-                "total_time": 1.9178692999994382
-            },
-            "var_decl_no_dt": {
-                "compile_time": 2.0513412000145763,
-                "run_time": 0.0071813999966252595,
-                "total_time": 2.0585226000112016
+                "compile_time": 1.9489717666632107,
+                "compile_err": 6.4142433444164535,
+                "run_time": 0.010548366665413292,
+                "run_err": 32.21748182763891,
+                "total_time": 1.959520133328624,
+                "total_err": 6.274558050205815,
+                "repeats": 3
             }
         }
     }

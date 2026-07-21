@@ -5,3 +5,5 @@ run/
 *.apl
 tests/__pycache__/
 temp/
+.agents
+.cache

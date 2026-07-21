@@ -1,0 +1,33 @@
+name: Apollo Diagnosis & Tests
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  diagnosis-tests:
+    name: Run Diagnosis Suite
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build Apollo Compiler
+        run: |
+          gcc apl.c -o apl.exe
+
+      - name: Run Diagnosis Script
+        run: |
+          printf "Y\n" | bash -e ./diagnosis.sh

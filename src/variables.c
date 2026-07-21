@@ -7,7 +7,7 @@
 void register_variable(CodegenContext *context, const char *name,
                        DataType variable_type, Fxn *fxn, int level) {
   
-
+  printf("REGISTERING VARIABLES.\n");
   grow_symbols_if_needed(context);
 
   Symbol *sym = &context->symbols[context->symbol_count++];
@@ -35,6 +35,9 @@ void register_variable(CodegenContext *context, const char *name,
 
 Symbol* register_fxn(CodegenContext *context, const char *name,
                      DataType return_type, int level, Fxn *fxn) {
+
+  printf("REGISTERING FUNCTIONS.\n");
+
   grow_symbols_if_needed(context);
   Symbol *sym = &context->symbols[context->symbol_count++];
 
@@ -63,11 +66,16 @@ Symbol* register_fxn(CodegenContext *context, const char *name,
   return sym;
 }
 
+
+//optimization remove strcmp.
 Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn, int level) {
+
+  printf("NAME LOOKING FOR: %s\n", name);
   for (int i = context->symbol_count - 1; i >= 0; i--) {
     if (strcmp(context->symbols[i].name, name) != 0) continue;
     if (context->symbols[i].is_active) {
       return &context->symbols[i];
+
     }
   }
   return NULL;
