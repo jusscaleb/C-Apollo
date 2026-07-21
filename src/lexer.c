@@ -12,6 +12,7 @@
 #include <string.h>
 
 // Defining the TokenNames in token.h
+void synchronize(Lexer *lexer, TokenType safe_token);
 const char *TokenNames[] = {
     "Fxn",    "EOF",    "run",    "void",   "IDENTIFIER", "->", "STRING",
     "(", ")", "{", "}", ";",   "INT",   "DOUB",
@@ -26,12 +27,25 @@ const char *TokenNames[] = {
  __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message, const char *got) {
   Error *e = (Error *)alloc_space(1, sizeof(Error));
   e->message = _strdup(message);
-  e->token.line = lexer->line;
+  e->line = lexer->line;
   e->type = LEXERROR;
   e->got = _strdup(got);
+  e->column = lexer->column;
 
   errorStack_push(lexer->errors, e);
+  //synchronize(lexer, TOKEN_SEMICOLON);
+  
 }
+void synchronize(Lexer *lexer, TokenType safe_token){
+  TokenType  token = next_token(lexer).type;
+  if(token != safe_token){
+      printf("Token Type: %s\n", TokenNames[token]);
+      synchronize(lexer,safe_token);
+  }
+
+}
+
+
 
 /**
  *Checks if the keyword is reserved.
@@ -91,6 +105,7 @@ Token next_token(Lexer *lexer) {
          *lexer->current == '\t' || *lexer->current == '\n') {
     if (*lexer->current == '\n') {
       lexer->line++;
+      lexer->column = 0;
     } // move to the next line.
     lexer->current++;
     lexer->column++; // move pointer one character forward.
@@ -116,22 +131,26 @@ Token next_token(Lexer *lexer) {
     Token token = {TOKEN_RBRACE, start, 1, lexer->line};
     lexer->scope_level--;
     // lexer->fxn = lexer->fxn->parent_fxn;
+    lexer->column += token.length;
     return token;
   }
 
   case '{': {
     Token token = {TOKEN_LBRACE, start, 1, lexer->line};
     lexer->scope_level++;
+    lexer->column += token.length;
     return token;
   }
 
   case '(': {
     Token token = {TOKEN_LPARETH, start, 1, lexer->line};
+    lexer->column += token.length;
     return token;
   }
 
   case ')': {
     Token token = {TOKEN_RPARETH, start, 1, lexer->line};
+    lexer->column += token.length;
     return token;
   }
 
@@ -142,74 +161,86 @@ Token next_token(Lexer *lexer) {
   }
 
   case '-': {
-    
     if (*lexer->current == '>') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_ARROW, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }if (*lexer->current == '-') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_DEC, start, 2, lexer->line};
+      lexer->column += token.length;
       return token;
 
     }if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_SEQ, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
 
     Token token = {TOKEN_SUB, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
 
   case '+':
     if (*lexer->current == '+') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_INC, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
 
     } else if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_AEQ, start, 2, lexer->line};
+      lexer->column += token.length;
       return token;
     }
 
     Token token = {TOKEN_ADD, start, 1, lexer->line};
+    lexer->column += token.length;
     return token;
 
   case '*': {
 
     if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_MEQ, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
     Token token = {TOKEN_MUL, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
 
   case '/': {
     if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_DEQ, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
     Token token = {TOKEN_DIV, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
 
   case '%': {
     if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_PEQ, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
 
@@ -221,18 +252,20 @@ Token next_token(Lexer *lexer) {
       lexer->current++;
       lexer->column++;
     }
-
+    lexer->column = 0;
     return next_token(lexer);
   }
 
   case '=': {
     if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_EQT, start, 2, lexer->line};
+      lexer->column += token.length;
       return token;
     }
     Token token = {TOKEN_ASSIGN, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
 
@@ -241,56 +274,69 @@ Token next_token(Lexer *lexer) {
       lexer->current++;
       lexer->column++;
       Token token = {TOKEN_NEQ, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
 
     lex_error(lexer, "Unrecognized Token. Did you mean '!='?", "!");
     Token token = {TOKEN_EOF, start, 1, lexer->line};
+    lexer->column += token.length;
     return token;
   }
 
   case '>': {
     if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_GE, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
 
     Token token = {TOKEN_GT, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
 
   case '<': {
     if (*lexer->current == '=') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_SE, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
 
     Token token = {TOKEN_ST, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
 
   case '&': {
     if (*lexer->current == '&') {
       lexer->current++;
-      lexer->column++;
-      Token token = {TOKEN_AND, start, 3, lexer->line};
+      Token token = {TOKEN_AND, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
 
     lex_error(lexer, "Could not recognize token. Did you mean '&&' ?", "&");
     Token token = {TOKEN_EOF, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
 
   case '|': {
     if (*lexer->current == '|') {
       lexer->current++;
-      lexer->column++;
       Token token = {TOKEN_OR, start, 2, lexer->line};
+      lexer->column += token.length;
+
       return token;
     }
 
@@ -300,6 +346,8 @@ Token next_token(Lexer *lexer) {
   }
   case ',': {
     Token token = {TOKEN_COMMA, start, 1, lexer->line};
+    lexer->column += token.length;
+
     return token;
   }
   }
@@ -308,8 +356,10 @@ Token next_token(Lexer *lexer) {
   if (c == '"') {
     // Loops until it reaches closing quotes or \0.
     while (*lexer->current != '\0') {
-      if (*lexer->current == '\n')
+      if (*lexer->current == '\n'){
+        lexer->column = 0;
         lexer->line++;
+      }
 
       if (*lexer->current == '"') {
         break;
@@ -318,7 +368,7 @@ Token next_token(Lexer *lexer) {
       // Checks for escaped characters.
       if (*lexer->current == '\\') {
         lexer->current++;
-        lexer->column++;
+        lexer->column += 2;
 
         // If it reaches \0 that means it's an unterminated string.
         if (*lexer->current == '\0') {
@@ -375,6 +425,9 @@ Token next_token(Lexer *lexer) {
       lexer->current++;
       lexer->column++;
 
+
+      //this should be changed to (lexer->current >= '0' && lexer->current <= '9)
+      //Manual check more efficient, zero overhead.
       if (!isdigit((unsigned char)*lexer->current)) {
         int len = (int)(lexer->current - start);
         char temp[len + 1];
@@ -397,6 +450,8 @@ Token next_token(Lexer *lexer) {
   }
 
   // Catering for other types of Keywords
+  //this should be changed to (lexer->current >= 'a' && lexer->current <= 'z' // (Also caps))
+  //Manual check more efficient, zero overhead.
   if (isalpha(c) || c == '_') {
     // Could my_number_2...
     while (isalnum((unsigned char)*lexer->current) || *lexer->current == '_') {
@@ -409,8 +464,10 @@ Token next_token(Lexer *lexer) {
 
     // check for the type of token
     TokenType type = check_keyword(start, length);
+    
 
     Token token = {type, start, length, lexer->line};
+    lexer->column += token.length;
 
     return token;
   }

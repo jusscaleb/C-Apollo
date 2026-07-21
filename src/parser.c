@@ -52,6 +52,7 @@ __attribute__((always_inline)) static void consume(Parser *parser, TokenType typ
   }
   error(parser, errorMessage, SYNTAXERROR);
   synchronize(parser, TOKEN_SEMICOLON);
+  advance(parser);
 }
 
 /*------------------ARITHMETICS------------------*/
@@ -91,7 +92,7 @@ static ASTNode *parse_primary(Parser *parser) {
       return call_node;
     }
     return create_var_ref_node(token.start, token.length, *parser->lexer->fxn,
-                               parser->lexer->scope_level);
+                               parser->lexer->scope_level, token.line, token.column);
   }
 
   if (token.type == TOKEN_COMMA){
@@ -117,7 +118,7 @@ static ASTNode *parse_factor(Parser *parser) {
     advance(parser);
 
     ASTNode *right = parse_primary(parser);
-    left = create_binary_node(left, operator_type, right);
+    left = create_binary_node(left, operator_type, right, parser->previous.line, parser->previous.column);
   }
 
   return left;
@@ -133,7 +134,7 @@ static ASTNode *parse_expression(Parser *parser) {
     advance(parser);
 
     ASTNode *right = parse_factor(parser);
-    left = create_binary_node(left, operator_type, right);
+    left = create_binary_node(left, operator_type, right, parser->previous.line, parser->previous.column);
   }
 
   return left;
@@ -151,7 +152,7 @@ static ASTNode *parse_comparison(Parser *parser) {
     advance(parser);
 
     ASTNode *right = parse_expression(parser);
-    left = create_binary_node(left, operator_type, right);
+    left = create_binary_node(left, operator_type, right, parser->previous.line, parser->previous.column);
   }
 
   return left;
@@ -164,7 +165,7 @@ static ASTNode *parse_logical_and(Parser *parser) {
     TokenType operator_type = parser->current.type;
     advance(parser);
     ASTNode *right = parse_comparison(parser);
-    left = create_binary_node(left, operator_type, right);
+    left = create_binary_node(left, operator_type, right, parser->previous.line, parser->previous.column);
   }
   return left;
 }
@@ -176,7 +177,7 @@ static ASTNode *parse_logical_or(Parser *parser) {
     TokenType operator_type = parser->current.type;
     advance(parser);
     ASTNode *right = parse_logical_and(parser);
-    left = create_binary_node(left, operator_type, right);
+    left = create_binary_node(left, operator_type, right, parser->previous.line, parser->previous.column);
   }
   return left;
 }
@@ -189,7 +190,7 @@ static ASTNode *println(Parser *parser, CodegenContext *context) {
   // Parse whatever is inside the parentheses as a unified expression
   ASTNode *expr = parse_logical_or(parser);
 
-  ASTNode *println_node = create_println_node(expr);
+  ASTNode *println_node = create_println_node(expr, parser->previous.line, parser->previous.column);
 
   consume(parser, TOKEN_RPARETH,
           "Expected close parenthesis ')' after arguments");
@@ -284,7 +285,8 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
 
   ASTNode *var_node =
       create_var_decl_node(name_token.start, name_token.length, dt, value,
-                           *parser->lexer->fxn, parser->lexer->scope_level);
+                           *parser->lexer->fxn, parser->lexer->scope_level,
+                           name_token.line, name_token.column);
 
   // consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
@@ -295,7 +297,7 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
                                               char *potential_var_name,
                                               int NAME_LENGTH) {
   ASTNode *value;
-  set incrementation = false;
+  bool incrementation = false;
 
   TokenType alternatives[] = {TOKEN_AEQ, TOKEN_SEQ, TOKEN_MEQ, TOKEN_DEQ,
                               TOKEN_PEQ};
@@ -305,17 +307,19 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     TokenType op = parser->current.type == TOKEN_INC ? TOKEN_ADD : TOKEN_SUB;
     ASTNode *var_ref =
         create_var_ref_node(potential_var_name, NAME_LENGTH,
-                            *parser->lexer->fxn, parser->lexer->scope_level);
+                            *parser->lexer->fxn, parser->lexer->scope_level,
+                            parser->current.line, parser->current.column);
     Token one_token = {.type = TOKEN_INT,
                        .start = "1",
                        .length = 1,
-                       .line = parser->current.line};
+                       .line = parser->current.line,
+                       .column = parser->current.column};
     ASTNode *literal_one = create_literal_node(one_token);
-    value = create_binary_node(var_ref, op, literal_one);
+    value = create_binary_node(var_ref, op, literal_one, parser->current.line, parser->current.column);
     advance(parser);
   }
 
-  set is_alternative = false;
+  bool is_alternative = false;
   for (int i = 0; i <= 4; i++) {
     if (parser->current.type == alternatives[i]) {
       is_alternative = true;
@@ -345,10 +349,11 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     }
     ASTNode *var_ref =
         create_var_ref_node(potential_var_name, NAME_LENGTH,
-                            *parser->lexer->fxn, parser->lexer->scope_level);
+                            *parser->lexer->fxn, parser->lexer->scope_level,
+                            parser->current.line, parser->current.column);
     advance(parser);
     ASTNode *left = parse_logical_or(parser);
-    value = create_binary_node(var_ref, op, left);
+    value = create_binary_node(var_ref, op, left, parser->previous.line, parser->previous.column);
   }
 
   if (!incrementation) {
@@ -358,11 +363,14 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
 
   return create_var_assign_node(potential_var_name, NAME_LENGTH, value,
                                 *parser->lexer->fxn,
-                                parser->lexer->scope_level);
+                                parser->lexer->scope_level,
+                                parser->current.line, parser->current.column);
 }
 
 static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
                                char *name, int name_length) {
+  int call_line = parser->previous.line;
+  int call_col = parser->previous.column;
   consume(parser, TOKEN_LPARETH, "Expected '(' after function name.");
   Args *args;
   if(parser->current.type != TOKEN_RPARETH){
@@ -372,7 +380,7 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
   }
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
   return create_fxn_call_node(name, name_length, TYPE_NULL, *parser->lexer->fxn,
-                              parser->lexer->scope_level, args);
+                              parser->lexer->scope_level, args, call_line, call_col);
 }
 
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
@@ -389,7 +397,6 @@ static ASTNode *identifier(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_SEMICOLON,
             "Expected trailing semicolon ';' after function call.");
     
-    free(potential_name);
     return call_node;
   }
 
@@ -408,16 +415,18 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context);
 ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
 
   if (parser->current.type == TOKEN_WHILE) {
+    int line = parser->current.line, col = parser->current.column;
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('.");
     ASTNode *condition = parse_logical_or(parser);
     consume(parser, TOKEN_RPARETH, "Expected ')'.");
     ASTNode *then_block = parse_block(parser, context);
 
-    return create_while_node(condition, then_block);
+    return create_while_node(condition, then_block, line, col);
   }
 
   if (parser->current.type == TOKEN_FOR) {
+    int line = parser->current.line, col = parser->current.column;
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('");
     ASTNode *variable = var(parser, context, TYPE_NULL);
@@ -435,9 +444,10 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_RPARETH, "Expected ')'");
 
     ASTNode *then_block = parse_block(parser, context);
-    return create_for_node(variable, condition, var_operation, then_block);
+    return create_for_node(variable, condition, var_operation, then_block, line, col);
   }
   if (parser->current.type == TOKEN_IF || parser->current.type == TOKEN_ELIF) {
+    int line = parser->current.line, col = parser->current.column;
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('.");
     ASTNode *condition = parse_logical_or(parser);
@@ -453,7 +463,7 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
       else_block = parse_block(parser, context);
     }
 
-    return create_if_node(condition, then_block, else_block);
+    return create_if_node(condition, then_block, else_block, line, col);
   }
   advance(parser);
 }
@@ -490,7 +500,7 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     }
 
     ASTNode* var_node = var(parser, context, dt);
-    consume(parser, TOKEN_SEMICOLON, "Expected After Variable declaration.");
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' after Variable declaration.");
     return var_node;
 
   case TOKEN_NULL:
@@ -505,16 +515,16 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   case TOKEN_FXN:
     return parse_function(parser, context);
 
-  case TOKEN_RETURN:
+  case TOKEN_RETURN: {
+    int line = parser->current.line, col = parser->current.column;
     advance(parser);
     Fxn *fxn = (Fxn*)alloc_space(1, sizeof(Fxn));
     fxn = parser->lexer->fxn;
     ASTNode* value = parse_logical_or(parser);
-    ASTNode* ret_node = create_ret_node(context, *fxn, value);
+    ASTNode* ret_node = create_ret_node(context, *fxn, value, line, col);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
     return ret_node;
-
-
+  }
 
   default:
     error(parser, "Unrecognized token in body statement.", SYNTAXERROR);
@@ -525,9 +535,10 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 
 // parse_block() checks the innard of that function.
 static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
+  int block_line = parser->current.line, block_col = parser->current.column;
   consume(parser, TOKEN_LBRACE, "Expected open brace '{' to begin block.");
 
-  ASTNode *block = create_block_node();
+  ASTNode *block = create_block_node(block_line, block_col);
 
   while (parser->current.type != TOKEN_RBRACE &&
          parser->current.type != TOKEN_EOF) {
@@ -545,6 +556,7 @@ static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *function(Parser *parser, CodegenContext *context) {
+  int fn_line = parser->current.line, fn_col = parser->current.column;
   advance(parser);
   consume(parser, TOKEN_LPARETH,
           "Expected parameter list wrapper starting with '('.");
@@ -581,7 +593,8 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
 
   int name_length = strlen(parser->lexer->fxn->name);
   return create_function_node(parser->lexer->fxn->name, name_length, body,
-                              *parser->lexer->fxn, parser->lexer->scope_level);
+                              *parser->lexer->fxn, parser->lexer->scope_level,
+                              fn_line, fn_col);
 }
 
 ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
@@ -634,7 +647,7 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
                               .return_type = TYPE_NULL,
                               .name = "global",
                               .parent_fxn = NULL};
-  ASTNode *program_block = create_block_node();
+  ASTNode *program_block = create_block_node(parser->current.line, parser->current.column);
 
   // Checking global variables
   while (parser->current.type == TOKEN_VAR) {

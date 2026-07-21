@@ -3,6 +3,7 @@ import time
 import subprocess
 import shutil
 import json
+import math
 from datetime import datetime
 from pathlib import Path
 
@@ -30,11 +31,21 @@ def cleanup():
         except PermissionError:
             print("Warning: Could not delete temp directory due to a PermissionError. A process may still be using it.")
 
-def run_benchmark(name, source_code):
-    print(f"--- Running Benchmark: {name} ---")
-    
+def calculate_stats(values):
+    if not values:
+        return 0.0, 0.0
+    avg = sum(values) / len(values)
+    if len(values) > 1:
+        variance = sum((x - avg) ** 2 for x in values) / (len(values) - 1)
+        std_dev = math.sqrt(variance)
+    else:
+        std_dev = 0.0
+    pct_error = (std_dev / avg * 100.0) if avg > 0 else 0.0
+    return avg, pct_error
+
+def run_single_iteration(name, source_code, iteration):
     source_file = TEMP_DIR / f"{name}.apl"
-    with open(source_file, "w") as f:
+    with open(source_file, "w", encoding="utf-8") as f:
         f.write(source_code)
         
     start_compile = time.perf_counter()
@@ -48,15 +59,12 @@ def run_benchmark(name, source_code):
     compile_time = end_compile - start_compile
     
     if compile_process.returncode != 0:
-        print(f"Compilation returned non-zero code, but continuing...")
+        print(f"  [Run {iteration}] Compilation returned non-zero exit code.")
         
-    print(f"Compilation Time: {compile_time:.4f} seconds")
-    
     program_exe = TEMP_DIR / "temp" / "program.exe"
-    
     if not program_exe.exists():
-        print(f"Error: Compiled executable not found at {program_exe}")
-        return 0, 0, 0
+        print(f"  [Run {iteration}] Error: Compiled executable not found at {program_exe}")
+        return compile_time, 0.0, compile_time
         
     start_run = time.perf_counter()
     run_process = subprocess.run(
@@ -69,18 +77,47 @@ def run_benchmark(name, source_code):
     run_time = end_run - start_run
     
     if run_process.returncode != 0:
-        print(f"Execution returned non-zero code, but continuing...")
+        print(f"  [Run {iteration}] Execution returned non-zero exit code.")
         
-    print(f"Execution Time:   {run_time:.4f} seconds")
     total_time = compile_time + run_time
-    print(f"Total Time:       {total_time:.4f} seconds\n")
-    
     return compile_time, run_time, total_time
+
+def run_benchmark(name, source_code, repeats=3):
+    print(f"--- Running Benchmark: {name} ({repeats} Runs) ---")
+    
+    compile_times = []
+    run_times = []
+    total_times = []
+    
+    for i in range(1, repeats + 1):
+        ct, rt, tt = run_single_iteration(name, source_code, i)
+        compile_times.append(ct)
+        run_times.append(rt)
+        total_times.append(tt)
+        print(f"  Run {i}: Compile: {ct:.4f}s | Execute: {rt:.4f}s | Total: {tt:.4f}s")
+        
+    avg_ct, ct_err = calculate_stats(compile_times)
+    avg_rt, rt_err = calculate_stats(run_times)
+    avg_tt, tt_err = calculate_stats(total_times)
+    
+    print(f"  --> Average Compile Time: {avg_ct:.4f}s (+/-{ct_err:.2f}% Error)")
+    print(f"  --> Average Execute Time: {avg_rt:.4f}s (+/-{rt_err:.2f}% Error)")
+    print(f"  --> Average Total Time:   {avg_tt:.4f}s (+/-{tt_err:.2f}% Error)\n")
+    
+    return {
+        "compile_time": avg_ct,
+        "compile_err": ct_err,
+        "run_time": avg_rt,
+        "run_err": rt_err,
+        "total_time": avg_tt,
+        "total_err": tt_err,
+        "repeats": repeats
+    }
 
 def update_performance_log(current_run_results):
     history = []
     if HISTORY_FILE.exists():
-        with open(HISTORY_FILE, "r") as f:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
                 history = json.load(f)
             except json.JSONDecodeError:
@@ -111,10 +148,10 @@ def update_performance_log(current_run_results):
     if len(history) > 20:
         history = history[-20:]
         
-    with open(HISTORY_FILE, "w") as f:
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=4)
         
-    with open(LOG_FILE, "w") as f:
+    with open(LOG_FILE, "w", encoding="utf-8") as f:
         f.write("Apollo Performance Log\n")
         f.write("========================\n\n")
         
@@ -123,9 +160,14 @@ def update_performance_log(current_run_results):
             f.write(f"Overall Total Speed: {record['total_speed']:.4f} seconds\n")
             for b_name, b_res in record['results'].items():
                 f.write(f"  - {b_name}:\n")
-                f.write(f"      Compile: {b_res['compile_time']:.4f}s\n")
-                f.write(f"      Execute: {b_res['run_time']:.4f}s\n")
-                f.write(f"      Total:   {b_res['total_time']:.4f}s\n")
+                if 'compile_err' in b_res:
+                    f.write(f"      Compile: {b_res['compile_time']:.4f}s (+/-{b_res['compile_err']:.2f}% Error)\n")
+                    f.write(f"      Execute: {b_res['run_time']:.4f}s (+/-{b_res['run_err']:.2f}% Error)\n")
+                    f.write(f"      Total:   {b_res['total_time']:.4f}s (+/-{b_res['total_err']:.2f}% Error)\n")
+                else:
+                    f.write(f"      Compile: {b_res['compile_time']:.4f}s\n")
+                    f.write(f"      Execute: {b_res['run_time']:.4f}s\n")
+                    f.write(f"      Total:   {b_res['total_time']:.4f}s\n")
             f.write("-" * 40 + "\n")
             
         f.write("\nSummary Statistics\n")
@@ -154,39 +196,31 @@ def update_performance_log(current_run_results):
 if __name__ == "__main__":
 
     print("Apollo Performance Benchmark\n")
-    print("Note: there is a 10% error margin.")
-    print("=" * 30)
+    print("Running 3 repetitions per benchmark with Percentage Error calculation.")
+    print("=" * 60)
     setup()
     
     current_results = {}
     
     try:
         small_code = "fxn run()->(void){\n    int x = 42;\n    println(x);\n}\n"
-        ct, rt, tt = run_benchmark("small_program", small_code)
-        current_results["small_program"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
+        current_results["small_program"] = run_benchmark("small_program", small_code, repeats=3)
         
         large_compile_code = "fxn run()->(void){\n"
         for i in range(1000):
             large_compile_code += f"    int x{i} = {i};\n"
         large_compile_code += "}\n"
-        ct, rt, tt = run_benchmark("large_compilation", large_compile_code)
-        current_results["large_compilation"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
+        current_results["large_compilation"] = run_benchmark("large_compilation", large_compile_code, repeats=3)
 
         for_loop = "fxn run()->(void){\n   int x; for(int i = 0; i < 1000000; i++){ x += i;} println(x);\n}"
-        ct, rt, tt = run_benchmark("for_loop", for_loop)
-        current_results["for_loop"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
+        current_results["for_loop"] = run_benchmark("for_loop", for_loop, repeats=3)
 
         var_decl_with_dt = "fxn run()->(void){\n   int x = 5; int z; z = x + 10; println(z);\n}"
-        ct, rt, tt = run_benchmark("var_decl_with_dt", var_decl_with_dt)
-        current_results["var_decl_with_dt"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
+        current_results["var_decl_with_dt"] = run_benchmark("var_decl_with_dt", var_decl_with_dt, repeats=3)
 
         var_decl_no_dt = "fxn run()->(void){\n   var x = 5; var z; z = x + 10; println(z);\n}"
-        ct, rt, tt = run_benchmark("var_decl_no_dt", var_decl_no_dt)
-        current_results["var_decl_no_dt"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
+        current_results["var_decl_no_dt"] = run_benchmark("var_decl_no_dt", var_decl_no_dt, repeats=3)
 
-
-
-        
         update_performance_log(current_results)
         
     finally:
