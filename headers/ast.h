@@ -74,6 +74,8 @@ struct ASTNode {
   union {
     struct {
       ASTNode *function;
+      int line;
+      int column;
 
     } program;
 
@@ -84,12 +86,16 @@ struct ASTNode {
       int level;
       Fxn fxn;
       Symbol *resolved_symbol;
+      int line;
+      int column;
     } function;
 
     struct {
       ASTNode **statements;
       int count;
       int capacity;
+      int line;
+      int column;
 
     } block;
 
@@ -100,23 +106,30 @@ struct ASTNode {
       ASTNode *value;
       Fxn fxn;
       int level;
+      int line;
+      int column;
 
     } var_decl;
 
     struct {
       ASTNode *value;
+      int line;
+      int column;
 
     } println;
 
     struct {
       Token token;
-
+      int line;
+      int column;
     } literal_expr;
 
     struct {
       ASTNode *left;
       TokenType operator_type;
       ASTNode *right;
+      int line;
+      int column;
     } binary_expr;
 
     struct {
@@ -125,6 +138,8 @@ struct ASTNode {
       Fxn fxn;
       int level;
       struct Symbol *resolved_symbol;
+      int line;
+      int column;
     } var_ref;
 
     struct {
@@ -134,11 +149,15 @@ struct ASTNode {
       Fxn fxn;
       int level;
       struct Symbol *resolved_symbol;
+      int line;
+      int column;
     } var_assign;
 
     struct {
       ASTNode *left;
       ASTNode *right;
+      int line;
+      int column;
 
     } str_concat;
 
@@ -146,11 +165,15 @@ struct ASTNode {
       ASTNode *condition;
       ASTNode *then_block;
       ASTNode *else_block;
+      int line;
+      int column;
     } if_stmt;
 
     struct {
       ASTNode *condition;
       ASTNode *then_block;
+      int line;
+      int column;
     } while_lp;
 
     struct {
@@ -158,7 +181,8 @@ struct ASTNode {
       ASTNode *condtion;
       ASTNode *var_operation;
       ASTNode *then_block;
-
+      int line;
+      int column;
     } for_lp;
 
     struct {
@@ -169,13 +193,19 @@ struct ASTNode {
       int level;
       Symbol *resolved_symbol;
       Args *args;
+      int line;
+      int column;
     } call_fxn;
 
     struct {
       ASTNode* value;
       Fxn fxn;
+      int line;
+      int column;
     }ret_node;
   };
+
+  
 };
 
 /*--------------------------------------------------------------------------------
@@ -190,130 +220,48 @@ struct ASTNode {
  */
 ASTNode *create_literal_node(Token token);
 
-/**
- * Creates an AST node representing a binary operation.
- * @param left The AST node for the left operand.
- * @param operator_type The token operator type (e.g. TOKEN_ADD, TOKEN_AND).
- * @param right The AST node for the right operand.
- */
 ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
-                            ASTNode *right);
+                            ASTNode *right, int line, int column);
 
-/**
- * Creates an AST node representing a variable declaration.
- * @param name Pointer to the variable identifier character sequence.
- * @param name_length Length of the variable name identifier.
- * @param value_type The compiler DataType of the variable.
- * @param value The AST node representing the initial value expression.
- * @param fxn_name fxn the variable belongs to.
- * @param level scope level of the variable.
- */
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level);
+                              int level, int line, int column);
 
-/**
- * Creates an AST node representing a println statement.
- * @param value The AST node representing the expression to print.
- */
-ASTNode *create_println_node(ASTNode *value);
+ASTNode *create_println_node(ASTNode *value, int line, int column);
 
-/**
- * Creates an empty AST block container to hold statements.
- */
-ASTNode *create_block_node();
+ASTNode *create_block_node(int line, int column);
 
-/**
- * Creates an AST node representing a reference to a variable by name.
- * @param name Pointer to the variable identifier.
- * @param name_length Length of the variable name.
- * @param fxn_name fxn the variable belongs to.
- * @param level scope level of the variable.
- */
 ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
-                             int level);
+                             int level, int line, int column);
 
-/**
- * Creates an AST node representing a variable reassignment.
- * @param name The LLVM-compatible name of the variable.
- * @param name_length Length of the variable's LLVM name.
- * @param value The AST node representing the new value expression.
- * @param fxn_name fxn the variable belongs to.
- * @param level scope level of the variable.
- */
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, Fxn fxn, int level);
+                                ASTNode *value, Fxn fxn, int level, int line, int column);
 
-/**
- * Creates an AST node representing a string concatenation.
- * @param left The AST node of the left-hand string expression.
- * @param right The AST node of the right-hand string expression.
- */
-ASTNode *create_concat_node(ASTNode *left, ASTNode *right);
+ASTNode *create_concat_node(ASTNode *left, ASTNode *right, int line, int column);
 
-/**
- * Creates an AST node representing conditional branching (if/elif/else).
- * @param condition The AST node evaluating to the boolean condition.
- * @param then_block The AST block to execute if the condition is true.
- * @param else_block The AST block or next conditional node if the condition is
- * false.
- */
 ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
-                        ASTNode *else_block);
+                        ASTNode *else_block, int line, int column);
 
-/**
- * Creates an AST node representing a while loop.
- * @param condition The AST node evaluating to the loop condition.
- * @param then_block The AST block to execute repeatedly while condition is
- * true.
- */
-ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block);
+ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block, int line, int column);
 
-/**
- * Creates an AST node representing a for loop.
- * @param variable The AST node representing loop variable initialization.
- * @param condition The AST node representing loop continuation condition.
- * @param var_operation The AST node representing loop variable step/update.
- * @param then_block The AST block to execute repeatedly while condition is true.
- */
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
-                         ASTNode *var_operation, ASTNode *then_block);
+                         ASTNode *var_operation, ASTNode *then_block, int line, int column);
 
-/**
- * Creates an AST node representing fxn call.
- * @param name The AST node representing the name of the fxn.
- * @param name_length The AST node representing the length of the name.
- * @param return_type The AST node representing the return type of the fxn.
- * @param fxn Pointer to the function symbol.
- * @param level The scope level of the function call.
- * @param args Pointer to the list of arguments passed to the function.
- */
 ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
-                              Fxn fxn, int level, Args *args);
+                              Fxn fxn, int level, Args *args, int line, int column);
+
+ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
+                              Fxn fxn, int level, int line, int column);
+
+ASTNode *create_program_node(ASTNode *block);
+
+ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value, int line, int column);
 
 /*--------------------------------------------------------------------------------
 
                        NODE CREATION -> END
 
 ---------------------------------------------------------------------------------*/
-
-/**
- * Creates an AST node representing a function definition.
- * @param name The name of the function.
- * @param name_length Length of the function name.
- * @param body The AST block node representing the function body.
- */
-ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
-                              Fxn fxn, int level);
-
-/**
- * Creates an AST node representing the entire program.
- * @param block The block containing top-level declarations/functions.
- */
-ASTNode *create_program_node(ASTNode *block);
-
-
-ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value);
 
 
 /**
