@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
   Lexer lexer;
   lexer.current = source;
   lexer.line = 1;
+  lexer.column = 0;
   lexer.errors = &err_stack;
   lexer.scope_level = 0;
 
@@ -85,12 +86,6 @@ int main(int argc, char **argv) {
   
   // 1. Parsing Phase
   ASTNode *program_ast = compile_parse(&lexer, &err_stack, &compiler_context);
-  if (err_stack.size > 0) {
-    errorStack_seek(&err_stack);
-    errorStack_free(&err_stack);
-    free(source);
-    exit(EXIT_FAILURE);
-  }
 
   // 2. Semantic Analysis Phase
   SemanticContext semantic_ctx = { &err_stack, &compiler_context};
