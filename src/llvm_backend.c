@@ -2,6 +2,7 @@
 #include "llvm-c/Core.h"
 #include "llvm-c/Analysis.h"
 #include "llvm-c/Types.h"
+#include <stdio.h>
 #include <string.h>
 
 void _apl_load_runtime_libraries(LLVMComponents *components) {
@@ -18,34 +19,27 @@ void _apl_import_runtime(LLVMModuleRef dest_module, const char *filename) {
   LLVMMemoryBufferRef buffer = NULL;
   char *msg = NULL;
 
-  // 1. Create a memory buffer from the file
-  int success =
-      LLVMCreateMemoryBufferWithContentsOfFile(filename, &buffer, &msg);
+  int success = LLVMCreateMemoryBufferWithContentsOfFile(filename, &buffer, &msg);
 
   if (success != 0) {
     fprintf(stderr, "Error: Could not create memory buffer from file\n");
-    //LLVMDisposeMemoryBuffer(buffer);
     LLVMDisposeMessage(msg);
     return;
   }
 
-  // 2. Parse the bitcode into the same context as the destination module.
   int parse_bc = LLVMParseBitcodeInContext2(dest_module ? LLVMGetModuleContext(dest_module) : LLVMGetGlobalContext(),
                                             buffer, &src_module);
 
   if (parse_bc != 0) {
     fprintf(stderr, "Error parsing bitcode: %s\n", msg);
-    //LLVMDisposeMemoryBuffer(buffer);
     LLVMDisposeMessage(msg);
     return;
   }
 
-  // 3. Link: Merge src into dest
   int merge_src = LLVMLinkModules2(dest_module, src_module);
 
   if (merge_src != 0) {
     fprintf(stderr, "Error linking modules!\n");
-    //LLVMDisposeMemoryBuffer(buffer);
     if (msg) {
       LLVMDisposeMessage(msg);
     }
@@ -151,7 +145,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
 
     switch (stmt->Type) {
     case AST_PRINTLN:
-      _apl_gen_println_ir(components, context, stmt);
+      //_apl_gen_println_ir(components, context, stmt);
       break;
     case AST_VAR_DECL:
       _apl_create_local_variable(components, context, stmt);
@@ -170,7 +164,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       // gen_for_from_ast(context, stmt);
       break;
     case AST_CALL_FXN:
-      // gen_fxn_call_from_ast(context, stmt);
+      _apl_gen_fxn_call_from_ast(components, context, stmt);
       break;
     case AST_RET_NODE:
       // gen_return_from_ast(context, stmt);
@@ -214,6 +208,97 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
 
 }
 
+
+void _apl_gen_fxn_call_from_ast(LLVMComponents *components, CodegenContext *context, ASTNode *stmt){
+  if(memcmp(stmt->call_fxn.name, "println", 7) == 0){
+    _apl_gen_println_ir(components, context, stmt->call_fxn.args);
+    return; 
+  }
+}
+
+
+void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context, Args *args){
+    DataType arg_type = args->datatype;
+
+    LLVMValueRef println_fxn;
+    LLVMValueRef println_args;
+
+    switch (arg_type) {
+    case TYPE_INT:
+      println_fxn = LLVMGetNamedFunction(components->module, "_apl_println_int");
+      break;
+
+    case TYPE_FLOAT:
+      println_fxn = LLVMGetNamedFunction(components->module, "_apl_println_float");
+      break;
+
+    case TYPE_BOOL:
+      println_fxn = LLVMGetNamedFunction(components->module, "_apl_println_bool");
+      break;
+
+    case TYPE_CHAR:
+      break;
+    case TYPE_STRING:
+      println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_string");
+      break;
+    case TYPE_NULL:
+        println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_newline");
+
+    default:
+      break;
+    }
+
+    switch(args->arg->Type){
+
+      case AST_CALL_FXN:
+        break;
+
+      case AST_BINARY_EXPR:
+        break;
+
+      case AST_LITERAL_EXPR:{
+      ASTNode *expr = args->arg;
+      LLVMTypeRef param_types[] = { LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0) };
+      LLVMTypeRef func_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), param_types, 1, 0);
+
+      char str[expr->literal_expr.token.length - 1];
+
+      slice_string(expr->literal_expr.token, str);
+
+
+      println_args = LLVMBuildGlobalStringPtr(components->builder, str, "println_str");
+
+      LLVMBuildCall2(components->builder, func_type, println_fxn, &println_args, 1, "");
+        break;
+      }
+      case AST_VAR_REF:
+        break;
+
+      case AST_CONCAT_STR:
+        break;
+
+      default:
+        break;
+      
+    }
+
+    //LLVMBuildCall2(components->builder, LLVMGetFunctionType(println_fxn), println_fxn, &println_args, 1, "");
+
+        if (args->next) {
+        _apl_gen_println_ir(components, context, args->next);
+    } else {
+        LLVMValueRef newline_fxn = LLVMGetNamedFunction(components->module, "_apl_print_newline");
+        LLVMTypeRef newline_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
+        LLVMBuildCall2(components->builder, newline_type, newline_fxn, NULL, 0, "");
+    }
+
+    return;
+
+
+    println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_newline");
+    return;
+}
+
 void _apl_gen_function_start(LLVMComponents *components,
                              CodegenContext *context, ASTNode *block_node) {
   if (memcmp(block_node->function.name, "run", 3) == 0) {
@@ -254,61 +339,6 @@ LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn){
     }
 }
 
-
-LLVMValueRef get_or_create_string_literal(LLVMComponents *components, const char *str, int length) {
-    
-    LLVMValueRef const_str = LLVMConstStringInContext(components->ctx, str, length, false);
-    LLVMValueRef global_var = LLVMAddGlobal(components->module, LLVMTypeOf(const_str), ".str_lit");
-    
-    LLVMSetInitializer(global_var, const_str);
-    LLVMSetGlobalConstant(global_var, true);
-    LLVMSetLinkage(global_var, LLVMPrivateLinkage);
-    LLVMSetUnnamedAddress(global_var, LLVMGlobalUnnamedAddr);
-
-    LLVMValueRef indices[] = {
-        LLVMConstInt(LLVMInt32TypeInContext(components->ctx), 0, false),
-        LLVMConstInt(LLVMInt32TypeInContext(components->ctx), 0, false)
-    };
-    return LLVMBuildInBoundsGEP2(components->builder, LLVMTypeOf(const_str), global_var, indices, 2, "str_ptr");
-}
-
-
-void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context, ASTNode *block_node){
-    ASTNode *val = block_node->println.value;
-
-    if(val == NULL)return;
-
-
-    LLVMValueRef str = NULL;
-
-    if(val->Type == AST_LITERAL_EXPR){
-            Token token = val->literal_expr.token;
-
-        if(token.type == TOKEN_STRING){
-            str = get_or_create_string_literal(components, token.start + 1, token.length - 1);
-
-        }else {
-            str = get_or_create_string_literal(components, token.start, token.length);
-        }
-    }
-    else{
-    str = get_or_create_string_literal(components, "", 0 ); 
-
-    }
-    LLVMTypeRef i8_ptr = LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
-    LLVMTypeRef print_string_ty =
-        LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), &i8_ptr, 1, false);
-    LLVMTypeRef no_args_ty =
-        LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
-
-    LLVMValueRef print_string_fn = _apl_get_runtime_function(components, "_apl_print_string", print_string_ty);
-    LLVMValueRef newline_fn = _apl_get_runtime_function(components, "_apl_print_newline", no_args_ty);
-    LLVMValueRef args[] = {str};
-    LLVMBuildCall2(components->builder, print_string_ty, print_string_fn, args, 1, "");
-    LLVMBuildCall2(components->builder, no_args_ty, newline_fn, NULL, 0, "");
-}
-
-
 void _apl_create_local_variable(LLVMComponents *components, CodegenContext *context, ASTNode *var_node){
     char var_name[var_node->var_decl.name_length + 1];
     memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
@@ -347,3 +377,12 @@ void _apl_create_local_variable(LLVMComponents *components, CodegenContext *cont
 }
 
 //===================================================HELPERS======================================================>
+void slice_string(Token string, char *clean_str){
+  const char *sliced_start = string.start + 1;
+
+  int sliced_length = string.length - 1;
+  memcpy(clean_str, sliced_start, sliced_length);
+
+  clean_str[sliced_length] = '\0';
+
+}

@@ -77,9 +77,9 @@ __attribute__((always_inline)) static TokenType check_keyword(const char *start,
       if(memcmp(start, "return", 6) == 0) token = TOKEN_RETURN;
       break;
       
-    case 7:
+    /*case 7:
       if(memcmp(start, "println", 7) == 0) token = TOKEN_PRINTLN;
-      break;
+      break;*/
   }
 
   return token;

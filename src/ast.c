@@ -28,13 +28,13 @@ ASTNode *create_literal_node(Token token) {
   return node;
 }
 
-ASTNode *create_println_node(ASTNode *value) {
+/*ASTNode *create_println_node(ASTNode *value) {
   ASTNode *node = allocate_node(AST_PRINTLN);
 
   node->println.value = value;
 
   return node;
-}
+}*/
 
 ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
                             ASTNode *right) {

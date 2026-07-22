@@ -5,11 +5,10 @@
 
               The Apollo ABSTRACT SYNTAX TREE Compile Time library.
              Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
-     
+
 ------------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 =======================================================================*/
-
 
 /*--------------------------------------------------------------------------------
 
@@ -25,7 +24,6 @@
 #include <stdio.h>
 
 struct Symbol;
-
 
 // Kind of nodes to expect
 typedef enum {
@@ -56,16 +54,16 @@ typedef struct ASTNode ASTNode;
 typedef struct Params Params;
 typedef struct Args Args;
 
-typedef struct Params{
-  ASTNode* param;
-  struct Params* next;
-}Params;
+typedef struct Params {
+  ASTNode *param;
+  struct Params *next;
+} Params;
 
-typedef struct Args{
-  ASTNode* arg;
-  struct Args* next;
-}Args;
-
+typedef struct Args {
+  ASTNode *arg;
+  DataType datatype;
+  struct Args *next;
+} Args;
 
 // Stores the specified Node in the AST.
 struct ASTNode {
@@ -103,10 +101,10 @@ struct ASTNode {
 
     } var_decl;
 
-    struct {
+    /*struct {
       ASTNode *value;
-
-    } println;
+      Params param;    
+    } println;*/
 
     struct {
       Token token;
@@ -172,9 +170,9 @@ struct ASTNode {
     } call_fxn;
 
     struct {
-      ASTNode* value;
+      ASTNode *value;
       Fxn fxn;
-    }ret_node;
+    } ret_node;
   };
 };
 
@@ -274,7 +272,8 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block);
  * @param variable The AST node representing loop variable initialization.
  * @param condition The AST node representing loop continuation condition.
  * @param var_operation The AST node representing loop variable step/update.
- * @param then_block The AST block to execute repeatedly while condition is true.
+ * @param then_block The AST block to execute repeatedly while condition is
+ * true.
  */
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
                          ASTNode *var_operation, ASTNode *then_block);
@@ -312,9 +311,7 @@ ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
  */
 ASTNode *create_program_node(ASTNode *block);
 
-
 ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value);
-
 
 /**
  * Realloc more memory to the AST block
@@ -386,8 +383,6 @@ void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
  * @param call_node The AST node representing the function call.
  */
 void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node);
-
-
 
 /**
  * Generates the entry point and LLVM IR for the entire program.

@@ -38,4 +38,6 @@ typedef struct {
  */
 void analyze_semantics(SemanticContext *context, ASTNode *node);
 
+static DataType infer_expr_type(SemanticContext *context, ASTNode *expr); 
+
 #endif // SEMANTIC_H
