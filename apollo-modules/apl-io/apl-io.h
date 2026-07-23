@@ -61,11 +61,9 @@ void _apl_print_bool(int val);
 
 void _apl_print_int(int val);
 
-void _apl_print_float(double val);
-
 void _apl_print_newline();
 
-void _apl_print_float(double val);
+void _apl_print_float(float val);
 
 __attribute__((always_inline)) static void _apl_clear_();
 

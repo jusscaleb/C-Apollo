@@ -73,7 +73,7 @@ void _apl_print_int(int val){
 
 }
 
-void _apl_print_float(double val){
+void _apl_print_float(float val){
     if (val < 0){
         _apl_print_char('-');
         val = -val;
@@ -86,7 +86,7 @@ void _apl_print_float(double val){
     _apl_print_char('.');
 
     //Extracting decimal part.
-    const double _DEC_PART = val - (double)_INT_PART;
+    const float _DEC_PART = val - (float)_INT_PART;
     const long long _FRAC_PART = (long long)(_DEC_PART * 1000000.0 + 0.5); //0.5 to round off.
 
     long long _temp = _FRAC_PART;
@@ -112,6 +112,7 @@ void _apl_print_float(double val){
         _apl_print_char('0');
     }
 
+    _apl_flush();
 }
 
 
@@ -151,3 +152,4 @@ String __apl_input__(const char* __prompt__){
 
     return __input__;
 }
+

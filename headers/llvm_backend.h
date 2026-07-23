@@ -66,6 +66,8 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components, CodegenContext *cont
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context, Args *args);
 void slice_string(Token string, char *clean_str);
 
+float str_to_int_k(const char *s, int k);
+
 
 
 #endif
