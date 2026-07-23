@@ -39,6 +39,8 @@ void _apl_print_bool(int val){
     else{
         _apl_print_string("false");
     }
+
+    _apl_flush();
 }
 
 void _apl_print_newline(){
@@ -152,4 +154,3 @@ String __apl_input__(const char* __prompt__){
 
     return __input__;
 }
-

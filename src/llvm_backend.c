@@ -235,8 +235,8 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     printf("NUMMBER: %f\n", f_number);
     println_args =
         (arg_type == TYPE_INT)
-            ? LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, 0)
-            : LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_number);
+            ? LLVMConstInt(param_types[0], number, 0)
+            : LLVMConstReal(param_types[0], f_number);
     break;
   }
     /*case TYPE_FLOAT:
@@ -244,7 +244,13 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
       "_apl_print_float"); break;*/
 
   case TYPE_BOOL:
+    int b;
+    const int LENGTH = expr->literal_expr.token.length;
+
+    b = (LENGTH == 5) ? 0 : 1;
+    param_types[0] = LLVMInt1TypeInContext(components->ctx);
     println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
+    println_args = LLVMConstInt(param_types[0], b, 0);
     break;
 
   case TYPE_CHAR:
