@@ -392,7 +392,6 @@ static ASTNode *identifier(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_SEMICOLON,
             "Expected trailing semicolon ';' after function call.");
 
-    free(potential_name);
     return call_node;
   }
 

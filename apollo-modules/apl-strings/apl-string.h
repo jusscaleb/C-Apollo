@@ -37,27 +37,26 @@ typedef struct String{
 }String;
 
 
-String __apl_create_str__(const char *__str__);
+void __apl_create_str__(String *__meta_dt__, const char *__str__);
 int __apl_get_length__(const char *__str__);
 
 
 int __apl_compare_str__(String *_str_1, String *_str_2);
 
-String __apl_concat_str__(String *_str_1, String *__str_2);
+void __apl_concat_str__(String *out, String *_str_1, String *__str_2);
 
-String __apl_copy_str__(String *_str_1, String *__str_2);
+void __apl_copy_str__(String *out, String *_str_1, String *__str_2);
 
 int __apl_index__of__(String *__str__, char _char_);
 
 char __apl_char_at__(String *__str__, int _index_);
 
-String __apl_input__(char* __prompt__);
 
-String __apl_concat_str_int(String *_str_1, int _int_);
+void __apl_concat_str_int(String *out, String *_str_1, int _int_);
 
-String __apl_concat_str_bool(String *_str_1, int _bool_);
+void __apl_concat_str_bool(String *out, String *_str_1, int _bool_);
 
-String __apl_concat_str_float(String *_str_1, float _float_);
+void __apl_concat_str_float(String *out, String *_str_1, float _float_);
 
 
 #endif

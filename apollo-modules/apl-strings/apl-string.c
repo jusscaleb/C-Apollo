@@ -2,11 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-String __apl_create_str__(const char *__str__) {
-  String __meta_dt__;
-  __meta_dt__._str_ = __str__;
-  __meta_dt__._length_ = __apl_get_length__(__str__);
-  return __meta_dt__;
+void __apl_create_str__(String *__meta_dt__, const char *__str__) {
+  __meta_dt__->_str_ = __str__;
+  __meta_dt__->_length_ = __apl_get_length__(__str__);
 }
 
 int __apl_get_length__(const char *__str__) {
@@ -24,22 +22,20 @@ int __apl_compare_str__(String *_str_1, String *_str_2) {
   return memcmp(_str_1->_str_, _str_2->_str_, _str_1->_length_);
 }
 
-String __apl_concat_str__(String *_str_1, String *_str_2) {
-  String final;
-
-  final._length_ = _str_1->_length_ + _str_2->_length_;
+void __apl_concat_str__(String *out, String *_str_1, String *_str_2) {
+  out->_length_ = _str_1->_length_ + _str_2->_length_;
 
   // Best case: Empty String.
-  if (final._length_ == 0) {
-    final._str_ = "";
-    return final;
+  if (out->_length_ == 0) {
+    out->_str_ = "";
+    return;
   }
 
-  if (arena_offset + final._length_ + 1 >= _BUFFER_SIZE)
+  if (arena_offset + out->_length_ + 1 >= _BUFFER_SIZE)
     arena_offset = 0;
 
   char *new_buf = &str_arena[arena_offset];
-  arena_offset += final._length_ + 1;
+  arena_offset += out->_length_ + 1;
 
   if (_str_1->_length_ > 0)
     memcpy(new_buf, _str_1->_str_, _str_1->_length_);
@@ -47,11 +43,9 @@ String __apl_concat_str__(String *_str_1, String *_str_2) {
   if (_str_2->_length_ > 0)
     memcpy(new_buf + _str_1->_length_, _str_2->_str_, _str_2->_length_);
 
-  new_buf[final._length_] = '\0';
+  new_buf[out->_length_] = '\0';
 
-  final._str_ = new_buf;
-
-  return final;
+  out->_str_ = new_buf;
 }
 
 int __apl_index__of__(String *__str__, char _char_) {
@@ -77,7 +71,7 @@ char __apl_char_at__(String *__str__, int index) {
   return __str__->_str_[index];
 }
 
-String __apl_concat_str_int(String *_str_1, int _int_) {
+void __apl_concat_str_int(String *out, String *_str_1, int _int_) {
   char int_buf[12];
   char *int_ptr = int_buf + 11;
   *int_ptr = '\0';
@@ -106,10 +100,10 @@ String __apl_concat_str_int(String *_str_1, int _int_) {
 
   __concat_val__[total_length] = '\0';
 
-  return __apl_create_str__(__concat_val__);
+  __apl_create_str__(out, __concat_val__);
 }
 
-String __apl_concat_str_bool(String *_str_1, int _bool_) {
+void __apl_concat_str_bool(String *out, String *_str_1, int _bool_) {
   const char *bool_str = _bool_ ? "true" : "false";
   int bool_length = _bool_ ? 4 : 5;
 
@@ -122,10 +116,10 @@ String __apl_concat_str_bool(String *_str_1, int _bool_) {
 
   __concat_val__[total_length] = '\0';
 
-  return __apl_create_str__(__concat_val__);
+  __apl_create_str__(out, __concat_val__);
 }
 
-String __apl_concat_str_float(String *_str_1, float _float_) {
+void __apl_concat_str_float(String *out, String *_str_1, float _float_) {
   char float_buf[32];
   char *float_ptr = float_buf + 31;
   *float_ptr = '\0';
@@ -170,5 +164,5 @@ String __apl_concat_str_float(String *_str_1, float _float_) {
 
   __concat_val__[total_length] = '\0';
 
-  return __apl_create_str__(__concat_val__);
+  __apl_create_str__(out, __concat_val__);
 }

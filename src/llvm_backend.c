@@ -7,6 +7,7 @@
 #include <string.h>
 
 
+
 void _apl_load_runtime_libraries(LLVMComponents *components) {
   const char *libs[] = RUNTIME_LIBS;
   const size_t libs_count = sizeof(libs) / sizeof(libs[0]);
@@ -248,7 +249,7 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     const int LENGTH = expr->literal_expr.token.length;
 
     b = (LENGTH == 5) ? 0 : 1;
-    param_types[0] = LLVMInt1TypeInContext(components->ctx);
+    param_types[0] = LLVMInt32TypeInContext(components->ctx);
     println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
     println_args = LLVMConstInt(param_types[0], b, 0);
     break;
@@ -370,6 +371,7 @@ void _apl_create_local_variable(LLVMComponents *components,
   memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
   var_name[var_node->var_decl.name_length] = '\0';
 
+  ASTNode *expr = var_node->var_decl.value;
   const DataType VAR_TYPE = var_node->var_decl.value_type;
 
   LLVMValueRef var_ptr;
@@ -379,28 +381,34 @@ void _apl_create_local_variable(LLVMComponents *components,
   switch (VAR_TYPE) {
 
   case TYPE_INT:
-    var_ptr = LLVMBuildAlloca(
-        components->builder, LLVMInt32TypeInContext(components->ctx), var_name);
-    assign_val =
-        LLVMConstInt(LLVMInt32TypeInContext(components->ctx), 0, false);
-    LLVMBuildStore(components->builder, assign_val, var_ptr);
     break;
+  
+  case TYPE_STRING:{
+    char str[expr->literal_expr.token.length + 1];
 
+    slice_string(expr->literal_expr.token, str);
+    //Define llvm struct type
+    LLVMTypeRef str_members[] = {
+      LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
+      LLVMInt32TypeInContext(components->ctx)
+    };
+
+    LLVMTypeRef string_struct_type = LLVMStructTypeInContext(components->ctx, str_members, 2,false);
+    var_ptr = LLVMBuildAlloca(components->builder, string_struct_type, var_name);
+    LLVMTypeRef param_types[] = {LLVMPointerType(string_struct_type, 0), LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0)};
+    LLVMTypeRef create_str_fxn_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), param_types, 2, false);
+    LLVMValueRef create_str_fxn = LLVMGetNamedFunction(components->module, "__apl_create_str__");
+    LLVMValueRef llvm_str_lit = LLVMBuildGlobalStringPtr(components->builder, str, "str_lit");
+    LLVMValueRef args[] = { var_ptr, llvm_str_lit };
+
+    LLVMValueRef ret_struct = LLVMBuildCall2(components->builder, create_str_fxn_type, create_str_fxn, args, 2, "");
+
+    
+    break;
+  }
   default:
     break;
   }
-
-  /*LLVMValueRef x_ptr = LLVMBuildAlloca(components->builder, LLVMInt32Type(),
-  "x");
-
-  LLVMValueRef const_10 = LLVMConstInt(LLVMInt32Type(), 10, 0);
-  LLVMBuildStore(components->builder, const_10, x_ptr);
-
-  LLVMValueRef x_val = LLVMBuildLoad2(components->builder, LLVMInt32Type(),
-  x_ptr, "x_val");
-
-
-  LLVMBuildRet(components->builder, x_val);*/
 }
 
 //===================================================HELPERS======================================================>
@@ -438,21 +446,4 @@ float str_to_int_k(const char *s, int k) {
   final = (float)result / dp;
 
   return (negative) ? final * -1 : final;
-}
-
-float str_to_float(const char *s, int k) {
-  int dp = 1;
-  int result;
-  float final;
-  bool is_decimal_place = false;
-
-  for (int i = 0; i < k; i++) {
-    if (s[i] == '.') {
-      is_decimal_place = true;
-      continue;
-    }
-    result = result * 10 + (s[i] - '0');
-  }
-
-  return final;
 }
