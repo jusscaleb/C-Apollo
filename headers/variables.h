@@ -19,6 +19,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include "llvm-c/Core.h"
+
+
 
 
 typedef struct CodegenContext CodegenContext;
@@ -61,6 +64,7 @@ typedef struct Symbol {
   char* llvm_name; 
   Fxn *fxn;
   bool is_active;
+  LLVMValueRef llvm_val_ref;
 } Symbol;
 
 /**
@@ -71,7 +75,7 @@ typedef struct Symbol {
  * @param fxn The function scope the variable belongs to.
  * @param level The nesting scope level of the variable.
  */
-void register_variable(CodegenContext *context, const char *name,
+Symbol *register_variable(CodegenContext *context, const char *name,
                        DataType variable_type, Fxn *fxn, int level);
 
 /**

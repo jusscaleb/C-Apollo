@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void register_variable(CodegenContext *context, const char *name,
+Symbol *register_variable(CodegenContext *context, const char *name,
                        DataType variable_type, Fxn *fxn, int level) {
   
 
@@ -31,6 +31,7 @@ void register_variable(CodegenContext *context, const char *name,
   sym->fxn = fxn;
   sym->is_active = true;
 
+  return sym;
 }
 
 Symbol* register_fxn(CodegenContext *context, const char *name,

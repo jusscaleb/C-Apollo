@@ -98,7 +98,7 @@ struct ASTNode {
       ASTNode *value;
       Fxn fxn;
       int level;
-
+      struct Symbol *resolved_symbol;
     } var_decl;
 
     /*struct {
