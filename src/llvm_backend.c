@@ -134,9 +134,6 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       continue;
 
     switch (stmt->Type) {
-    case AST_PRINTLN:
-      //_apl_gen_println_ir(components, context, stmt);
-      break;
     case AST_VAR_DECL:
       _apl_create_local_variable(components, context, stmt);
       break;
@@ -224,6 +221,10 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
 
     if(expr->Type == AST_VAR_REF){
       println_args = load_variable(components, expr);
+      break;
+    }
+    if(expr->Type == AST_BINARY_EXPR){
+      println_args = arihmetics(components, expr, "");
       break;
     }
 
@@ -366,7 +367,6 @@ void _apl_create_local_variable(LLVMComponents *components,
 
   ASTNode *expr = var_node->var_decl.value;
   const DataType VAR_TYPE = var_node->var_decl.value_type;
-  const int LENGTH = expr->literal_expr.token.length;
 
   LLVMValueRef var_ptr;
   LLVMValueRef assign_val;
@@ -375,6 +375,8 @@ void _apl_create_local_variable(LLVMComponents *components,
   switch (VAR_TYPE) {
 
   case TYPE_BOOL:{
+    const int LENGTH = expr->literal_expr.token.length;
+
     int b_val = (LENGTH == 5) ? 0 : 1;
 
     var_ptr = LLVMBuildAlloca(components->builder, LLVMInt1TypeInContext(components->ctx), var_name);
@@ -384,28 +386,45 @@ void _apl_create_local_variable(LLVMComponents *components,
     break;
   }
   case TYPE_FLOAT:{
+    LLVMValueRef val;
+
+    if(expr->Type == AST_LITERAL_EXPR){
+    const int LENGTH = expr->literal_expr.token.length;
+
     char f_str[LENGTH + 1];
     memcpy(f_str, expr->literal_expr.token.start, LENGTH);
     f_str[LENGTH] = '\0';
 
     float f_val = str_to_int_k(f_str, LENGTH);
+    val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
+    }
+    else{
+      val = arihmetics(components, expr, "");
+
+    }
 
     var_ptr = LLVMBuildAlloca(components->builder, LLVMFloatTypeInContext(components->ctx), var_name);
-    LLVMBuildStore(components->builder, LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val), var_ptr);
+    LLVMBuildStore(components->builder, val, var_ptr);
 
 
     break;
   }
   case TYPE_INT:{
-    char i_str[LENGTH + 1];
+    LLVMValueRef val;
+    if(expr->Type == AST_LITERAL_EXPR){
+    const int LENGTH = expr->literal_expr.token.length;
 
+    char i_str[LENGTH + 1];
     memcpy(i_str, expr->literal_expr.token.start, LENGTH);
     i_str[LENGTH] = '\0';
-
     int i_val = (int) str_to_int_k(i_str, LENGTH);
+    val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val ,0);
+    }else{
+      val = arihmetics(components, expr , "");
+    }
 
     var_ptr = LLVMBuildAlloca(components->builder, LLVMInt32TypeInContext(components->ctx), var_name);
-    LLVMBuildStore(components->builder, LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val ,0), var_ptr);
+    LLVMBuildStore(components->builder, val , var_ptr);
     break;
 
   }
@@ -512,4 +531,37 @@ float str_to_int_k(const char *s, int k) {
   final = (float)result / dp;
 
   return (negative) ? final * -1 : final;
+}
+
+LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node, char *result_name) {
+  if (!node) return NULL;
+
+  if (node->Type == AST_LITERAL_EXPR) {
+    int val = (int)str_to_int_k(node->literal_expr.token.start, node->literal_expr.token.length);
+    return LLVMConstInt(LLVMInt32TypeInContext(components->ctx), val, 0);
+  }
+
+  if (node->Type == AST_VAR_REF) {
+    return load_variable(components, node);
+  }
+
+  if (node->Type == AST_BINARY_EXPR) {
+    LLVMValueRef left = arihmetics(components, node->binary_expr.left, "left_tmp");
+    LLVMValueRef right = arihmetics(components, node->binary_expr.right, "right_tmp");
+
+    switch (node->binary_expr.operator_type) {
+      case TOKEN_ADD:
+        return LLVMBuildAdd(components->builder, left, right, result_name);
+      case TOKEN_SUB:
+        return LLVMBuildSub(components->builder, left, right, result_name);
+      case TOKEN_DIV:
+        return LLVMBuildSDiv(components->builder, left, right, result_name);
+      case TOKEN_MUL:
+        return LLVMBuildMul(components->builder, left, right, result_name);
+      default:
+        return NULL;
+    }
+  }
+
+  return NULL;
 }
