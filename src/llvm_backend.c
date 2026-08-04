@@ -1,5 +1,6 @@
 #include "../headers/llvm_backend.h"
 #include "llvm-c/Core.h"
+#include <stdio.h>
 
 
 void _apl_load_runtime_libraries(LLVMComponents *components) {
@@ -224,17 +225,22 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
             : LLVMConstReal(param_types[0], f_number);
     break;
   }
-    /*case TYPE_FLOAT:
-      println_fxn = LLVMGetNamedFunction(components->module,
-      "_apl_print_float"); break;*/
 
   case TYPE_BOOL:
+    param_types[0] = LLVMInt1TypeInContext(components->ctx);
+    println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
+
+    if(expr->Type == AST_VAR_REF){
+      println_args = load_variable(components, expr);
+      
+      break;
+    }
+
     int b;
     const int LENGTH = expr->literal_expr.token.length;
 
+
     b = (LENGTH == 5) ? 0 : 1;
-    param_types[0] = LLVMInt32TypeInContext(components->ctx);
-    println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
     println_args = LLVMConstInt(param_types[0], b, 0);
     break;
 
@@ -464,6 +470,7 @@ __attribute__((always_inline)) LLVMValueRef load_variable(LLVMComponents *compon
   
     }
     case TYPE_BOOL:{
+      llvm_var = LLVMBuildLoad2(components->builder, LLVMInt1TypeInContext(components->ctx), var_sym->llvm_val_ref, var_sym->name);
       break;
 
     }
