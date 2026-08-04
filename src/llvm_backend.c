@@ -1,4 +1,5 @@
 #include "../headers/llvm_backend.h"
+#include "llvm-c/Core.h"
 
 
 void _apl_load_runtime_libraries(LLVMComponents *components) {
@@ -569,16 +570,18 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
     }
 
     case TYPE_FLOAT:{
+      float f_val = str_to_int_k(val, literal_expr.length);
+      new_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
       break;
     }
     case TYPE_STRING: {
-
       break;
 
     }
 
     case TYPE_BOOL:{
-
+      int b_val = (literal_expr.length == 5) ? 0 : 1;
+      new_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
       break;
     }
     
