@@ -21,6 +21,11 @@
 #include <llvm-c/Target.h>
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Types.h>
+#include "llvm-c/Analysis.h"
+#include "llvm-c/Core.h"
+#include "llvm-c/Types.h"
+#include <stdbool.h>
+
 
 
 #define RUNTIME_LIBS                                                           \
@@ -83,6 +88,8 @@ __attribute__((always_inline)) void slice_string(Token string, char *clean_str);
 __attribute__((always_inline)) LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node);
 
 LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node, char *result_name);
+
+void _apl_reassign_variable(LLVMComponents *components,CodegenContext *context, ASTNode *node);
 
 float str_to_int_k(const char *s, int k);
 

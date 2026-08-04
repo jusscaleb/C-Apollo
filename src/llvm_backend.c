@@ -1,11 +1,4 @@
 #include "../headers/llvm_backend.h"
-#include "llvm-c/Analysis.h"
-#include "llvm-c/Core.h"
-#include "llvm-c/Types.h"
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-
 
 
 void _apl_load_runtime_libraries(LLVMComponents *components) {
@@ -138,7 +131,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       _apl_create_local_variable(components, context, stmt);
       break;
     case AST_VAR_ASS:
-      // gen_var_assign_from_ast(context, stmt);
+    _apl_reassign_variable(components, context, stmt);
       break;
     case AST_IF:
       // gen_if_from_ast(context, stmt);
@@ -154,28 +147,10 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       _apl_gen_fxn_call_from_ast(components, context, stmt);
       break;
     case AST_RET_NODE:
-      // gen_return_from_ast(context, stmt);
+      _apl_gen_function_end(components, context, stmt);
+
       break;
     case AST_FUNCTION: {
-      /*if (stmt->function.fxn.parent_fxn != NULL &&
-      strcmp(stmt->function.fxn.parent_fxn->name, "global") != 0) {
-        // It's a nested function, defer it to avoid nested LLVM definitions!
-        if (context->deferred_count >= context->deferred_capacity) {
-          context->deferred_capacity = context->deferred_capacity == 0 ? 8 :
-      context->deferred_capacity * 2; context->deferred_functions =
-      realloc(context->deferred_functions, context->deferred_capacity *
-      sizeof(ASTNode*));
-        }
-        context->deferred_functions[context->deferred_count++] = stmt;
-      } else {
-        // It's a global function, generate normally
-        gen_function_start(context, stmt);
-        gen_block_from_ast(context, stmt->function.body);
-        gen_function_end(context,
-      strcmp(stmt->function.resolved_symbol->llvm_name, "run") == 0,
-      stmt->function.fxn.return_type);
-      }*/
-
       _apl_gen_function_start(components, context, stmt);
       _apl_gen_block_from_ast(components, context, stmt->function.body);
       _apl_gen_function_end(components, context, stmt);
@@ -282,10 +257,15 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     break;
   }
   case TYPE_NULL:
-    println_fxn =
-        LLVMGetNamedFunction(components->module, "_apl_print_newline");
+      char null_str[4] = "null";
+
+      
+
+    break;
 
   default:
+      println_fxn =
+        LLVMGetNamedFunction(components->module, "_apl_print_newline");
     break;
   }
 
@@ -300,10 +280,8 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     _apl_gen_println_ir(components, context, args->next);
   } 
 
-    LLVMValueRef newline_fxn =
-        LLVMGetNamedFunction(components->module, "_apl_print_newline");
-    LLVMTypeRef newline_type = LLVMFunctionType(
-        LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
+    LLVMValueRef newline_fxn = LLVMGetNamedFunction(components->module, "_apl_print_newline");
+    LLVMTypeRef newline_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
     LLVMBuildCall2(components->builder, newline_type, newline_fxn, NULL, 0, "");
   
 
@@ -361,6 +339,7 @@ LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
 
 void _apl_create_local_variable(LLVMComponents *components,
                                 CodegenContext *context, ASTNode *var_node) {
+
   char var_name[var_node->var_decl.name_length + 1];
   memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
   var_name[var_node->var_decl.name_length] = '\0';
@@ -564,4 +543,50 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node, char *result_
   }
 
   return NULL;
+}
+
+void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context, ASTNode *node){
+  
+  DataType var_Type = node->var_assign.resolved_symbol->type;
+
+  LLVMValueRef var = node->var_assign.resolved_symbol->llvm_val_ref;
+  LLVMValueRef new_val;
+
+  Token literal_expr = node->var_assign.value->literal_expr.token;
+  char val[literal_expr.length + 1];
+
+  if(node->Type == AST_VAR_ASS){
+  memcpy(val, literal_expr.start , literal_expr.length);
+  val[literal_expr.length] = '\0';
+
+  }
+
+  switch(var_Type){
+    case TYPE_INT: {
+      int i_val = (int) str_to_int_k(val, literal_expr.length);
+      new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val , 0);
+      break;
+    }
+
+    case TYPE_FLOAT:{
+      break;
+    }
+    case TYPE_STRING: {
+
+      break;
+
+    }
+
+    case TYPE_BOOL:{
+
+      break;
+    }
+    
+
+
+    default:
+      break;
+  }
+
+  LLVMBuildStore(components->builder, new_val, var);
 }

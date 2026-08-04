@@ -464,8 +464,8 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
 static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   switch (parser->current.type) {
 
-  /*case TOKEN_PRINTLN:
-    return println(parser, context);*/
+    /*case TOKEN_PRINTLN:
+      return println(parser, context);*/
 
   case TOKEN_VAR:
   case DECLARE_INT:
