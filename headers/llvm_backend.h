@@ -96,6 +96,9 @@ void _apl_reassign_variable(LLVMComponents *components,CodegenContext *context, 
 void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context, ASTNode *node);
 void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context, ASTNode *node);
 
+void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context, ASTNode *node);
+
+
 
 float str_to_int_k(const char *s, int k);
 

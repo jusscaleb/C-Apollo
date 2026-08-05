@@ -130,12 +130,20 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       continue;
 
     switch (stmt->Type) {
-    case AST_VAR_DECL: _apl_create_local_variable(components, context, stmt); break;
-    case AST_VAR_ASS:  _apl_reassign_variable(components, context, stmt);     break;
-    case AST_IF:       _apl_gen_if_block(components, context, stmt);          break;
-    case AST_WHILE:   _apl_gen_while_loop(components,context, stmt);          break;
+    case AST_VAR_DECL:
+      _apl_create_local_variable(components, context, stmt);
+      break;
+    case AST_VAR_ASS:
+      _apl_reassign_variable(components, context, stmt);
+      break;
+    case AST_IF:
+      _apl_gen_if_block(components, context, stmt);
+      break;
+    case AST_WHILE:
+      _apl_gen_while_loop(components, context, stmt);
+      break;
     case AST_FOR:
-      // gen_for_from_ast(context, stmt);
+      _apl_gen_for_loop(components, context, stmt);
       break;
     case AST_CALL_FXN:
       _apl_gen_fxn_call_from_ast(components, context, stmt);
@@ -169,60 +177,149 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
   }
 }
 
-void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context, ASTNode *node){
+void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
+                       ASTNode *node) {
   ASTNode *cond = node->if_stmt.condition;
   ASTNode *then = node->if_stmt.then_block;
   ASTNode *elseB = node->if_stmt.else_block;
   LLVMValueRef cond_gen;
 
-
-  if(cond->Type == AST_LITERAL_EXPR && cond->literal_expr.token.type != TYPE_NULL) cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
-  else if(cond->Type == AST_BINARY_EXPR)                        cond_gen = arihmetics(components, cond, "");
-  else                                                          cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0);
+  if (cond->Type == AST_LITERAL_EXPR &&
+      cond->literal_expr.token.type != TYPE_NULL)
+    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+  else if (cond->Type == AST_BINARY_EXPR)
+    cond_gen = arihmetics(components, cond, "");
+  else
+    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0);
 
   LLVMBasicBlockRef thenBB = LLVMAppendBasicBlock(components->current_fxn, "");
-  LLVMBasicBlockRef elseBB = (elseB) ? LLVMAppendBasicBlock(components->current_fxn, "") : NULL;
+  LLVMBasicBlockRef elseBB =
+      (elseB) ? LLVMAppendBasicBlock(components->current_fxn, "") : NULL;
   LLVMBasicBlockRef mergeBB = LLVMAppendBasicBlock(components->current_fxn, "");
 
-  LLVMBuildCondBr(components->builder, cond_gen, thenBB, elseBB ? elseBB : mergeBB);
+  LLVMBuildCondBr(components->builder, cond_gen, thenBB,
+                  elseBB ? elseBB : mergeBB);
 
   LLVMPositionBuilderAtEnd(components->builder, thenBB);
 
   _apl_gen_block_from_ast(components, context, then);
 
-   LLVMBuildBr(components->builder, mergeBB);
+  LLVMBuildBr(components->builder, mergeBB);
   if (elseBB) {
-        LLVMPositionBuilderAtEnd(components->builder, elseBB);
-        _apl_gen_block_from_ast(components, context, elseB);
-        LLVMBuildBr(components->builder, mergeBB);
-    }
-
+    LLVMPositionBuilderAtEnd(components->builder, elseBB);
+    _apl_gen_block_from_ast(components, context, elseB);
+    LLVMBuildBr(components->builder, mergeBB);
+  }
 
   LLVMPositionBuilderAtEnd(components->builder, mergeBB);
 }
 
-void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context, ASTNode *node) {
+void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
+                         ASTNode *node) {
   ASTNode *cond = node->while_lp.condition;
   ASTNode *then = node->while_lp.then_block;
 
-  LLVMBasicBlockRef condBB  = LLVMAppendBasicBlock(components->current_fxn, "while_cond");
-  LLVMBasicBlockRef thenBB  = LLVMAppendBasicBlock(components->current_fxn, "while_body");
-  LLVMBasicBlockRef afterBB = LLVMAppendBasicBlock(components->current_fxn, "while_end");
+  LLVMBasicBlockRef condBB =
+      LLVMAppendBasicBlock(components->current_fxn, "while_cond");
+  LLVMBasicBlockRef thenBB =
+      LLVMAppendBasicBlock(components->current_fxn, "while_body");
+  LLVMBasicBlockRef afterBB =
+      LLVMAppendBasicBlock(components->current_fxn, "while_end");
 
   LLVMBuildBr(components->builder, condBB);
 
   LLVMPositionBuilderAtEnd(components->builder, condBB);
   LLVMValueRef cond_gen;
-  if (cond->Type == AST_BINARY_EXPR) cond_gen = arihmetics(components, cond, "");
-  else if (cond->Type == AST_LITERAL_EXPR && cond->literal_expr.token.type != TOKEN_NULL) cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
-  else                                cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0); LLVMBuildCondBr(components->builder, cond_gen, thenBB, afterBB);
+  if (cond->Type == AST_BINARY_EXPR)
+    cond_gen = arihmetics(components, cond, "");
+  else if (cond->Type == AST_LITERAL_EXPR &&
+           cond->literal_expr.token.type != TOKEN_NULL)
+    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+  else
+    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0);
+  LLVMBuildCondBr(components->builder, cond_gen, thenBB, afterBB);
 
   LLVMPositionBuilderAtEnd(components->builder, thenBB);
   _apl_gen_block_from_ast(components, context, then);
-  LLVMBuildBr(components->builder, condBB);  
+  LLVMBuildBr(components->builder, condBB);
 
   LLVMPositionBuilderAtEnd(components->builder, afterBB);
 }
+
+
+void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
+                       ASTNode *node) {
+  ASTNode *init = node->for_lp.variable;
+  ASTNode *cond = node->for_lp.condtion;
+  ASTNode *step = node->for_lp.var_operation;
+  ASTNode *body = node->for_lp.then_block;
+
+  if (init != NULL) {
+    if (init->Type == AST_VAR_DECL) {
+      _apl_create_local_variable(components, context, init);
+    } else if (init->Type == AST_VAR_ASS) {
+      _apl_reassign_variable(components, context, init);
+    }
+  }
+
+  LLVMBasicBlockRef condBB =
+      LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef bodyBB =
+      LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef stepBB =
+      LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef afterBB =
+      LLVMAppendBasicBlock(components->current_fxn, "");
+
+  LLVMBuildBr(components->builder, condBB);
+
+  LLVMPositionBuilderAtEnd(components->builder, condBB);
+  LLVMValueRef cond_gen;
+  if (cond != NULL) {
+    if (cond->Type == AST_BINARY_EXPR) {
+      cond_gen = arihmetics(components, cond, "");
+    } else if (cond->Type == AST_LITERAL_EXPR &&
+               cond->literal_expr.token.type != TOKEN_NULL) {
+      cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+    } else if (cond->Type == AST_VAR_REF) {
+      cond_gen = load_variable(components, cond);
+    } else {
+      cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+    }
+  } else {
+    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+  }
+  LLVMBuildCondBr(components->builder, cond_gen, bodyBB, afterBB);
+
+  LLVMPositionBuilderAtEnd(components->builder, bodyBB);
+  if (body != NULL) {
+    if (body->Type == AST_BLOCK) {
+      _apl_gen_block_from_ast(components, context, body);
+    } else if (body->Type == AST_VAR_DECL) {
+      _apl_create_local_variable(components, context, body);
+    } else if (body->Type == AST_VAR_ASS) {
+      _apl_reassign_variable(components, context, body);
+    } else if (body->Type == AST_CALL_FXN) {
+      _apl_gen_fxn_call_from_ast(components, context, body);
+    }
+  }
+  LLVMBuildBr(components->builder, stepBB);
+
+  LLVMPositionBuilderAtEnd(components->builder, stepBB);
+  if (step != NULL) {
+    if (step->Type == AST_VAR_ASS) {
+      _apl_reassign_variable(components, context, step);
+    } else if (step->Type == AST_VAR_DECL) {
+      _apl_create_local_variable(components, context, step);
+    } else if (step->Type == AST_CALL_FXN) {
+      _apl_gen_fxn_call_from_ast(components, context, step);
+    }
+  }
+  LLVMBuildBr(components->builder, condBB);
+
+  LLVMPositionBuilderAtEnd(components->builder, afterBB);
+}
+
 
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args) {
@@ -405,23 +502,20 @@ void _apl_create_local_variable(LLVMComponents *components,
   case TYPE_BOOL: {
     LLVMValueRef val;
 
-    
-    if(expr->Type == AST_LITERAL_EXPR){
-    const int LENGTH = expr->literal_expr.token.length;
+    if (expr->Type == AST_LITERAL_EXPR) {
+      const int LENGTH = expr->literal_expr.token.length;
 
-    int b_val = (LENGTH == 5) ? 0 : 1;
+      int b_val = (LENGTH == 5) ? 0 : 1;
 
-    var_ptr = LLVMBuildAlloca(components->builder,
-                              LLVMInt1TypeInContext(components->ctx), var_name);
-    val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
-    }else{
+      var_ptr =
+          LLVMBuildAlloca(components->builder,
+                          LLVMInt1TypeInContext(components->ctx), var_name);
+      val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
+    } else {
       val = arihmetics(components, expr, "");
     }
 
-    LLVMBuildStore(
-        components->builder,
-        val,
-        var_ptr);
+    LLVMBuildStore(components->builder, val, var_ptr);
 
     break;
   }
@@ -605,59 +699,83 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
     LLVMValueRef right =
         arihmetics(components, node->binary_expr.right, "right_tmp");
 
-    
     switch (node->binary_expr.operator_type) {
-    case TOKEN_ADD: return LLVMBuildAdd             (components->builder, left, right, result_name);
-    case TOKEN_SUB: return LLVMBuildSub             (components->builder, left, right, result_name);
-    case TOKEN_DIV: return LLVMBuildSDiv            (components->builder, left, right, result_name);
-    case TOKEN_MUL: return LLVMBuildMul             (components->builder, left, right, result_name);
+    case TOKEN_ADD:
+      return LLVMBuildAdd(components->builder, left, right, result_name);
+    case TOKEN_SUB:
+      return LLVMBuildSub(components->builder, left, right, result_name);
+    case TOKEN_DIV:
+      return LLVMBuildSDiv(components->builder, left, right, result_name);
+    case TOKEN_MUL:
+      return LLVMBuildMul(components->builder, left, right, result_name);
 
-    //Comparisons
-    case TOKEN_GT: return LLVMBuildICmp (components->builder, LLVMIntSGT, left, right, result_name);
-    case TOKEN_ST: return LLVMBuildICmp (components->builder, LLVMIntSLT, left, right, result_name);
-    case TOKEN_GE: return LLVMBuildICmp (components->builder, LLVMIntSGE, left, right, result_name);
-    case TOKEN_SE: return LLVMBuildICmp (components->builder, LLVMIntSLE, left, right, result_name);
-    case TOKEN_EQT: return LLVMBuildICmp(components->builder, LLVMIntEQ, left, right,  result_name);
-    case TOKEN_NEQ: return LLVMBuildICmp(components->builder, LLVMIntNE, left, right,  result_name);
-    
+    // Comparisons
+    case TOKEN_GT:
+      return LLVMBuildICmp(components->builder, LLVMIntSGT, left, right,
+                           result_name);
+    case TOKEN_ST:
+      return LLVMBuildICmp(components->builder, LLVMIntSLT, left, right,
+                           result_name);
+    case TOKEN_GE:
+      return LLVMBuildICmp(components->builder, LLVMIntSGE, left, right,
+                           result_name);
+    case TOKEN_SE:
+      return LLVMBuildICmp(components->builder, LLVMIntSLE, left, right,
+                           result_name);
+    case TOKEN_EQT:
+      return LLVMBuildICmp(components->builder, LLVMIntEQ, left, right,
+                           result_name);
+    case TOKEN_NEQ:
+      return LLVMBuildICmp(components->builder, LLVMIntNE, left, right,
+                           result_name);
 
-    //Conditions
-    case TOKEN_AND: return LLVMBuildAnd(components->builder, left, right, result_name);
-    case TOKEN_OR:  return LLVMBuildOr(components->builder, left, right,  result_name);
+    // Conditions
+    case TOKEN_AND:
+      return LLVMBuildAnd(components->builder, left, right, result_name);
+    case TOKEN_OR:
+      return LLVMBuildOr(components->builder, left, right, result_name);
     default:
       return NULL;
     }
 
-  return NULL;
-}
+    return NULL;
+  }
 }
 
 void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
                             ASTNode *node) {
 
   DataType var_Type = node->var_assign.resolved_symbol->type;
-
   LLVMValueRef var = node->var_assign.resolved_symbol->llvm_val_ref;
   LLVMValueRef new_val;
-
-  Token literal_expr = node->var_assign.value->literal_expr.token;
-  char val[literal_expr.length + 1];
-
-  if (node->Type == AST_VAR_ASS) {
-    memcpy(val, literal_expr.start, literal_expr.length);
-    val[literal_expr.length] = '\0';
-  }
+  ASTNode *value_node = node->var_assign.value;
 
   switch (var_Type) {
   case TYPE_INT: {
-    int i_val = (int)str_to_int_k(val, literal_expr.length);
-    new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
+    if (value_node->Type == AST_LITERAL_EXPR) {
+      Token tok = value_node->literal_expr.token;
+      char val[tok.length + 1];
+      memcpy(val, tok.start, tok.length);
+      val[tok.length] = '\0';
+      int i_val = (int)str_to_int_k(val, tok.length);
+      new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
+    } else {
+      new_val = arihmetics(components, value_node, "");
+    }
     break;
   }
 
   case TYPE_FLOAT: {
-    float f_val = str_to_int_k(val, literal_expr.length);
-    new_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
+    if (value_node->Type == AST_LITERAL_EXPR) {
+      Token tok = value_node->literal_expr.token;
+      char val[tok.length + 1];
+      memcpy(val, tok.start, tok.length);
+      val[tok.length] = '\0';
+      float f_val = str_to_int_k(val, tok.length);
+      new_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
+    } else {
+      new_val = arihmetics(components, value_node, "");
+    }
     break;
   }
   case TYPE_STRING: {
@@ -665,8 +783,12 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
   }
 
   case TYPE_BOOL: {
-    int b_val = (literal_expr.length == 5) ? 0 : 1;
-    new_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
+    if (value_node->Type == AST_LITERAL_EXPR) {
+      int b_val = (value_node->literal_expr.token.length == 5) ? 0 : 1;
+      new_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
+    } else {
+      new_val = arihmetics(components, value_node, "");
+    }
     break;
   }
   default:
