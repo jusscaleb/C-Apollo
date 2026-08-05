@@ -101,11 +101,6 @@ struct ASTNode {
       struct Symbol *resolved_symbol;
     } var_decl;
 
-    /*struct {
-      ASTNode *value;
-      Params param;    
-    } println;*/
-
     struct {
       Token token;
 
