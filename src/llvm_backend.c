@@ -1,5 +1,6 @@
 #include "../headers/llvm_backend.h"
 #include "llvm-c/Core.h"
+#include "llvm-c/Types.h"
 #include <stdio.h>
 
 void _apl_load_runtime_libraries(LLVMComponents *components) {
@@ -351,16 +352,24 @@ void _apl_create_local_variable(LLVMComponents *components,
   switch (VAR_TYPE) {
 
   case TYPE_BOOL: {
+    LLVMValueRef val;
+
+    
+    if(expr->Type == AST_LITERAL_EXPR){
     const int LENGTH = expr->literal_expr.token.length;
 
     int b_val = (LENGTH == 5) ? 0 : 1;
 
     var_ptr = LLVMBuildAlloca(components->builder,
                               LLVMInt1TypeInContext(components->ctx), var_name);
+    val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
+    }else{
+      val = arihmetics(components, expr, "");
+    }
 
     LLVMBuildStore(
         components->builder,
-        LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0),
+        val,
         var_ptr);
 
     break;
@@ -545,21 +554,34 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
     LLVMValueRef right =
         arihmetics(components, node->binary_expr.right, "right_tmp");
 
+    
     switch (node->binary_expr.operator_type) {
-    case TOKEN_ADD:
-      return LLVMBuildAdd(components->builder, left, right, result_name);
-    case TOKEN_SUB:
-      return LLVMBuildSub(components->builder, left, right, result_name);
-    case TOKEN_DIV:
-      return LLVMBuildSDiv(components->builder, left, right, result_name);
-    case TOKEN_MUL:
-      return LLVMBuildMul(components->builder, left, right, result_name);
+    case TOKEN_ADD: return LLVMBuildAdd             (components->builder, left, right, result_name);
+    case TOKEN_SUB: return LLVMBuildSub             (components->builder, left, right, result_name);
+    case TOKEN_DIV: return LLVMBuildSDiv            (components->builder, left, right, result_name);
+    case TOKEN_MUL: return LLVMBuildMul             (components->builder, left, right, result_name);
+
+    //Comparisons
+    case TOKEN_GT: return LLVMBuildICmp (components->builder, LLVMIntSGT, left, right, result_name);
+    case TOKEN_ST: return LLVMBuildICmp (components->builder, LLVMIntSLT, left, right, result_name);
+    case TOKEN_GE: return LLVMBuildICmp (components->builder, LLVMIntSGE, left, right, result_name);
+    case TOKEN_SE: return LLVMBuildICmp (components->builder, LLVMIntSLE, left, right, result_name);
+    case TOKEN_EQT: return LLVMBuildICmp(components->builder, LLVMIntEQ, left, right,  result_name);
+    case TOKEN_NEQ: return LLVMBuildICmp(components->builder, LLVMIntNE, left, right,  result_name);
+    
+
+    //Conditions
+    case TOKEN_AND: return LLVMBuildAnd(components->builder, left, right, result_name);
+    case TOKEN_OR:  return LLVMBuildOr(components->builder, left, right,  result_name);
     default:
       return NULL;
     }
-  }
+  
+
+
 
   return NULL;
+}
 }
 
 void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
