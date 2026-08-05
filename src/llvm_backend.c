@@ -133,10 +133,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
     case AST_VAR_DECL: _apl_create_local_variable(components, context, stmt); break;
     case AST_VAR_ASS:  _apl_reassign_variable(components, context, stmt);     break;
     case AST_IF:       _apl_gen_if_block(components, context, stmt);          break;
-
-    case AST_WHILE:
-      // gen_while_from_ast(context, stmt);
-      break;
+    case AST_WHILE:   _apl_gen_while_loop(components,context, stmt);          break;
     case AST_FOR:
       // gen_for_from_ast(context, stmt);
       break;
@@ -204,6 +201,28 @@ void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context, ASTN
   LLVMPositionBuilderAtEnd(components->builder, mergeBB);
 }
 
+void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context, ASTNode *node) {
+  ASTNode *cond = node->while_lp.condition;
+  ASTNode *then = node->while_lp.then_block;
+
+  LLVMBasicBlockRef condBB  = LLVMAppendBasicBlock(components->current_fxn, "while_cond");
+  LLVMBasicBlockRef thenBB  = LLVMAppendBasicBlock(components->current_fxn, "while_body");
+  LLVMBasicBlockRef afterBB = LLVMAppendBasicBlock(components->current_fxn, "while_end");
+
+  LLVMBuildBr(components->builder, condBB);
+
+  LLVMPositionBuilderAtEnd(components->builder, condBB);
+  LLVMValueRef cond_gen;
+  if (cond->Type == AST_BINARY_EXPR) cond_gen = arihmetics(components, cond, "");
+  else if (cond->Type == AST_LITERAL_EXPR && cond->literal_expr.token.type != TOKEN_NULL) cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+  else                                cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0); LLVMBuildCondBr(components->builder, cond_gen, thenBB, afterBB);
+
+  LLVMPositionBuilderAtEnd(components->builder, thenBB);
+  _apl_gen_block_from_ast(components, context, then);
+  LLVMBuildBr(components->builder, condBB);  
+
+  LLVMPositionBuilderAtEnd(components->builder, afterBB);
+}
 
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args) {
