@@ -2,7 +2,6 @@
 #include "llvm-c/Core.h"
 #include <stdio.h>
 
-
 void _apl_load_runtime_libraries(LLVMComponents *components) {
   const char *libs[] = RUNTIME_LIBS;
   const size_t libs_count = sizeof(libs) / sizeof(libs[0]);
@@ -133,7 +132,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       _apl_create_local_variable(components, context, stmt);
       break;
     case AST_VAR_ASS:
-    _apl_reassign_variable(components, context, stmt);
+      _apl_reassign_variable(components, context, stmt);
       break;
     case AST_IF:
       // gen_if_from_ast(context, stmt);
@@ -185,7 +184,6 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
   LLVMValueRef println_fxn, println_args;
   LLVMTypeRef func_type;
 
-
   switch (arg_type) {
   case TYPE_INT:
   case TYPE_FLOAT: {
@@ -196,11 +194,11 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
         components->module,
         (arg_type == TYPE_INT) ? "_apl_print_int" : "_apl_print_float");
 
-    if(expr->Type == AST_VAR_REF){
+    if (expr->Type == AST_VAR_REF) {
       println_args = load_variable(components, expr);
       break;
     }
-    if(expr->Type == AST_BINARY_EXPR){
+    if (expr->Type == AST_BINARY_EXPR) {
       println_args = arihmetics(components, expr, "");
       break;
     }
@@ -217,12 +215,9 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
       f_number = str_to_int_k(int_str, expr->literal_expr.token.length);
     }
 
-
-
-    println_args =
-        (arg_type == TYPE_INT)
-            ? LLVMConstInt(param_types[0], number, 0)
-            : LLVMConstReal(param_types[0], f_number);
+    println_args = (arg_type == TYPE_INT)
+                       ? LLVMConstInt(param_types[0], number, 0)
+                       : LLVMConstReal(param_types[0], f_number);
     break;
   }
 
@@ -230,15 +225,13 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     param_types[0] = LLVMInt1TypeInContext(components->ctx);
     println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
 
-    if(expr->Type == AST_VAR_REF){
+    if (expr->Type == AST_VAR_REF) {
       println_args = load_variable(components, expr);
-      
       break;
     }
 
     int b;
     const int LENGTH = expr->literal_expr.token.length;
-
 
     b = (LENGTH == 5) ? 0 : 1;
     println_args = LLVMConstInt(param_types[0], b, 0);
@@ -264,14 +257,12 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     break;
   }
   case TYPE_NULL:
-      char null_str[4] = "null";
-
-      
+    char null_str[4] = "null";
 
     break;
 
   default:
-      println_fxn =
+    println_fxn =
         LLVMGetNamedFunction(components->module, "_apl_print_newline");
     break;
   }
@@ -279,18 +270,18 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
   func_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx),
                                param_types, 1, 0);
 
- 
-    LLVMBuildCall2(components->builder, func_type, println_fxn, &println_args,
-                   1, "");
+  LLVMBuildCall2(components->builder, func_type, println_fxn, &println_args, 1,
+                 "");
 
   if (args->next) {
     _apl_gen_println_ir(components, context, args->next);
-  } 
+  }
 
-    LLVMValueRef newline_fxn = LLVMGetNamedFunction(components->module, "_apl_print_newline");
-    LLVMTypeRef newline_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
-    LLVMBuildCall2(components->builder, newline_type, newline_fxn, NULL, 0, "");
-  
+  LLVMValueRef newline_fxn =
+      LLVMGetNamedFunction(components->module, "_apl_print_newline");
+  LLVMTypeRef newline_type =
+      LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
+  LLVMBuildCall2(components->builder, newline_type, newline_fxn, NULL, 0, "");
 
   return;
 }
@@ -330,7 +321,6 @@ void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
   }
 }
 
-
 LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
   switch (fxn->return_type) {
   case TYPE_INT:
@@ -360,81 +350,89 @@ void _apl_create_local_variable(LLVMComponents *components,
 
   switch (VAR_TYPE) {
 
-  case TYPE_BOOL:{
+  case TYPE_BOOL: {
     const int LENGTH = expr->literal_expr.token.length;
 
     int b_val = (LENGTH == 5) ? 0 : 1;
 
-    var_ptr = LLVMBuildAlloca(components->builder, LLVMInt1TypeInContext(components->ctx), var_name);
+    var_ptr = LLVMBuildAlloca(components->builder,
+                              LLVMInt1TypeInContext(components->ctx), var_name);
 
-    LLVMBuildStore(components->builder, LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0), var_ptr );
+    LLVMBuildStore(
+        components->builder,
+        LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0),
+        var_ptr);
 
     break;
   }
-  case TYPE_FLOAT:{
+  case TYPE_FLOAT: {
     LLVMValueRef val;
 
-    if(expr->Type == AST_LITERAL_EXPR){
-    const int LENGTH = expr->literal_expr.token.length;
+    if (expr->Type == AST_LITERAL_EXPR) {
+      const int LENGTH = expr->literal_expr.token.length;
 
-    char f_str[LENGTH + 1];
-    memcpy(f_str, expr->literal_expr.token.start, LENGTH);
-    f_str[LENGTH] = '\0';
+      char f_str[LENGTH + 1];
+      memcpy(f_str, expr->literal_expr.token.start, LENGTH);
+      f_str[LENGTH] = '\0';
 
-    float f_val = str_to_int_k(f_str, LENGTH);
-    val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
-    }
-    else{
+      float f_val = str_to_int_k(f_str, LENGTH);
+      val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
+    } else {
       val = arihmetics(components, expr, "");
-
     }
 
-    var_ptr = LLVMBuildAlloca(components->builder, LLVMFloatTypeInContext(components->ctx), var_name);
+    var_ptr = LLVMBuildAlloca(
+        components->builder, LLVMFloatTypeInContext(components->ctx), var_name);
     LLVMBuildStore(components->builder, val, var_ptr);
 
-
     break;
   }
-  case TYPE_INT:{
+  case TYPE_INT: {
     LLVMValueRef val;
-    if(expr->Type == AST_LITERAL_EXPR){
-    const int LENGTH = expr->literal_expr.token.length;
+    if (expr->Type == AST_LITERAL_EXPR) {
+      const int LENGTH = expr->literal_expr.token.length;
 
-    char i_str[LENGTH + 1];
-    memcpy(i_str, expr->literal_expr.token.start, LENGTH);
-    i_str[LENGTH] = '\0';
-    int i_val = (int) str_to_int_k(i_str, LENGTH);
-    val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val ,0);
-    }else{
-      val = arihmetics(components, expr , "");
+      char i_str[LENGTH + 1];
+      memcpy(i_str, expr->literal_expr.token.start, LENGTH);
+      i_str[LENGTH] = '\0';
+      int i_val = (int)str_to_int_k(i_str, LENGTH);
+      val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
+    } else {
+      val = arihmetics(components, expr, "");
     }
 
-    var_ptr = LLVMBuildAlloca(components->builder, LLVMInt32TypeInContext(components->ctx), var_name);
-    LLVMBuildStore(components->builder, val , var_ptr);
+    var_ptr = LLVMBuildAlloca(
+        components->builder, LLVMInt32TypeInContext(components->ctx), var_name);
+    LLVMBuildStore(components->builder, val, var_ptr);
     break;
-
   }
-  
-  case TYPE_STRING:{
+
+  case TYPE_STRING: {
     char str[expr->literal_expr.token.length + 1];
 
     slice_string(expr->literal_expr.token, str);
     LLVMTypeRef str_members[] = {
-      LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
-      LLVMInt32TypeInContext(components->ctx)
-    };
+        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
+        LLVMInt32TypeInContext(components->ctx)};
 
-    LLVMTypeRef string_struct_type = LLVMStructTypeInContext(components->ctx, str_members, 2,false);
-    var_ptr = LLVMBuildAlloca(components->builder, string_struct_type, var_name);
-    LLVMTypeRef param_types[] = {LLVMPointerType(string_struct_type, 0), LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0)};
-    LLVMTypeRef create_str_fxn_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), param_types, 2, false);
-    LLVMValueRef create_str_fxn = LLVMGetNamedFunction(components->module, "__apl_create_str__");
-    LLVMValueRef llvm_str_lit = LLVMBuildGlobalStringPtr(components->builder, str, "str_lit");
-    LLVMValueRef args[] = { var_ptr, llvm_str_lit };
+    LLVMTypeRef string_struct_type =
+        LLVMStructTypeInContext(components->ctx, str_members, 2, false);
+    var_ptr =
+        LLVMBuildAlloca(components->builder, string_struct_type, var_name);
+    LLVMTypeRef param_types[] = {
+        LLVMPointerType(string_struct_type, 0),
+        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0)};
+    LLVMTypeRef create_str_fxn_type = LLVMFunctionType(
+        LLVMVoidTypeInContext(components->ctx), param_types, 2, false);
+    LLVMValueRef create_str_fxn =
+        LLVMGetNamedFunction(components->module, "__apl_create_str__");
+    LLVMValueRef llvm_str_lit =
+        LLVMBuildGlobalStringPtr(components->builder, str, "str_lit");
+    LLVMValueRef args[] = {var_ptr, llvm_str_lit};
 
-    LLVMValueRef ret_struct = LLVMBuildCall2(components->builder, create_str_fxn_type, create_str_fxn, args, 2, "");
+    LLVMValueRef ret_struct = LLVMBuildCall2(
+        components->builder, create_str_fxn_type, create_str_fxn, args, 2, "");
 
-    
     break;
   }
   default:
@@ -444,47 +442,53 @@ void _apl_create_local_variable(LLVMComponents *components,
 }
 
 //===================================================HELPERS======================================================>
-__attribute__((always_inline)) LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node){
-  Symbol* var_sym = var_ref_node->var_ref.resolved_symbol;
+__attribute__((always_inline)) LLVMValueRef
+load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
+  Symbol *var_sym = var_ref_node->var_ref.resolved_symbol;
   LLVMValueRef llvm_var;
 
-  switch(var_sym->type){
-    case TYPE_INT:{
-      llvm_var = LLVMBuildLoad2(components->builder, LLVMInt32TypeInContext(components->ctx), var_sym->llvm_val_ref, var_sym->name);
-      break;
-    }
-    case TYPE_STRING: {
-      LLVMTypeRef str_members[] = {
+  switch (var_sym->type) {
+  case TYPE_INT: {
+    llvm_var = LLVMBuildLoad2(components->builder,
+                              LLVMInt32TypeInContext(components->ctx),
+                              var_sym->llvm_val_ref, var_sym->name);
+    break;
+  }
+  case TYPE_STRING: {
+    LLVMTypeRef str_members[] = {
         LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
-        LLVMInt32TypeInContext(components->ctx)
-      };
-      LLVMTypeRef string_struct_type = LLVMStructTypeInContext(components->ctx, str_members, 2, false);
-      LLVMValueRef char_ptr_gep = LLVMBuildStructGEP2(components->builder, string_struct_type, var_sym->llvm_val_ref, 0, "str_gep");
-      llvm_var = LLVMBuildLoad2(components->builder, LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0), char_ptr_gep, var_sym->name);
-      break;
-    }
-    
-    case TYPE_FLOAT: {
-      llvm_var = LLVMBuildLoad2(components->builder,LLVMFloatTypeInContext(components->ctx), var_sym->llvm_val_ref, var_sym->name);
-      break;
-  
-    }
-    case TYPE_BOOL:{
-      llvm_var = LLVMBuildLoad2(components->builder, LLVMInt1TypeInContext(components->ctx), var_sym->llvm_val_ref, var_sym->name);
-      break;
+        LLVMInt32TypeInContext(components->ctx)};
+    LLVMTypeRef string_struct_type =
+        LLVMStructTypeInContext(components->ctx, str_members, 2, false);
+    LLVMValueRef char_ptr_gep =
+        LLVMBuildStructGEP2(components->builder, string_struct_type,
+                            var_sym->llvm_val_ref, 0, "str_gep");
+    llvm_var = LLVMBuildLoad2(
+        components->builder,
+        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
+        char_ptr_gep, var_sym->name);
+    break;
+  }
 
-    }
-    
+  case TYPE_FLOAT: {
+    llvm_var = LLVMBuildLoad2(components->builder,
+                              LLVMFloatTypeInContext(components->ctx),
+                              var_sym->llvm_val_ref, var_sym->name);
+    break;
+  }
+  case TYPE_BOOL: {
+    llvm_var = LLVMBuildLoad2(components->builder,
+                              LLVMInt1TypeInContext(components->ctx),
+                              var_sym->llvm_val_ref, var_sym->name);
+    break;
+  }
   }
 
   return llvm_var;
-
-
-
 }
 
-
-__attribute__((always_inline)) void slice_string(Token string, char *clean_str) {
+__attribute__((always_inline)) void slice_string(Token string,
+                                                 char *clean_str) {
   const char *sliced_start = string.start + 1;
 
   int sliced_length = string.length - 1;
@@ -520,11 +524,14 @@ float str_to_int_k(const char *s, int k) {
   return (negative) ? final * -1 : final;
 }
 
-LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node, char *result_name) {
-  if (!node) return NULL;
+LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
+                        char *result_name) {
+  if (!node)
+    return NULL;
 
   if (node->Type == AST_LITERAL_EXPR) {
-    int val = (int)str_to_int_k(node->literal_expr.token.start, node->literal_expr.token.length);
+    int val = (int)str_to_int_k(node->literal_expr.token.start,
+                                node->literal_expr.token.length);
     return LLVMConstInt(LLVMInt32TypeInContext(components->ctx), val, 0);
   }
 
@@ -533,28 +540,31 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node, char *result_
   }
 
   if (node->Type == AST_BINARY_EXPR) {
-    LLVMValueRef left = arihmetics(components, node->binary_expr.left, "left_tmp");
-    LLVMValueRef right = arihmetics(components, node->binary_expr.right, "right_tmp");
+    LLVMValueRef left =
+        arihmetics(components, node->binary_expr.left, "left_tmp");
+    LLVMValueRef right =
+        arihmetics(components, node->binary_expr.right, "right_tmp");
 
     switch (node->binary_expr.operator_type) {
-      case TOKEN_ADD:
-        return LLVMBuildAdd(components->builder, left, right, result_name);
-      case TOKEN_SUB:
-        return LLVMBuildSub(components->builder, left, right, result_name);
-      case TOKEN_DIV:
-        return LLVMBuildSDiv(components->builder, left, right, result_name);
-      case TOKEN_MUL:
-        return LLVMBuildMul(components->builder, left, right, result_name);
-      default:
-        return NULL;
+    case TOKEN_ADD:
+      return LLVMBuildAdd(components->builder, left, right, result_name);
+    case TOKEN_SUB:
+      return LLVMBuildSub(components->builder, left, right, result_name);
+    case TOKEN_DIV:
+      return LLVMBuildSDiv(components->builder, left, right, result_name);
+    case TOKEN_MUL:
+      return LLVMBuildMul(components->builder, left, right, result_name);
+    default:
+      return NULL;
     }
   }
 
   return NULL;
 }
 
-void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context, ASTNode *node){
-  
+void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
+                            ASTNode *node) {
+
   DataType var_Type = node->var_assign.resolved_symbol->type;
 
   LLVMValueRef var = node->var_assign.resolved_symbol->llvm_val_ref;
@@ -563,40 +573,34 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
   Token literal_expr = node->var_assign.value->literal_expr.token;
   char val[literal_expr.length + 1];
 
-  if(node->Type == AST_VAR_ASS){
-  memcpy(val, literal_expr.start , literal_expr.length);
-  val[literal_expr.length] = '\0';
-
+  if (node->Type == AST_VAR_ASS) {
+    memcpy(val, literal_expr.start, literal_expr.length);
+    val[literal_expr.length] = '\0';
   }
 
-  switch(var_Type){
-    case TYPE_INT: {
-      int i_val = (int) str_to_int_k(val, literal_expr.length);
-      new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val , 0);
-      break;
-    }
-
-    case TYPE_FLOAT:{
-      float f_val = str_to_int_k(val, literal_expr.length);
-      new_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
-      break;
-    }
-    case TYPE_STRING: {
-      break;
-
-    }
-
-    case TYPE_BOOL:{
-      int b_val = (literal_expr.length == 5) ? 0 : 1;
-      new_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
-      break;
-    }
-    
-
-
-    default:
-      break;
+  switch (var_Type) {
+  case TYPE_INT: {
+    int i_val = (int)str_to_int_k(val, literal_expr.length);
+    new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
+    break;
   }
 
+  case TYPE_FLOAT: {
+    float f_val = str_to_int_k(val, literal_expr.length);
+    new_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
+    break;
+  }
+  case TYPE_STRING: {
+    break;
+  }
+
+  case TYPE_BOOL: {
+    int b_val = (literal_expr.length == 5) ? 0 : 1;
+    new_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
+    break;
+  }
+  default:
+    break;
+  }
   LLVMBuildStore(components->builder, new_val, var);
 }
