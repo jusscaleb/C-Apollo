@@ -257,7 +257,6 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     memcpy(fn_name, node->call_fxn.name, NAME_LENGTH);
     fn_name[NAME_LENGTH] = '\0';
 
-    printf("FN NAME: %s\n", fn_name);
     bool is_println = (memcmp(fn_name, "println", 7) == 0);
     Symbol *sym = NULL;
 

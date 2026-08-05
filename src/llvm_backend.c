@@ -246,7 +246,6 @@ void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
   LLVMPositionBuilderAtEnd(components->builder, afterBB);
 }
 
-
 void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
                        ASTNode *node) {
   ASTNode *init = node->for_lp.variable;
@@ -262,14 +261,10 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
     }
   }
 
-  LLVMBasicBlockRef condBB =
-      LLVMAppendBasicBlock(components->current_fxn, "");
-  LLVMBasicBlockRef bodyBB =
-      LLVMAppendBasicBlock(components->current_fxn, "");
-  LLVMBasicBlockRef stepBB =
-      LLVMAppendBasicBlock(components->current_fxn, "");
-  LLVMBasicBlockRef afterBB =
-      LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef condBB = LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef bodyBB = LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef stepBB = LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef afterBB = LLVMAppendBasicBlock(components->current_fxn, "");
 
   LLVMBuildBr(components->builder, condBB);
 
@@ -319,7 +314,6 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
 
   LLVMPositionBuilderAtEnd(components->builder, afterBB);
 }
-
 
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args) {

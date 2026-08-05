@@ -14,6 +14,9 @@
 #include "defs.h"
 #include "token.h"
 #include "variables.h"
+#include "llvm-c/Analysis.h"
+#include "llvm-c/Core.h"
+#include "llvm-c/Types.h"
 #include <llvm-c/BitReader.h>
 #include <llvm-c/BitWriter.h>
 #include <llvm-c/Core.h>
@@ -21,12 +24,7 @@
 #include <llvm-c/Target.h>
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Types.h>
-#include "llvm-c/Analysis.h"
-#include "llvm-c/Core.h"
-#include "llvm-c/Types.h"
 #include <stdbool.h>
-
-
 
 #define RUNTIME_LIBS                                                           \
   {"apollo-modules/apl-io/apl-io.bc",                                          \
@@ -39,13 +37,11 @@ typedef struct LLVMComponents {
   LLVMValueRef current_fxn;
 } LLVMComponents;
 
-
-
 typedef struct LLVMArithmetic {
   char *result_name;
   LLVMValueRef left;
   LLVMValueRef right;
-}LLVMArithmetic;
+} LLVMArithmetic;
 
 // initializes the required llvmlibs for LLVM to work.
 void _apl_llvm_environment_setup(CodegenContext *context,
@@ -88,17 +84,21 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args);
 __attribute__((always_inline)) void slice_string(Token string, char *clean_str);
 
-__attribute__((always_inline)) LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node);
+__attribute__((always_inline)) LLVMValueRef
+load_variable(LLVMComponents *components, ASTNode *var_ref_node);
 
-LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node, char *result_name);
+LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
+                        char *result_name);
 
-void _apl_reassign_variable(LLVMComponents *components,CodegenContext *context, ASTNode *node);
-void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context, ASTNode *node);
-void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context, ASTNode *node);
+void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
+                            ASTNode *node);
+void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
+                       ASTNode *node);
+void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
+                         ASTNode *node);
 
-void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context, ASTNode *node);
-
-
+void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
+                       ASTNode *node);
 
 float str_to_int_k(const char *s, int k);
 

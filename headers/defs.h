@@ -5,11 +5,10 @@
 
               The Apollo general definitions Compile Time library.
              Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
-     
+
 ----------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
-
 
 #ifndef DEFS_H
 #define DEFS_H
@@ -127,6 +126,7 @@ void gen_println_float(CodegenContext *context, const char *float_start,
  * @param context The codegen context.
  * @param is_main Boolean flag indicating if this is the program entry point.
  */
-void gen_function_end(CodegenContext *context, bool is_main, DataType return_type);
+void gen_function_end(CodegenContext *context, bool is_main,
+                      DataType return_type);
 
 #endif
