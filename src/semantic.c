@@ -39,10 +39,27 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
   }
 
   if (expr->Type == AST_BINARY_EXPR) {
-    DataType left_type = infer_expr_type(context, expr->binary_expr.left);
-    DataType right_type = infer_expr_type(context, expr->binary_expr.right);
-    return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT
-                                                                 : TYPE_INT;
+    switch(expr->binary_expr.operator_type){
+      case TOKEN_GT:
+      case TOKEN_ST:
+      case TOKEN_SE:
+      case TOKEN_GE:
+      case TOKEN_EQT:
+      case TOKEN_AND:
+      case TOKEN_OR:
+      case TOKEN_NEQ:
+        return TYPE_BOOL;
+      default:{
+        DataType left_type = infer_expr_type(context, expr->binary_expr.left);
+        DataType right_type = infer_expr_type(context, expr->binary_expr.right);
+        return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT
+                                                                    : TYPE_INT;
+      }
+
+    }
+
+
+    
   }
 
   if (expr->Type == AST_CONCAT_STR) {
