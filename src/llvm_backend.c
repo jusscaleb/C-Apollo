@@ -2,6 +2,7 @@
 #include "llvm-c/Core.h"
 #include "llvm-c/Types.h"
 #include <stdio.h>
+#include <time.h>
 
 void _apl_load_runtime_libraries(LLVMComponents *components) {
   const char *libs[] = RUNTIME_LIBS;
@@ -129,15 +130,9 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       continue;
 
     switch (stmt->Type) {
-    case AST_VAR_DECL:
-      _apl_create_local_variable(components, context, stmt);
-      break;
-    case AST_VAR_ASS:
-      _apl_reassign_variable(components, context, stmt);
-      break;
-    case AST_IF:
-      // gen_if_from_ast(context, stmt);
-      break;
+    case AST_VAR_DECL: _apl_create_local_variable(components, context, stmt); break;
+    case AST_VAR_ASS:  _apl_reassign_variable(components, context, stmt);     break;
+    case AST_IF:       _apl_gen_if_block(components, context, stmt);          break;
 
     case AST_WHILE:
       // gen_while_from_ast(context, stmt);
@@ -176,6 +171,39 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
     return;
   }
 }
+
+void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context, ASTNode *node){
+  ASTNode *cond = node->if_stmt.condition;
+  ASTNode *then = node->if_stmt.then_block;
+  ASTNode *elseB = node->if_stmt.else_block;
+  LLVMValueRef cond_gen;
+
+
+  if(cond->Type == AST_LITERAL_EXPR && cond->literal_expr.token.type != TYPE_NULL) cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+  else if(cond->Type == AST_BINARY_EXPR)                        cond_gen = arihmetics(components, cond, "");
+  else                                                          cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0);
+
+  LLVMBasicBlockRef thenBB = LLVMAppendBasicBlock(components->current_fxn, "");
+  LLVMBasicBlockRef elseBB = (elseB) ? LLVMAppendBasicBlock(components->current_fxn, "") : NULL;
+  LLVMBasicBlockRef mergeBB = LLVMAppendBasicBlock(components->current_fxn, "");
+
+  LLVMBuildCondBr(components->builder, cond_gen, thenBB, elseBB ? elseBB : mergeBB);
+
+  LLVMPositionBuilderAtEnd(components->builder, thenBB);
+
+  _apl_gen_block_from_ast(components, context, then);
+
+   LLVMBuildBr(components->builder, mergeBB);
+  if (elseBB) {
+        LLVMPositionBuilderAtEnd(components->builder, elseBB);
+        _apl_gen_block_from_ast(components, context, elseB);
+        LLVMBuildBr(components->builder, mergeBB);
+    }
+
+
+  LLVMPositionBuilderAtEnd(components->builder, mergeBB);
+}
+
 
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args) {
@@ -297,6 +325,8 @@ void _apl_gen_function_start(LLVMComponents *components,
     LLVMBasicBlockRef entry =
         LLVMAppendBasicBlockInContext(components->ctx, main_fxn, "entry");
     LLVMPositionBuilderAtEnd(components->builder, entry);
+
+    components->current_fxn = main_fxn;
     return;
   }
 
@@ -309,6 +339,8 @@ void _apl_gen_function_start(LLVMComponents *components,
     LLVMBasicBlockRef entry =
         LLVMAppendBasicBlockInContext(components->ctx, fxn, "entry");
     LLVMPositionBuilderAtEnd(components->builder, entry);
+
+    components->current_fxn = fxn;
     return;
   }
 }
@@ -576,9 +608,6 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
     default:
       return NULL;
     }
-  
-
-
 
   return NULL;
 }

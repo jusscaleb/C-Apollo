@@ -36,7 +36,10 @@ typedef struct LLVMComponents {
   LLVMContextRef ctx;
   LLVMBuilderRef builder;
   LLVMModuleRef module;
+  LLVMValueRef current_fxn;
 } LLVMComponents;
+
+
 
 typedef struct LLVMArithmetic {
   char *result_name;
@@ -90,6 +93,8 @@ __attribute__((always_inline)) LLVMValueRef load_variable(LLVMComponents *compon
 LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node, char *result_name);
 
 void _apl_reassign_variable(LLVMComponents *components,CodegenContext *context, ASTNode *node);
+void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context, ASTNode *node);
+
 
 float str_to_int_k(const char *s, int k);
 
