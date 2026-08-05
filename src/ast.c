@@ -148,7 +148,6 @@ ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
   node->call_fxn.args = args;
   printf("POTENTIAL NAME: %s\n", name);
 
-
   return node;
 }
 
@@ -170,10 +169,9 @@ ASTNode *create_program_node(ASTNode *block) {
   return node;
 }
 
-ASTNode* create_ret_node(CodegenContext *context,Fxn fxn, ASTNode *value){
+ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value) {
   ASTNode *node = allocate_node(AST_RET_NODE);
   node->ret_node.fxn = fxn;
   node->ret_node.value = value;
   return node;
 }
-

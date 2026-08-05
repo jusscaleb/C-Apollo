@@ -158,13 +158,15 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         }
       }
 
-      node->var_decl.resolved_symbol = register_variable(
-          context->codegen, name, inferred, &node->var_decl.fxn, node->var_decl.level);
+      node->var_decl.resolved_symbol =
+          register_variable(context->codegen, name, inferred,
+                            &node->var_decl.fxn, node->var_decl.level);
 
     } else {
       node->var_decl.value_type = TYPE_NULL;
-      node->var_decl.resolved_symbol = register_variable(
-          context->codegen, name, TYPE_NULL, &node->var_decl.fxn, node->var_decl.level);
+      node->var_decl.resolved_symbol =
+          register_variable(context->codegen, name, TYPE_NULL,
+                            &node->var_decl.fxn, node->var_decl.level);
     }
     break;
   }
@@ -172,9 +174,6 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   case AST_VAR_ASS: {
     const int NAME_LENGTH = node->var_assign.name_length;
     char name[NAME_LENGTH + 1];
-    // snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH,
-    // node->var_assign.name);
-
     memcpy(name, node->var_assign.name, NAME_LENGTH);
     name[NAME_LENGTH] = '\0';
 
@@ -192,18 +191,12 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
             sym->type != inferred) {
           report_semantic_error(context, "Incompatible assignment type.");
         } else if (sym->type == TYPE_NULL && inferred != TYPE_NULL) {
-          sym->type = inferred; // update symbol type if it was null
+          sym->type = inferred; 
         }
       }
     }
     break;
   }
-
-  /*case AST_PRINTLN:
-    if (node->println.value) {
-      analyze_node(context, node->println.value);
-    }
-    break;*/
 
   case AST_IF:
     analyze_node(context, node->if_stmt.condition);
@@ -272,7 +265,8 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       passed_arg->datatype = infer_expr_type(context, passed_arg->arg);
 
       if (expected_param != NULL) {
-        if (passed_arg->datatype != expected_param->param->var_decl.value_type) {
+        if (passed_arg->datatype !=
+            expected_param->param->var_decl.value_type) {
           report_semantic_error(context,
                                 "Argument type mismatch in function call.");
         }
