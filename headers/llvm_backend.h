@@ -82,9 +82,9 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
 
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args);
-__attribute__((always_inline)) void slice_string(Token string, char *clean_str);
+void slice_string(Token string, char *clean_str);
 
-__attribute__((always_inline)) LLVMValueRef
+LLVMValueRef
 load_variable(LLVMComponents *components, ASTNode *var_ref_node);
 
 LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
