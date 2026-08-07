@@ -35,12 +35,11 @@ int main(int argc, char **argv) {
   char build_command[2048];
   printf("Beginning build.\n");
   snprintf(build_command, sizeof(build_command),
-           "gcc \"%s\\src\\main.c\" \"%s\\src\\lexer.c\" \"%s\\src\\parser.c\" "
+           "gcc -v \"-IC:\\msys64\\mingw64\\include\" \"%s\\src\\main.c\" \"%s\\src\\lexer.c\" \"%s\\src\\parser.c\" "
            "\"%s\\src\\ast.c\" \"%s\\src\\memory.c\" "
            "\"%s\\src\\error.c\" \"%s\\src\\variables.c\" \"%s\\src\\semantic.c\" "
-           "\"%s\\src\\API\\llvm_main.c\" \"%s\\src\\API\\llvm_fxns.c\" \"%s\\src\\API\\llvm_variables.c\""
-           "\"%s\\src\\API\\llvm_helpers.c\" \"%s\\src\\API\\llvm_condbr.c\""
-           "-IC:\\msys64\\mingw64\\include "
+           "\"%s\\src\\API\\llvm_main.c\" \"%s\\src\\API\\llvm_fxns.c\" \"%s\\src\\API\\llvm_variables.c\" "
+           "\"%s\\src\\API\\llvm_helpers.c\" \"%s\\src\\API\\llvm_condbr.c\" "
            "-LC:\\msys64\\mingw64\\lib -lLLVM-19 -o \"%s\\run\\main.exe\"",
            project_root, project_root, project_root, project_root,
            project_root, project_root, project_root, project_root,

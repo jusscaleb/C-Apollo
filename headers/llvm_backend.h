@@ -13,9 +13,10 @@
 #include "ast.h"
 #include "defs.h"
 #include "token.h"
+#include "llvm-c/Core.h"
 #include "variables.h"
 #include "llvm-c/Analysis.h"
-#include "llvm-c/Core.h"
+
 #include "llvm-c/Types.h"
 #include <llvm-c/BitReader.h>
 #include <llvm-c/BitWriter.h>
