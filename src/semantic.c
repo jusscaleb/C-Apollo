@@ -35,7 +35,7 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       return TYPE_NULL;
     if (expr->literal_expr.token.type == TOKEN_STRING)
       return TYPE_STRING;
-    return TYPE_INT;
+    return TYPE_NULL;
   }
 
   if (expr->Type == AST_BINARY_EXPR) {
@@ -57,13 +57,6 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       }
 
     }
-
-
-    
-  }
-
-  if (expr->Type == AST_CONCAT_STR) {
-    return TYPE_STRING;
   }
 
   if (expr->Type == AST_VAR_REF) {
@@ -119,10 +112,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
 
   case AST_FUNCTION:
-    // Register function
     if (lookup_token(context->codegen, node->function.name, &node->function.fxn,
                      node->function.level)) {
       report_semantic_error(context, "Cannot redefine function.");
+      break;
     } else {
       node->function.resolved_symbol = register_fxn(
           context->codegen, node->function.name, node->function.fxn.return_type,
@@ -151,13 +144,13 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
     const int NAME_LENGTH = node->var_decl.name_length;
     char name[NAME_LENGTH + 1];
-    // snprintf(name, NAME_LENGTH+1, "%.*s", NAME_LENGTH, node->var_decl.name);
     memcpy(name, node->var_decl.name, NAME_LENGTH);
     name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, name, &node->var_decl.fxn,
                                node->var_decl.level);
     if (sym) {
       report_semantic_error(context, "Multiple definition of variable.");
+      break;
     }
 
     DataType inferred;
@@ -172,6 +165,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         inferred = infer_expr_type(context, node->var_decl.value);
         if (inferred != expected_type) {
           report_semantic_error(context, "Datatype Mismatch.");
+          break;
         }
       }
 
@@ -198,6 +192,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
                                node->var_assign.level);
     if (!sym) {
       report_semantic_error(context, "Assignment to undeclared variable.");
+      break;
     } else {
       node->var_assign.resolved_symbol = sym;
       if (node->var_assign.value) {
@@ -207,6 +202,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         if (sym->type != TYPE_NULL && inferred != TYPE_NULL &&
             sym->type != inferred) {
           report_semantic_error(context, "Incompatible assignment type.");
+          break;
         } else if (sym->type == TYPE_NULL && inferred != TYPE_NULL) {
           sym->type = inferred; 
         }
@@ -260,20 +256,35 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
 
   case AST_BINARY_EXPR:
-    analyze_node(context, node->binary_expr.left);
-    analyze_node(context, node->binary_expr.right);
-    break;
+    ASTNode *left = node->binary_expr.left;
+    ASTNode *right = node->binary_expr.right;
 
-  case AST_CONCAT_STR:
-    analyze_node(context, node->str_concat.left);
-    analyze_node(context, node->str_concat.right);
+    DataType l_type = infer_expr_type(context, left),
+    r_type = infer_expr_type(context, right);
+
+    char msg[16];
+    if (l_type != r_type) {    
+      if(l_type == TYPE_INT && r_type != TYPE_FLOAT 
+        || (l_type == TYPE_BOOL || r_type == TYPE_BOOL)
+      ){
+        report_semantic_error(context, "Binary expression contains incompatible operands.");
+        break;
+      }
+    }
+    analyze_node(context, left);
+    analyze_node(context, right);
     break;
 
   case AST_RET_NODE:
     if (node->ret_node.value) {
+      if(node->ret_node.fxn.return_type == TYPE_NULL){
+        report_semantic_error(context, "Fxn of return type \"null\" cannot return value.");
+        break;
+      }
       analyze_node(context, node->ret_node.value);
     }else{
       report_semantic_error(context, "Value not provided.");
+      break;
     }
     break;
 
@@ -311,6 +322,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
             expected_param->param->var_decl.value_type) {
           report_semantic_error(context,
                                 "Argument type mismatch in function call.");
+          break;
         }
         expected_param = expected_param->next;
       }
@@ -322,12 +334,11 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   }
 
   case AST_LITERAL_EXPR:
-    break;
+      break;
 
   case AST_VAR_REF: {
     const int NAME_LENGTH = node->var_ref.name_length;
     char name[NAME_LENGTH + 1];
-    // snprintf(name, NAME_LENGTH + 1, "%.*s", NAME_LENGTH, node->var_ref.name);
     memcpy(name, node->var_ref.name, NAME_LENGTH);
     name[NAME_LENGTH] = '\0';
 
@@ -336,6 +347,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     if (!sym) {
       report_semantic_error(
           context, "Referenced Variable not found in the current scope.");
+          break;
     } else {
       node->var_ref.resolved_symbol = sym;
     }
@@ -346,7 +358,6 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   }
 }
 
-// Walks through all statements in a block
 static void analyze_block(SemanticContext *context, ASTNode *block_node) {
   if (!block_node || block_node->Type != AST_BLOCK)
     return;

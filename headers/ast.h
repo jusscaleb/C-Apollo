@@ -41,8 +41,6 @@ typedef enum {
 
   AST_VAR_ASS,
 
-  AST_CONCAT_STR,
-
   AST_IF,
   AST_WHILE,
   AST_FOR,
@@ -129,11 +127,6 @@ struct ASTNode {
       struct Symbol *resolved_symbol;
     } var_assign;
 
-    struct {
-      ASTNode *left;
-      ASTNode *right;
-
-    } str_concat;
 
     struct {
       ASTNode *condition;
@@ -237,12 +230,6 @@ ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
 ASTNode *create_var_assign_node(const char *name, int name_length,
                                 ASTNode *value, Fxn fxn, int level);
 
-/**
- * Creates an AST node representing a string concatenation.
- * @param left The AST node of the left-hand string expression.
- * @param right The AST node of the right-hand string expression.
- */
-ASTNode *create_concat_node(ASTNode *left, ASTNode *right);
 
 /**
  * Creates an AST node representing conditional branching (if/elif/else).

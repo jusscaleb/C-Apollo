@@ -184,21 +184,6 @@ static ASTNode *parse_logical_or(Parser *parser) {
   return left;
 }
 
-/*static ASTNode *println(Parser *parser, CodegenContext *context) {
-  advance(parser); // Move past TOKEN_PRINTLN
-  consume(parser, TOKEN_LPARETH,
-          "Expected open parenthesis '(' for arguments.");
-
-  // Parse whatever is inside the parentheses as a unified expression
-  ASTNode *expr = parse_logical_or(parser);
-
-  ASTNode *println_node = create_println_node(expr);
-
-  consume(parser, TOKEN_RPARETH,
-          "Expected close parenthesis ')' after arguments");
-  consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
-  return println_node;
-}*/
 
 ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   advance(parser);
