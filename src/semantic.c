@@ -215,7 +215,12 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
   }
 
-  case AST_IF:
+  case AST_IF:{
+    ASTNode *cond = node->if_stmt.condition;
+    if(infer_expr_type(context, cond) != TYPE_BOOL){
+      report_semantic_error(context, "Expected a boolean expression or literal");
+      break;
+    }
     analyze_node(context, node->if_stmt.condition);
     analyze_node(context, node->if_stmt.then_block);
     if (node->if_stmt.else_block) {
@@ -223,12 +228,31 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     }
     break;
 
+  }
   case AST_WHILE:
+  {
+  ASTNode *cond = node->while_lp.condition;
+  if(infer_expr_type(context, cond) != TYPE_BOOL){
+      report_semantic_error(context, "Expected a boolean expression or literal");
+      break;
+    }
     analyze_node(context, node->while_lp.condition);
     analyze_node(context, node->while_lp.then_block);
     break;
 
+  }
   case AST_FOR:
+    ASTNode *cond = node->for_lp.condtion;
+    ASTNode *op = node->for_lp.var_operation;
+
+    bool case_1 = cond->Type != AST_BINARY_EXPR;
+    bool case_2 = infer_expr_type(context, cond) != TYPE_BOOL;
+
+    if(case_1 || case_2){
+      report_semantic_error(context, "Expected a boolean binary expression: E.g.: 'x > 5'");
+      break;
+    }
+    
     analyze_node(context, node->for_lp.variable);
     analyze_node(context, node->for_lp.condtion);
     analyze_node(context, node->for_lp.var_operation);
@@ -248,6 +272,8 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   case AST_RET_NODE:
     if (node->ret_node.value) {
       analyze_node(context, node->ret_node.value);
+    }else{
+      report_semantic_error(context, "Value not provided.");
     }
     break;
 
