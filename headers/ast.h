@@ -10,12 +10,7 @@
     Licensed under the MIT License. See LICENSE file for details.
 =======================================================================*/
 
-/*--------------------------------------------------------------------------------
-
-                       ABSTACT SYNTAX TREE :)
-
----------------------------------------------------------------------------------*/
-
+#pragma once
 #ifndef AST_H
 #define AST_H
 #include "arithmetic.h"
@@ -101,7 +96,6 @@ struct ASTNode {
 
     struct {
       Token token;
-
     } literal_expr;
 
     struct {
@@ -269,7 +263,7 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
  * @param level The scope level of the function call.
  * @param args Pointer to the list of arguments passed to the function.
  */
-ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
+ASTNode *create_fxn_call_node(char *name, int name_length,
                               Fxn fxn, int level, Args *args);
 
 /*--------------------------------------------------------------------------------

@@ -17,7 +17,6 @@ static void report_semantic_error(SemanticContext *context, const char *msg) {
   e->message = strdup(msg);
   e->got = strdup("semantic_analysis");
   e->line = 0;
-  // Token could be left empty or filled if node has line info.
   errorStack_push(context->errors, e);
 }
 
@@ -85,6 +84,7 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       return sym->type;
     }
   }
+
   report_semantic_error(context, "Could not infer expression type.");
   return TYPE_NULL;
 }
@@ -94,11 +94,9 @@ void analyze_semantics(SemanticContext *context, ASTNode *node) {
   if (!node)
     return;
 
-  // Typically the root is an AST_PROGRAM
   analyze_node(context, node);
 }
 
-// Recursive tree-walker
 static void analyze_node(SemanticContext *context, ASTNode *node) {
 
   if (!node)
@@ -320,8 +318,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       if (expected_param != NULL) {
         if (passed_arg->datatype !=
             expected_param->param->var_decl.value_type) {
-          report_semantic_error(context,
-                                "Argument type mismatch in function call.");
+          report_semantic_error(context, "Argument type mismatch in function call.");
           break;
         }
         expected_param = expected_param->next;

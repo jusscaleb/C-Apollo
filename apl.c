@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   char build_command[2048];
   printf("Beginning build.\n");
   snprintf(build_command, sizeof(build_command),
-           "gcc -v \"-IC:\\msys64\\mingw64\\include\" \"%s\\src\\main.c\" \"%s\\src\\lexer.c\" \"%s\\src\\parser.c\" "
+           "gcc \"-IC:\\msys64\\mingw64\\include\" \"%s\\src\\main.c\" \"%s\\src\\lexer.c\" \"%s\\src\\parser.c\" "
            "\"%s\\src\\ast.c\" \"%s\\src\\memory.c\" "
            "\"%s\\src\\error.c\" \"%s\\src\\variables.c\" \"%s\\src\\semantic.c\" "
            "\"%s\\src\\API\\llvm_main.c\" \"%s\\src\\API\\llvm_fxns.c\" \"%s\\src\\API\\llvm_variables.c\" "

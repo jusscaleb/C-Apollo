@@ -195,7 +195,6 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   Token name_token = parser->current;
   const int NAME_LENGTH = name_token.length;
   char name[NAME_LENGTH + 1];
-  // snprintf(name, sizeof(name), "%.*s", NAME_LENGTH, name_token.start);
   memcpy(name, name_token.start, NAME_LENGTH);
   name[NAME_LENGTH] = '\0';
 
@@ -359,7 +358,7 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
     args = NULL;
   }
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
-  return create_fxn_call_node(name, name_length, TYPE_NULL, *parser->lexer->fxn,
+  return create_fxn_call_node(name, name_length,*parser->lexer->fxn,
                               parser->lexer->scope_level, args);
 }
 
@@ -448,10 +447,6 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
 // check the body statement
 static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   switch (parser->current.type) {
-
-    /*case TOKEN_PRINTLN:
-      return println(parser, context);*/
-
   case TOKEN_VAR:
   case DECLARE_INT:
   case DECLARE_STR:
@@ -494,6 +489,7 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 
   case TOKEN_RETURN:
     advance(parser);
+    if(!parser->lexer->fxn->has_return_type) parser->lexer->fxn->has_return_type = true;
     Fxn *fxn = (Fxn *)alloc_space(1, sizeof(Fxn));
     fxn = parser->lexer->fxn;
     ASTNode *value = parse_logical_or(parser);
@@ -628,7 +624,8 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
                               .line = 0,
                               .return_type = TYPE_NULL,
                               .name = "global",
-                              .parent_fxn = NULL};
+                              .parent_fxn = NULL,
+                              .has_return_type = false};
   ASTNode *program_block = create_block_node();
 
   // Checking global variables

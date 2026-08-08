@@ -129,13 +129,12 @@ void block_add_statement(ASTNode *block, ASTNode *statement) {
   block->block.statements[block->block.count++] = statement;
 }
 
-ASTNode *create_fxn_call_node(char *name, int name_length, DataType return_type,
+ASTNode *create_fxn_call_node(char *name, int name_length,
                               Fxn fxn, int level, Args *args) {
   ASTNode *node = allocate_node(AST_CALL_FXN);
 
   node->call_fxn.name = name;
   node->call_fxn.name_length = name_length;
-  node->call_fxn.return_type = return_type;
   node->call_fxn.fxn = fxn;
   node->call_fxn.level = level;
   node->call_fxn.args = args;
