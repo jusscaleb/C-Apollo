@@ -215,7 +215,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   case AST_IF:{
     ASTNode *cond = node->if_stmt.condition;
     if(infer_expr_type(context, cond) != TYPE_BOOL){
-      report_semantic_error(context, "Expected a boolean expression or literal");
+      report_semantic_error(context, "Expected a boolean expression or literal.");
       break;
     }
     analyze_node(context, node->if_stmt.condition);
@@ -230,7 +230,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   {
   ASTNode *cond = node->while_lp.condition;
   if(infer_expr_type(context, cond) != TYPE_BOOL){
-      report_semantic_error(context, "Expected a boolean expression or literal");
+      report_semantic_error(context, "Expected a boolean expression or literal.");
       break;
     }
     analyze_node(context, node->while_lp.condition);

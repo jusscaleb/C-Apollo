@@ -58,7 +58,9 @@ void error(Parser *parser, const char *errorMessage, ErrorType type) {
   int len = parser->current.length;
   e->got = alloc_space(len + 1, sizeof(char));
   if (parser->current.start != NULL) {
-    sprintf(e->got, "%.*s", len, parser->current.start);
+    memcpy(e->got, parser->current.start, len);
+    e->got[len] = '\0';
+    //sprintf(e->got, "%.*s", len, parser->current.start);
   } else {
     e->got[0] = '\0';
   }

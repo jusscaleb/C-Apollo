@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(Apollo C)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON)
 
 # Include header directories
 include_directories(src src/API)
