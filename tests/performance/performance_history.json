@@ -246,5 +246,67 @@
                 "total_time": 0.39278979995287955
             }
         }
+    },
+    {
+        "timestamp": "2026-08-08 18:06:01",
+        "total_speed": 3.6007576000411063,
+        "results": {
+            "small_program": {
+                "compile_time": 0.4363291000481695,
+                "run_time": 0.8748438999755308,
+                "total_time": 1.3111730000237003
+            },
+            "large_compilation": {
+                "compile_time": 0.44666259991936386,
+                "run_time": 0.035809700028039515,
+                "total_time": 0.48247229994740337
+            },
+            "for_loop": {
+                "compile_time": 0.8174180999631062,
+                "run_time": 0.05301940010394901,
+                "total_time": 0.8704375000670552
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.44553360005375,
+                "run_time": 0.026506799971684813,
+                "total_time": 0.4720404000254348
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.4289337999653071,
+                "run_time": 0.03570060001220554,
+                "total_time": 0.46463439997751266
+            }
+        }
+    },
+    {
+        "timestamp": "2026-08-08 18:06:16",
+        "total_speed": 2.0018253000453115,
+        "results": {
+            "small_program": {
+                "compile_time": 0.3658606999088079,
+                "run_time": 0.035886500030756,
+                "total_time": 0.40174719993956387
+            },
+            "large_compilation": {
+                "compile_time": 0.36619520001113415,
+                "run_time": 0.027043999987654388,
+                "total_time": 0.39323919999878854
+            },
+            "for_loop": {
+                "compile_time": 0.3450394000392407,
+                "run_time": 0.024133500060997903,
+                "total_time": 0.3691729001002386
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.3264267999911681,
+                "run_time": 0.022261800011619925,
+                "total_time": 0.348688600002788
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.3716630000853911,
+                "run_time": 0.11731439991854131,
+                "total_time": 0.4889774000039324
+            }
+        }
     }
 ]

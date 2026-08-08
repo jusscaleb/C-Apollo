@@ -185,8 +185,54 @@ Overall Total Speed: 2.0398 seconds
       Execute: 0.0245s
       Total:   0.3928s
 ----------------------------------------
+Date and Time: 2026-08-08 18:06:01
+Overall Total Speed: 3.6008 seconds
+  - small_program:
+      Compile: 0.4363s
+      Execute: 0.8748s
+      Total:   1.3112s
+  - large_compilation:
+      Compile: 0.4467s
+      Execute: 0.0358s
+      Total:   0.4825s
+  - for_loop:
+      Compile: 0.8174s
+      Execute: 0.0530s
+      Total:   0.8704s
+  - var_decl_with_dt:
+      Compile: 0.4455s
+      Execute: 0.0265s
+      Total:   0.4720s
+  - var_decl_no_dt:
+      Compile: 0.4289s
+      Execute: 0.0357s
+      Total:   0.4646s
+----------------------------------------
+Date and Time: 2026-08-08 18:06:16
+Overall Total Speed: 2.0018 seconds
+  - small_program:
+      Compile: 0.3659s
+      Execute: 0.0359s
+      Total:   0.4017s
+  - large_compilation:
+      Compile: 0.3662s
+      Execute: 0.0270s
+      Total:   0.3932s
+  - for_loop:
+      Compile: 0.3450s
+      Execute: 0.0241s
+      Total:   0.3692s
+  - var_decl_with_dt:
+      Compile: 0.3264s
+      Execute: 0.0223s
+      Total:   0.3487s
+  - var_decl_no_dt:
+      Compile: 0.3717s
+      Execute: 0.1173s
+      Total:   0.4890s
+----------------------------------------
 
 Summary Statistics
 ========================
-Average Speed (last 8 runs): 5.2866 seconds
-Percentage Difference: -16.35% (Faster than last run)
+Average Speed (last 10 runs): 4.7896 seconds
+Percentage Difference: -44.41% (Faster than last run)
