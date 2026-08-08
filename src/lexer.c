@@ -8,7 +8,6 @@
 #include "../headers/token.h"
 #include <ctype.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 // Defining the TokenNames in token.h

@@ -13,9 +13,10 @@
 #include "ast.h"
 #include "defs.h"
 #include "token.h"
+#include "llvm-c/Core.h"
 #include "variables.h"
 #include "llvm-c/Analysis.h"
-#include "llvm-c/Core.h"
+
 #include "llvm-c/Types.h"
 #include <llvm-c/BitReader.h>
 #include <llvm-c/BitWriter.h>
@@ -25,6 +26,7 @@
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Types.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define RUNTIME_LIBS                                                           \
   {"apollo-modules/apl-io/apl-io.bc",                                          \
@@ -82,9 +84,9 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
 
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args);
-__attribute__((always_inline)) void slice_string(Token string, char *clean_str);
+void slice_string(Token string, char *clean_str);
 
-__attribute__((always_inline)) LLVMValueRef
+LLVMValueRef
 load_variable(LLVMComponents *components, ASTNode *var_ref_node);
 
 LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
