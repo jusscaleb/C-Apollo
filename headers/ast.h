@@ -16,7 +16,6 @@
 #include "arithmetic.h"
 #include "token.h"
 #include "variables.h"
-#include <stdio.h>
 
 struct Symbol;
 
@@ -121,7 +120,6 @@ struct ASTNode {
       struct Symbol *resolved_symbol;
     } var_assign;
 
-
     struct {
       ASTNode *condition;
       ASTNode *then_block;
@@ -224,7 +222,6 @@ ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
 ASTNode *create_var_assign_node(const char *name, int name_length,
                                 ASTNode *value, Fxn fxn, int level);
 
-
 /**
  * Creates an AST node representing conditional branching (if/elif/else).
  * @param condition The AST node evaluating to the boolean condition.
@@ -263,8 +260,8 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
  * @param level The scope level of the function call.
  * @param args Pointer to the list of arguments passed to the function.
  */
-ASTNode *create_fxn_call_node(char *name, int name_length,
-                              Fxn fxn, int level, Args *args);
+ASTNode *create_fxn_call_node(char *name, int name_length, Fxn fxn, int level,
+                              Args *args);
 
 /*--------------------------------------------------------------------------------
 

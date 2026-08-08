@@ -16,11 +16,8 @@
 #ifndef APOLLO_ERROR_H
 #define APOLLO_ERROR_H
 
-#include "defs.h"
 #include "token.h"
 #include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 typedef enum {
   SYNTAXERROR,

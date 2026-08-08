@@ -5,8 +5,9 @@
 ==========================================================================*/
 
 #include "../headers/error.h"
-#include <stdio.h>
 #include <string.h>
+
+
 
 const char *ErrorToken[] = {"Syntax Error",    "Assignment Error",
                             "Reference Error", "Type Error",

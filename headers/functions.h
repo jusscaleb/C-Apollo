@@ -5,7 +5,7 @@
 
               The Apollo Functions Compile Time library.
       Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
-     
+
 ----------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
@@ -14,14 +14,12 @@
 #define FUNCTIONS
 
 #include "variables.h"
-#include <stdio.h>
-#include <string.h>
 
 typedef struct CodegenContext CodegenContext;
-typedef Fxn Fxn ;
+typedef Fxn Fxn;
 typedef struct Params Params;
 
-typedef struct Fxn{
+typedef struct Fxn {
   int length;
   int line;
   int level;
@@ -32,8 +30,6 @@ typedef struct Fxn{
   bool has_return_type;
 } Fxn;
 
-
-
 /**
  * Registers a new function in the symbol table.
  * @param context The codegen context containing the symbol table.
@@ -42,7 +38,7 @@ typedef struct Fxn{
  * @param level The nesting scope level of the function.
  * @param fxn The function structure containing metadata and parent links.
  */
-Symbol* register_fxn(CodegenContext *context, const char *name,
-                  DataType return_type, int level, Fxn *fxn);
+Symbol *register_fxn(CodegenContext *context, const char *name,
+                     DataType return_type, int level, Fxn *fxn);
 
 #endif

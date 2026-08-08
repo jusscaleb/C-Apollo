@@ -26,6 +26,7 @@
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Types.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define RUNTIME_LIBS                                                           \
   {"apollo-modules/apl-io/apl-io.bc",                                          \

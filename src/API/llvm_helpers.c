@@ -40,6 +40,8 @@ load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
                               var_sym->llvm_val_ref, var_sym->name);
     break;
   }
+  default:
+    break;
   }
 
   return llvm_var;

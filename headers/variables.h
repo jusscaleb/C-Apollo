@@ -13,10 +13,11 @@
 #ifndef VARIABLES
 #define VARIABLES
 
+
 #include <llvm-c/Core.h>
 #include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
+
+
 
 typedef struct CodegenContext CodegenContext;
 typedef struct Fxn Fxn;

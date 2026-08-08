@@ -3,10 +3,8 @@
                           THE NEAT FREAK :)
 
 ---------------------------------------------------------------------------------*/
-
 #include "../headers/ast.h"
-#include <stdio.h>
-#include <stdlib.h>
+
 
 static ASTNode *allocate_node(ASTNodeType type) {
   ASTNode *node = malloc(sizeof(ASTNode));

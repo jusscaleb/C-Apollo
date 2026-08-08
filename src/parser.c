@@ -225,6 +225,11 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
     case TYPE_NULL: {
       var_decl_token = (Token){TOKEN_NULL, "null", 4, parser->current.line};
       break;
+    case TYPE_CHAR: {
+      var_decl_token = (Token){TOKEN_CHAR, "", 0, parser->current.line};
+      break;
+
+    }
     }
     }
 
@@ -328,6 +333,9 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
       break;
     case TOKEN_PEQ:
       op = TOKEN_MOD;
+        break;
+    default:
+      error(parser, "Unrecognized token", SYNTAXERROR);
       break;
     }
     ASTNode *var_ref =
