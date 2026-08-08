@@ -34,6 +34,9 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       return TYPE_NULL;
     if (expr->literal_expr.token.type == TOKEN_STRING)
       return TYPE_STRING;
+  
+    if(expr->literal_expr.token.type == TOKEN_INT)
+      return TYPE_INT;
     return TYPE_NULL;
   }
 
