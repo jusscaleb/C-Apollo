@@ -2,7 +2,7 @@ import subprocess, shutil
 from pathlib import Path
 
 
-APL = Path(__file__).parent.parent / "apl.exe"
+RUN_SH = Path(__file__).parent.parent / "run.sh"
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
@@ -18,7 +18,8 @@ def test_n(type, num ,name, code, expected):
     """
 
     try:
-        TEST_APL = Path(__file__).parent / f"temp\\{type}\\test{num}.apl" 
+        TEST_APL = Path(__file__).parent / f"temp/{type}/test{num}.apl"
+        TEST_APL.parent.mkdir(parents=True, exist_ok=True)
         with open(TEST_APL, "w", encoding="utf-8") as f:
             f.write(code)
     
@@ -26,10 +27,11 @@ def test_n(type, num ,name, code, expected):
         print(f"Please run execute this through diagnosis.sh with the command: 'bash diagnosis.sh {type}'.")
         print("Ensure you have gitbash installed; run through gitbash terminal.")
         
-    # RUN COMPILER
+    # RUN COMPILER VIA RUN.SH
     try:
-        result = subprocess.run([str(APL), str(TEST_APL), str(PROJECT_ROOT)], 
-                                capture_output=True, text=True, cwd=str(Path(__file__).parent))
+        bash_cmd = shutil.which("bash") or shutil.which("sh") or "bash"
+        result = subprocess.run([bash_cmd, str(RUN_SH), str(TEST_APL)], 
+                                capture_output=True, text=True, cwd=str(PROJECT_ROOT))
     except Exception as e:
         print(f"Error running compiler: {e}")
         return 0

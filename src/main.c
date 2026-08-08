@@ -66,7 +66,7 @@ void llvm_compilation() {
   snprintf(exe_path, sizeof(exe_path), "\"%s\\temp\\program.exe\"", cwd);
 
   char command[2048];
-  snprintf(command, sizeof(command), "clang -fsanitize=address -g -O1 %s -o %s", bc_path, exe_path);
+  snprintf(command, sizeof(command), "clang -O2 %s -o %s", bc_path, exe_path);
   int result = system(command);
 
   if (result == 0) {

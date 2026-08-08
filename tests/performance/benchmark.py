@@ -9,7 +9,7 @@ from pathlib import Path
 # Paths
 PERFORMANCE_DIR = Path(__file__).parent
 PROJECT_ROOT = PERFORMANCE_DIR.parent.parent
-APL_EXE = PROJECT_ROOT / "apl.exe"
+RUN_SH = PROJECT_ROOT / "run.sh"
 TEMP_DIR = PERFORMANCE_DIR / "temp"
 HISTORY_FILE = PERFORMANCE_DIR / "performance_history.json"
 LOG_FILE = PERFORMANCE_DIR / "performance_log.txt"
@@ -18,10 +18,14 @@ def setup():
     if not TEMP_DIR.exists():
         TEMP_DIR.mkdir(parents=True)
     
-    if not APL_EXE.exists():
-        print(f"Error: Could not find compiler at {APL_EXE}")
-        print("Please compile Apollo first using GCC.")
+    if not RUN_SH.exists():
+        print(f"Error: Could not find run script at {RUN_SH}")
         exit(1)
+
+    print("Pre-building Apollo compiler...")
+    bash_cmd = shutil.which("bash") or shutil.which("sh") or "bash"
+    subprocess.run([bash_cmd, str(RUN_SH), "caleb.apl"], capture_output=True, cwd=str(PROJECT_ROOT))
+    print("Pre-build done...")
 
 def cleanup():
     if TEMP_DIR.exists():
@@ -38,11 +42,12 @@ def run_benchmark(name, source_code):
         f.write(source_code)
         
     start_compile = time.perf_counter()
+    bash_cmd = shutil.which("bash") or shutil.which("sh") or "bash"
     compile_process = subprocess.run(
-        [str(APL_EXE), str(source_file), str(PROJECT_ROOT)],
+        [bash_cmd, str(RUN_SH), str(source_file)],
         capture_output=True,
         text=True,
-        cwd=str(TEMP_DIR)
+        cwd=str(PROJECT_ROOT)
     )
     end_compile = time.perf_counter()
     compile_time = end_compile - start_compile
@@ -52,7 +57,9 @@ def run_benchmark(name, source_code):
         
     print(f"Compilation Time: {compile_time:.4f} seconds")
     
-    program_exe = TEMP_DIR / "temp" / "program.exe"
+    program_exe = PROJECT_ROOT / "temp" / "program.exe"
+    if not program_exe.exists():
+        program_exe = TEMP_DIR / "temp" / "program.exe"
     
     if not program_exe.exists():
         print(f"Error: Compiled executable not found at {program_exe}")
@@ -63,7 +70,7 @@ def run_benchmark(name, source_code):
         [str(program_exe)],
         capture_output=True,
         text=True,
-        cwd=str(TEMP_DIR)
+        cwd=str(PROJECT_ROOT)
     )
     end_run = time.perf_counter()
     run_time = end_run - start_run
