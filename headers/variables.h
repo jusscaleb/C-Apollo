@@ -31,7 +31,7 @@ typedef enum {
   TYPE_NULL,
 } DataType;
 
-char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
+//char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
 
 typedef struct {
   DataType type;     // Token type
