@@ -5,28 +5,22 @@
 
               The Apollo Variables Compile Time library.
       Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
-     
+
 ----------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
-
-
 
 #ifndef VARIABLES
 #define VARIABLES
 
 
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
 #include <llvm-c/Core.h>
-
+#include <stdbool.h>
 
 
 
 typedef struct CodegenContext CodegenContext;
-typedef struct Fxn Fxn ;
-
+typedef struct Fxn Fxn;
 
 typedef enum {
   TYPE_STRING,
@@ -37,8 +31,7 @@ typedef enum {
   TYPE_NULL,
 } DataType;
 
-
-char* datatypes[] = {"str", "int", "char", "float", "bool", "null"};
+//char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
 
 typedef struct {
   DataType type;     // Token type
@@ -47,8 +40,7 @@ typedef struct {
   int line;
 } Variable;
 
-
-typedef enum{
+typedef enum {
   VAR,
   FUNC,
   FUNC_CALL,
@@ -56,15 +48,15 @@ typedef enum{
   OBJ,
   ARR,
 
-}token_type;
+} token_type;
 
 typedef struct Symbol {
   int scope_level;
   int str_length;
   DataType type;
   token_type t_type;
-  char* name;
-  char* llvm_name; 
+  char *name;
+  char *llvm_name;
   Fxn *fxn;
   bool is_active;
   LLVMValueRef llvm_val_ref;
@@ -79,22 +71,25 @@ typedef struct Symbol {
  * @param level The nesting scope level of the variable.
  */
 Symbol *register_variable(CodegenContext *context, const char *name,
-                       DataType variable_type, Fxn *fxn, int level);
+                          DataType variable_type, Fxn *fxn, int level);
 
 /**
- * Looks up a token (variable or function) in the symbol table by searching backwards.
+ * Looks up a token (variable or function) in the symbol table by searching
+ * backwards.
  * @param context The codegen context.
  * @param name The identifier name to look up.
  * @param fxn The current function scope context.
  * @param level The current scope level context.
  * @return A pointer to the Symbol if found and active, otherwise NULL.
  */
-Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn, int level);
+Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn,
+                     int level);
 
 /**
  * Creates an LLVM local variable (alloca) for a newly declared variable.
  * @param context The codegen context.
- * @param number_start The string pointer to the literal value or expression start.
+ * @param number_start The string pointer to the literal value or expression
+ * start.
  * @param length The length of the literal sequence.
  * @param name The LLVM identifier name for the variable.
  */
@@ -107,6 +102,7 @@ void create_var(CodegenContext *context, const char *number_start, int length,
  * @param sym The resolved Symbol pointer representing the variable.
  * @param scope_level The current scope level.
  */
-void gen_println_variable(CodegenContext *context, Symbol *sym, int scope_level);
+void gen_println_variable(CodegenContext *context, Symbol *sym,
+                          int scope_level);
 
 #endif

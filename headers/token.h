@@ -15,8 +15,8 @@
 #define APOLLO_TOKEN_H
 
 #include "defs.h"
-#include <stdio.h>
 #include "functions.h"
+
 
 typedef struct ErrorStack ErrorStack;
 
@@ -86,6 +86,7 @@ typedef enum {
   DECLARE_FLOAT,
   TOKEN_COMMA,
   TOKEN_RETURN,
+  TOKEN_CHAR,
 
 } TokenType;
 

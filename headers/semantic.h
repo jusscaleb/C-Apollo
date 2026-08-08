@@ -5,13 +5,10 @@
 
               The Apollo Semantics Compile Time library.
       Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
-     
+
 ----------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
-
-
-
 
 #ifndef SEMANTIC_H
 #define SEMANTIC_H
@@ -23,7 +20,6 @@
 
 // The semantic context might eventually need its own symbol table,
 // but for now we just walk the tree.
-
 typedef struct {
   ErrorStack *errors;
   CodegenContext *codegen;
@@ -38,6 +34,6 @@ typedef struct {
  */
 void analyze_semantics(SemanticContext *context, ASTNode *node);
 
-static DataType infer_expr_type(SemanticContext *context, ASTNode *expr); 
+static DataType infer_expr_type(SemanticContext *context, ASTNode *expr);
 
-#endif // SEMANTIC_H
+#endif

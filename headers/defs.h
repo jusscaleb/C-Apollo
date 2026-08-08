@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+
 typedef struct ErrorStack ErrorStack;
 typedef struct ASTNode ASTNode;
 typedef struct ApolloLLVMBackend ApolloLLVMBackend;

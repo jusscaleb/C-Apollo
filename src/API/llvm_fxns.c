@@ -151,6 +151,8 @@ void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
   }
 }
 
+/*==================================================FXN CALLS=====================================================*/
+
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
                                 CodegenContext *context, ASTNode *stmt) {
   if (memcmp(stmt->call_fxn.name, "println", 7) == 0) {
