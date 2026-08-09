@@ -154,6 +154,18 @@ void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNo
     LLVMValueRef ret_val;
     switch(node->ret_node.fxn.return_type){
     case TYPE_INT:{
+      if(node->ret_node.value->Type == AST_BINARY_EXPR){
+        ret_val = arihmetics(components, node->ret_node.value, "");
+        break;
+      }if(node->ret_node.value->Type == AST_VAR_REF){
+        ret_val = load_variable(components, node->ret_node.value);
+        break;
+      }if(node->ret_node.value->Type == AST_CALL_FXN){
+        ret_val = _apl_eval_function_call(components, node->ret_node.value);
+        break;
+      }
+
+
       uint32_t number = (int) return_eval_int(node->ret_node.value);
       ret_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false);
       break;
