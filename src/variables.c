@@ -61,6 +61,7 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
       s_count /=10;
     }
 
+
     char mangled[NAME_LENGTH + n_digits + 2];
 
 
@@ -75,6 +76,7 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
 
    do {
     mangled[--i] = '0' + (s_count_2 % 10);
+    s_count_2 /= 10;
    }while(s_count_2 > 0);
 
     sym->llvm_name = arena_alloc(context->a, i+2);
