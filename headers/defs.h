@@ -19,6 +19,15 @@
 #include <stdio.h>
 
 
+#define _DB 0
+#define _DEBUG(prompt)                                                         \
+  do {                                                                         \
+    if (_DB)                                                                   \
+      printf("%s\n", prompt);                                                  \
+  } while (0);
+
+
+
 typedef struct ErrorStack ErrorStack;
 typedef struct ASTNode ASTNode;
 typedef struct ApolloLLVMBackend ApolloLLVMBackend;

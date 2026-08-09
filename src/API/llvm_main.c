@@ -106,7 +106,7 @@ void _apl_save_and_shutdown(LLVMComponents *components) {
     fprintf(stderr, "Error: Could not write LLVM IR to file (code %d)\n",
             save_err);
   } else {
-    fprintf(stderr, "LLVM IR successfully written to file\n");
+    _DEBUG("LLVM IR successfully written to file.")
   }
 
   _apl_llvm_shutdown(components);

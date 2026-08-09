@@ -308,5 +308,191 @@
                 "total_time": 0.4889774000039324
             }
         }
+    },
+    {
+        "timestamp": "2026-08-08 21:48:23",
+        "total_speed": 2.1542417998425663,
+        "results": {
+            "small_program": {
+                "compile_time": 0.41082520002964884,
+                "run_time": 0.03222019993700087,
+                "total_time": 0.4430453999666497
+            },
+            "large_compilation": {
+                "compile_time": 0.3979509000200778,
+                "run_time": 0.01724439999088645,
+                "total_time": 0.4151953000109643
+            },
+            "for_loop": {
+                "compile_time": 0.35452389996498823,
+                "run_time": 0.015024099964648485,
+                "total_time": 0.3695479999296367
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.35187360004056245,
+                "run_time": 0.014414299977943301,
+                "total_time": 0.36628790001850575
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.5455090999603271,
+                "run_time": 0.014656099956482649,
+                "total_time": 0.5601651999168098
+            }
+        }
+    },
+    {
+        "timestamp": "2026-08-08 21:48:26",
+        "total_speed": 1.856101900106296,
+        "results": {
+            "small_program": {
+                "compile_time": 0.455907900002785,
+                "run_time": 0.017321000108495355,
+                "total_time": 0.4732289001112804
+            },
+            "large_compilation": {
+                "compile_time": 0.35774360003415495,
+                "run_time": 0.01676620007492602,
+                "total_time": 0.37450980010908097
+            },
+            "for_loop": {
+                "compile_time": 0.2879806999117136,
+                "run_time": 0.011738899978809059,
+                "total_time": 0.29971959989052266
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.3302529000211507,
+                "run_time": 0.018340999959036708,
+                "total_time": 0.3485938999801874
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.34349500003736466,
+                "run_time": 0.016554699977859855,
+                "total_time": 0.3600497000152245
+            }
+        }
+    },
+    {
+        "timestamp": "2026-08-08 21:48:29",
+        "total_speed": 2.5014458997175097,
+        "results": {
+            "small_program": {
+                "compile_time": 0.31578849989455193,
+                "run_time": 0.024058999959379435,
+                "total_time": 0.33984749985393137
+            },
+            "large_compilation": {
+                "compile_time": 0.43750739993993193,
+                "run_time": 0.020685199997387826,
+                "total_time": 0.45819259993731976
+            },
+            "for_loop": {
+                "compile_time": 0.4884868999943137,
+                "run_time": 0.03762560000177473,
+                "total_time": 0.5261124999960884
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.5707791999448091,
+                "run_time": 0.025940999970771372,
+                "total_time": 0.5967201999155805
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.5242854000534862,
+                "run_time": 0.0562876999611035,
+                "total_time": 0.5805731000145897
+            }
+        }
+    },
+    {
+        "timestamp": "2026-08-08 21:48:33",
+        "total_speed": 2.701507000136189,
+        "results": {
+            "small_program": {
+                "compile_time": 0.5137312000151724,
+                "run_time": 0.0257221000501886,
+                "total_time": 0.539453300065361
+            },
+            "large_compilation": {
+                "compile_time": 0.49899719993118197,
+                "run_time": 0.029046499985270202,
+                "total_time": 0.5280436999164522
+            },
+            "for_loop": {
+                "compile_time": 0.5346288000000641,
+                "run_time": 0.030655300011858344,
+                "total_time": 0.5652841000119224
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.5859353999840096,
+                "run_time": 0.015990299987606704,
+                "total_time": 0.6019256999716163
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.45110000006388873,
+                "run_time": 0.015700200106948614,
+                "total_time": 0.46680020017083734
+            }
+        }
+    },
+    {
+        "timestamp": "2026-08-08 21:48:35",
+        "total_speed": 1.8321853000670671,
+        "results": {
+            "small_program": {
+                "compile_time": 0.4343042999971658,
+                "run_time": 0.017525400035083294,
+                "total_time": 0.4518297000322491
+            },
+            "large_compilation": {
+                "compile_time": 0.3268677999731153,
+                "run_time": 0.016487899934872985,
+                "total_time": 0.3433556999079883
+            },
+            "for_loop": {
+                "compile_time": 0.32451229996513575,
+                "run_time": 0.013561900006607175,
+                "total_time": 0.33807419997174293
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.2953398000681773,
+                "run_time": 0.016555099980905652,
+                "total_time": 0.31189490004908293
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.37401220004539937,
+                "run_time": 0.013018600060604513,
+                "total_time": 0.3870308001060039
+            }
+        }
+    },
+    {
+        "timestamp": "2026-08-08 21:48:37",
+        "total_speed": 1.741024399874732,
+        "results": {
+            "small_program": {
+                "compile_time": 0.29385970009025186,
+                "run_time": 0.016757900011725724,
+                "total_time": 0.3106176001019776
+            },
+            "large_compilation": {
+                "compile_time": 0.3870280999690294,
+                "run_time": 0.015652699978090823,
+                "total_time": 0.40268079994712025
+            },
+            "for_loop": {
+                "compile_time": 0.29383659991435707,
+                "run_time": 0.01813320000655949,
+                "total_time": 0.31196979992091656
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.3361700000241399,
+                "run_time": 0.01359489990863949,
+                "total_time": 0.34976489993277937
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.34973599994555116,
+                "run_time": 0.016255300026386976,
+                "total_time": 0.36599129997193813
+            }
+        }
     }
 ]

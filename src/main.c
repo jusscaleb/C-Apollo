@@ -12,6 +12,7 @@
 #include "../headers/defs.h"
 #include "../headers/llvm_backend.h"
 
+
 ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context);
 
 static FILE *trace_file = NULL;
@@ -82,18 +83,19 @@ void llvm_compilation() {
 }
 
 int main(int argc, char **argv) {
-  trace("entered main");
+  
+  if(_DB) trace("entered main");
   const char *filename = argc > 1 ? argv[1] : "main.apl";
 
   const char *ext = strrchr(filename, '.');
 
   if (ext == NULL || strcmp(ext, EXPECTED_EXTENSION) != 0) {
-    trace("bad extension");
+    if(_DB) trace("bad extension");
     perror("Expected an .apl file...");
     exit(EXIT_FAILURE);
   }
 
-  trace("reading source");
+  if(_DB) trace("reading source");
   char *source = read_file(filename);
 
   ErrorStack err_stack;
@@ -105,12 +107,12 @@ int main(int argc, char **argv) {
   lexer.scope_level = 0;
 
   errorStack_init(&err_stack);
-  trace("error stack initialized");
+  if(_DB) trace("error stack initialized");
 
   // Ensure temp directory exists before parsing/codegen
-  fprintf(stderr, "[DRIVER] Ensuring temp directory exists.\n");
+  _DEBUG("[DRIVER] Ensuring temp directory exists.")
   fflush(stderr);
-  trace("ensuring temp directory");
+  if(_DB) trace("ensuring temp directory");
   {
     char cwd[512];
     if (_getcwd(cwd, sizeof(cwd)) == NULL) {
@@ -126,9 +128,9 @@ int main(int argc, char **argv) {
   }
 
   // We need the symbol table for parsing, so we init CodegenContext early.
-  fprintf(stderr, "[DRIVER] Initializing codegen context.\n");
+  _DEBUG("[DRIVER] Initializing codegen context.");
   fflush(stderr);
-  trace("initializing codegen context");
+  if(_DB) trace("initializing codegen context");
   CodegenContext compiler_context = {0};
   {
     char cwd[512];
@@ -142,18 +144,19 @@ int main(int argc, char **argv) {
     snprintf(output_path, sizeof(output_path), "%s\\temp\\output.bc", cwd);
     codegen_init(&compiler_context, output_path);
   }
-  fprintf(stderr, "[DRIVER] Codegen context initialized.\n");
+  _DEBUG("[DRIVER] Codegen context initialized.");
   fflush(stderr);
 
-  fprintf(stderr, "[DRIVER] Starting parse for %s\n", filename);
+  _DEBUG("[DRIVER] Starting parse.");
   fflush(stderr);
-  trace("starting parse");
+  if(_DB) trace("starting parse");
   // 1. Parsing Phase
   ASTNode *program_ast = compile_parse(&lexer, &err_stack, &compiler_context);
 
-  fprintf(stderr, "[DRIVER] Parsing finished.\n");
+  _DEBUG("[DRIVER] Parsing finished.");
+
   fflush(stderr);
-  trace("parsing finished");
+  if(_DB) trace("parsing finished");
   if (err_stack.size > 0) {
     errorStack_seek(&err_stack);
     errorStack_free(&err_stack);
@@ -164,13 +167,14 @@ int main(int argc, char **argv) {
   // 2. Semantic Analysis Phase
   SemanticContext semantic_ctx = { &err_stack, &compiler_context};
 
-  fprintf(stderr, "[DRIVER] Starting semantic analysis.\n");
+_DEBUG("[DRIVER] Starting semantic analysis.");
+
   fflush(stderr);
-  trace("starting semantic analysis");
+  if(_DB) trace("starting semantic analysis");
   analyze_semantics(&semantic_ctx, program_ast);
-  fprintf(stderr, "[DRIVER] Semantic analysis finished.\n");
+  _DEBUG("[DRIVER] Semantic analysis finished.");
   fflush(stderr);
-  trace("semantic analysis finished");
+  if(_DB) trace("semantic analysis finished");
   if (err_stack.size > 0) {
     errorStack_seek(&err_stack);
     errorStack_free(&err_stack);
@@ -179,15 +183,16 @@ int main(int argc, char **argv) {
   }
 
   // 3. Code Generation Phase
-  fprintf(stderr, "[DRIVER] Starting LLVM backend emission.\n");
+  _DEBUG("[DRIVER] Starting LLVM backend emission.");
   fflush(stderr);
-  trace("starting llvm backend emission");
+  if(_DB) trace("starting llvm backend emission");
   LLVMComponents components = {0};
   
   _apl_llvm_environment_setup(&compiler_context, &components, program_ast);
-  fprintf(stderr, "[DRIVER] LLVM backend emission finished.\n");
+
+  _DEBUG("[DRIVER] LLVM backend emission finished.");
   fflush(stderr);
-  trace("llvm backend emission finished");
+  if(_DB) trace("llvm backend emission finished");
   
 
   free_codegen_context(&compiler_context, &err_stack);
@@ -200,9 +205,10 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
-  fprintf(stderr, "[DRIVER] Starting clang compilation.\n");
+   _DEBUG("[DRIVER] Starting clang compilation.");
+
   fflush(stderr);
-  trace("starting clang compilation");
+  if(_DB) trace("starting clang compilation");
   llvm_compilation();
 
   return 0;

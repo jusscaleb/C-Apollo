@@ -661,22 +661,22 @@ ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context) {
 
   parser.error = s;
   // Prime by fetching the first token. That way parser.current is not NULL
-  fprintf(stderr, "[PARSER] Priming first token.\n");
+  _DEBUG("[PARSER] Priming first token.")
   fflush(stderr);
   advance(&parser);
 
   // Now parsing the function while sharing the symbol context.
-  fprintf(stderr, "[PARSER] Entering begin().\n");
+  _DEBUG("[PARSER] Entering begin().")
   fflush(stderr);
   ASTNode *program_node = begin(&parser, context);
-  fprintf(stderr, "[PARSER] begin() finished.\n");
+  _DEBUG("[PARSER] begin() finished.")
   fflush(stderr);
 
   // Checks the end of the file.
   consume(
       &parser, TOKEN_EOF,
       "Unexpected trailing syntax tokens encountered after main entry block.");
-  fprintf(stderr, "[PARSER] EOF consumed.\n");
+  _DEBUG("[PARSER] EOF consumed.");
   fflush(stderr);
   return program_node;
 }
