@@ -283,6 +283,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         report_semantic_error(context, "Fxn of return type \"null\" cannot return value.");
         break;
       }
+      if(infer_expr_type(context, node->ret_node.value) != node->ret_node.fxn.return_type){
+        report_semantic_error(context, "Return value for function doesn't match.");
+        break;
+      }
       analyze_node(context, node->ret_node.value);
     }else{
       report_semantic_error(context, "Value not provided.");

@@ -108,4 +108,6 @@ void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNo
 
 float return_eval_int(ASTNode* expr);
 
+LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node);
+
 #endif

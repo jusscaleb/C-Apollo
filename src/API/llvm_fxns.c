@@ -1,10 +1,13 @@
 #include "../../headers/llvm_backend.h"
+#include <stdint.h>
 #include <string.h>
 
 
 /*================================================== INBUILT FUNCTIONS =====================================================*/
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args) {
+
+  printf("ARG TYPE: %d\n",args->datatype ? args->datatype : 89);
   DataType arg_type = args->datatype;
   ASTNode *expr = args->arg;
   LLVMTypeRef param_types[1];
@@ -27,6 +30,9 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     }
     if (expr->Type == AST_BINARY_EXPR) {
       println_args = arihmetics(components, expr, "");
+      break;
+    }if(expr->Type == AST_CALL_FXN){
+      println_args = _apl_eval_function_call(components, expr);
       break;
     }
     println_args = (arg_type == TYPE_INT)
@@ -59,6 +65,9 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
 
     if (expr->Type == AST_VAR_REF) {
       println_args = load_variable(components, expr);
+      break;
+    }if(expr->Type == AST_CALL_FXN){
+      println_args = _apl_eval_function_call(components, expr);
       break;
     }
 
@@ -125,6 +134,8 @@ void _apl_gen_function_start(LLVMComponents *components,
         LLVMAppendBasicBlockInContext(components->ctx, fxn, "");
     LLVMPositionBuilderAtEnd(components->builder, entry);
 
+    block_node->function.resolved_symbol->fxn_meta_data.fxn_type = fxn_type;
+    block_node->function.resolved_symbol->fxn_meta_data.the_fxn = fxn;
     components->current_fxn = fxn;
     return;
   }
@@ -140,12 +151,30 @@ void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
 }
 
 void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNode *node){
+    LLVMValueRef ret_val;
     switch(node->ret_node.fxn.return_type){
     case TYPE_INT:{
-      int number = (int) return_eval_int(node->ret_node.value);
-      LLVMBuildRet(components->builder, LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false));
+      uint32_t number = (int) return_eval_int(node->ret_node.value);
+      ret_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false);
+      break;
+    }case TYPE_BOOL :{
+      uint8_t b = (node->ret_node.value->literal_expr.token.length >= 4) ? 1 : 0;
+      ret_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b , false);
+      break;
+    } case TYPE_STRING: {
+      const uint32_t LENGTH = node->ret_node.value->literal_expr.token.length;
+      char str[LENGTH+1];
+      slice_string(node->ret_node.value->literal_expr.token, str);
+      ret_val = LLVMBuildGlobalStringPtr(components->builder, str, "");
+      break;
+    }
+    case TYPE_FLOAT: {
+      float number = return_eval_int(node->ret_node.value);
+      ret_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), number);
     }
   }
+
+  LLVMBuildRet(components->builder, ret_val);
 }
 
 

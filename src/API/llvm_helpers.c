@@ -46,8 +46,7 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
   return llvm_var;
 }
 
-void slice_string(Token string,
-                                                 char *clean_str) {
+void slice_string(Token string, char *clean_str) {
   const char *sliced_start = string.start + 1;
 
   int sliced_length = string.length - 1;
@@ -147,7 +146,6 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
   }
 }
 
-
 LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
   switch (fxn->return_type) {
   case TYPE_INT:
@@ -156,6 +154,8 @@ LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
     return LLVMFloatTypeInContext(components->ctx);
   case TYPE_STRING:
     return LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
+  case TYPE_BOOL:
+    return LLVMInt1TypeInContext(components->ctx);
   default:
     return LLVMVoidTypeInContext(components->ctx);
   }
@@ -170,4 +170,13 @@ __attribute__((always_inline)) float return_eval_int(ASTNode* expr){
    
     return str_to_int_k(int_str, expr->literal_expr.token.length);
 
+}
+
+LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
+      LLVMValueRef result;
+      FxnCallMetaData meta_data = node->call_fxn.resolved_symbol->fxn_meta_data;
+
+      result = LLVMBuildCall2(components->builder,meta_data.fxn_type, meta_data.the_fxn, NULL, 0, "");
+
+      return result;
 }

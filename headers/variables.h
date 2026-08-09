@@ -20,7 +20,16 @@
 
 
 typedef struct CodegenContext CodegenContext;
+//typedef struct  FxnCallMetaData FxnCallMetaData;
 typedef struct Fxn Fxn;
+
+
+typedef struct FxnCallMetaData{
+  LLVMTypeRef fxn_type;
+  LLVMValueRef the_fxn;
+
+}FxnCallMetaData;
+
 
 typedef enum {
   TYPE_STRING,
@@ -60,6 +69,8 @@ typedef struct Symbol {
   Fxn *fxn;
   bool is_active;
   LLVMValueRef llvm_val_ref;
+  FxnCallMetaData fxn_meta_data;
+  
 } Symbol;
 
 /**
