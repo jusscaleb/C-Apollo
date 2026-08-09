@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static ASTNode *parse_logical_and(Parser *parser, CodegenContext *context);
 
@@ -90,8 +91,7 @@ static ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
       char *potential_name = (char *)arena_alloc(context->a, token.length+1);
       memcpy(potential_name, token.start, token.length);
       potential_name[token.length] = '\0';
-      ASTNode *call_node =
-          parse_fxn_call(parser, NULL, potential_name, token.length);
+      ASTNode *call_node = parse_fxn_call(parser, context, potential_name, token.length);
       return call_node;
     }
     return create_var_ref_node(token.start, token.length, *parser->lexer->fxn,
@@ -279,7 +279,6 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
       create_var_decl_node(name_token.start, name_token.length, dt, value,
                            *parser->lexer->fxn, parser->lexer->scope_level, context->a);
 
-  // consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
 }
 
@@ -362,13 +361,18 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
   consume(parser, TOKEN_LPARETH, "Expected '(' after function name.");
   Args *args;
   if (parser->current.type != TOKEN_RPARETH) {
+    _DEBUG("PARAMETERS.")
     args = get_args(context, parser);
   } else {
+    _DEBUG("NO PARAMETERS.")
     args = NULL;
   }
+
+  
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
+  _DEBUG("Done allocating.")
   return create_fxn_call_node(name, name_length,*parser->lexer->fxn,
-                              parser->lexer->scope_level, args, context->a);
+                              parser->lexer->scope_level, args ? args : NULL, context->a);
 }
 
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
@@ -733,6 +737,7 @@ Params *get_params(CodegenContext *context, Parser *parser) {
 }
 
 Args *get_args(CodegenContext *context, Parser *parser) {
+  _DEBUG("Function calling");
   Args *a = (Args *)arena_alloc(context->a, sizeof(Args));
 
   a->arg = parse_logical_or(parser, context);

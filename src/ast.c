@@ -5,6 +5,7 @@
 ---------------------------------------------------------------------------------*/
 #include "../headers/ast.h"
 #include "../headers/memory.h"
+#include <stdio.h>
 
 
 static ASTNode *allocate_node(ASTNodeType type, Arena *a) {
@@ -123,13 +124,15 @@ void block_add_statement(ASTNode *block, ASTNode *statement, Arena *a) {
 
 ASTNode *create_fxn_call_node(char *name, int name_length,
                               Fxn fxn, int level, Args *args, Arena *a) {
+  
   ASTNode *node = allocate_node(AST_CALL_FXN, a);
+  
 
   node->call_fxn.name = name;
   node->call_fxn.name_length = name_length;
   node->call_fxn.fxn = fxn;
   node->call_fxn.level = level;
-  node->call_fxn.args = args;
+  node->call_fxn.args = args ? args : NULL;
 
   return node;
 }

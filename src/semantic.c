@@ -58,6 +58,7 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
                                                                     : TYPE_INT;
       }
 
+
     }
   }
 
