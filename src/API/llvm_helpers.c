@@ -1,7 +1,6 @@
 #include "../../headers/llvm_backend.h"
 
-LLVMValueRef
-load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
+LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
   Symbol *var_sym = var_ref_node->var_ref.resolved_symbol;
   LLVMValueRef llvm_var;
 
@@ -160,4 +159,15 @@ LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
   default:
     return LLVMVoidTypeInContext(components->ctx);
   }
+}
+
+
+__attribute__((always_inline)) float return_eval_int(ASTNode* expr){
+    char int_str[expr->literal_expr.token.length + 1];
+    memcpy(int_str, expr->literal_expr.token.start,
+           expr->literal_expr.token.length + 1);
+    int_str[expr->literal_expr.token.length] = '\0';
+   
+    return str_to_int_k(int_str, expr->literal_expr.token.length);
+
 }

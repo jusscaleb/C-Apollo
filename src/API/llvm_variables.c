@@ -42,13 +42,7 @@ void _apl_create_local_variable(LLVMComponents *components,
     LLVMValueRef val;
 
     if (expr->Type == AST_LITERAL_EXPR) {
-      const int LENGTH = expr->literal_expr.token.length;
-
-      char f_str[LENGTH + 1];
-      memcpy(f_str, expr->literal_expr.token.start, LENGTH);
-      f_str[LENGTH] = '\0';
-
-      float f_val = str_to_int_k(f_str, LENGTH);
+      float f_val = return_eval_int(expr);
       val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
     } else {
       val = arihmetics(components, expr, "");
@@ -63,12 +57,7 @@ void _apl_create_local_variable(LLVMComponents *components,
   case TYPE_INT: {
     LLVMValueRef val;
     if (expr->Type == AST_LITERAL_EXPR) {
-      const int LENGTH = expr->literal_expr.token.length;
-
-      char i_str[LENGTH + 1];
-      memcpy(i_str, expr->literal_expr.token.start, LENGTH);
-      i_str[LENGTH] = '\0';
-      int i_val = (int)str_to_int_k(i_str, LENGTH);
+      int i_val = (int)return_eval_int(expr);
       val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
     } else {
       val = arihmetics(components, expr, "");
@@ -125,11 +114,7 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
   switch (var_Type) {
   case TYPE_INT: {
     if (value_node->Type == AST_LITERAL_EXPR) {
-      Token tok = value_node->literal_expr.token;
-      char val[tok.length + 1];
-      memcpy(val, tok.start, tok.length);
-      val[tok.length] = '\0';
-      int i_val = (int)str_to_int_k(val, tok.length);
+      int i_val = (int)return_eval_int(value_node);
       new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
     } else {
       new_val = arihmetics(components, value_node, "");
@@ -139,11 +124,7 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
 
   case TYPE_FLOAT: {
     if (value_node->Type == AST_LITERAL_EXPR) {
-      Token tok = value_node->literal_expr.token;
-      char val[tok.length + 1];
-      memcpy(val, tok.start, tok.length);
-      val[tok.length] = '\0';
-      float f_val = str_to_int_k(val, tok.length);
+      float f_val = return_eval_int(value_node);
       new_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
     } else {
       new_val = arihmetics(components, value_node, "");

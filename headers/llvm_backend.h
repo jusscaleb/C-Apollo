@@ -104,4 +104,8 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
 
 float str_to_int_k(const char *s, int k);
 
+void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNode *node);
+
+float return_eval_int(ASTNode* expr);
+
 #endif

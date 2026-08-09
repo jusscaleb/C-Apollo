@@ -1,4 +1,5 @@
 #include "../../headers/llvm_backend.h"
+#include <string.h>
 
 
 /*================================================== INBUILT FUNCTIONS =====================================================*/
@@ -28,22 +29,9 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
       println_args = arihmetics(components, expr, "");
       break;
     }
-
-    int number;
-    float f_number;
-    char int_str[expr->literal_expr.token.length + 1];
-    memcpy(int_str, expr->literal_expr.token.start,
-           expr->literal_expr.token.length + 1);
-    int_str[expr->literal_expr.token.length] = '\0';
-    if (arg_type == TYPE_INT) {
-      number = (int)str_to_int_k(int_str, expr->literal_expr.token.length);
-    } else {
-      f_number = str_to_int_k(int_str, expr->literal_expr.token.length);
-    }
-
     println_args = (arg_type == TYPE_INT)
-                       ? LLVMConstInt(param_types[0], number, 0)
-                       : LLVMConstReal(param_types[0], f_number);
+                       ? LLVMConstInt(param_types[0], (int)return_eval_int(expr), 0)
+                       : LLVMConstReal(param_types[0], return_eval_int(expr));
     break;
   }
 
@@ -120,7 +108,7 @@ void _apl_gen_function_start(LLVMComponents *components,
     LLVMValueRef main_fxn =
         LLVMAddFunction(components->module, "main", main_fxn_type);
     LLVMBasicBlockRef entry =
-        LLVMAppendBasicBlockInContext(components->ctx, main_fxn, "entry");
+        LLVMAppendBasicBlockInContext(components->ctx, main_fxn, "");
     LLVMPositionBuilderAtEnd(components->builder, entry);
 
     components->current_fxn = main_fxn;
@@ -134,7 +122,7 @@ void _apl_gen_function_start(LLVMComponents *components,
     LLVMValueRef fxn = LLVMAddFunction(components->module,
                                        block_node->function.name, fxn_type);
     LLVMBasicBlockRef entry =
-        LLVMAppendBasicBlockInContext(components->ctx, fxn, "entry");
+        LLVMAppendBasicBlockInContext(components->ctx, fxn, "");
     LLVMPositionBuilderAtEnd(components->builder, entry);
 
     components->current_fxn = fxn;
@@ -151,6 +139,16 @@ void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
   }
 }
 
+void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNode *node){
+    switch(node->ret_node.fxn.return_type){
+    case TYPE_INT:{
+      int number = (int) return_eval_int(node->ret_node.value);
+      LLVMBuildRet(components->builder, LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false));
+    }
+  }
+}
+
+
 /*==================================================FXN CALLS=====================================================*/
 
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
@@ -160,7 +158,6 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
     return;
   }
 }
-
 
 
 

@@ -149,7 +149,8 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       _apl_gen_fxn_call_from_ast(components, context, stmt);
       break;
     case AST_RET_NODE:
-      _apl_gen_function_end(components, context, stmt);
+      //_apl_gen_function_end(components, context, stmt);
+      _apl_gen_return(components, context, stmt);
 
       break;
     case AST_FUNCTION: {
@@ -159,6 +160,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
 
       break;
     }
+
 
     default:
       fprintf(stderr, "Unsupported statement type in block codegen. %d\n",
