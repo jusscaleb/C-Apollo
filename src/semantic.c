@@ -63,7 +63,7 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
 
   if (expr->Type == AST_VAR_REF) {
     const int NAME_LENGTH = expr->var_ref.name_length;
-    char *var_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+    char var_name[NAME_LENGTH+1];
     memcpy(var_name, expr->var_ref.name, NAME_LENGTH);
     var_name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, var_name, &expr->var_ref.fxn,
@@ -78,7 +78,7 @@ static DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
 
   if (expr->Type == AST_CALL_FXN) {
     const int NAME_LENGTH = expr->call_fxn.name_length;
-    char *fn_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+    char fn_name[NAME_LENGTH+1];
     memcpy(fn_name, expr->call_fxn.name, NAME_LENGTH);
     fn_name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, fn_name, &expr->call_fxn.fxn,

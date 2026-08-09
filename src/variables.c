@@ -1,6 +1,7 @@
 #include "../headers/variables.h"
 #include "../headers/defs.h"
 #include "../headers/functions.h"
+#include <stdint.h>
 #include <string.h>
 
 
@@ -12,11 +13,13 @@ Symbol *register_variable(CodegenContext *context, const char *name,
   Symbol *sym = &context->symbols[context->symbol_count++];
   int NAME_LENGTH = strlen(name);
 
-  sym->name = realloc_space(sym->name, NAME_LENGTH);
-  sprintf(sym->name, "%s", name);
-  sym->llvm_name = realloc_space(sym->llvm_name, NAME_LENGTH);
-
-  sprintf(sym->llvm_name, "%s", sym->name);
+  sym->name = (char*)arena_alloc(context->a, NAME_LENGTH+1);
+  memcpy(sym->name, name , NAME_LENGTH);
+  sym->name[NAME_LENGTH] = '\0';
+  sym->llvm_name = (char*) arena_alloc(context->a, NAME_LENGTH+1);
+  
+  memcpy(sym->llvm_name, sym->name, NAME_LENGTH);
+  sym->llvm_name[NAME_LENGTH] = '\0';
   sym->type = variable_type;
 
   (variable_type == TYPE_STRING)
@@ -36,20 +39,48 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
   grow_symbols_if_needed(context);
   Symbol *sym = &context->symbols[context->symbol_count++];
 
-  char *new_space = realloc_space(sym->name, strlen(name) + 1);
-  sym->name = new_space;
+  const uint32_t NAME_LENGTH = strlen(name);
 
-  strcpy(sym->name, name);
+  sym->name = (char*)arena_alloc(context->a, NAME_LENGTH+1);
+  memcpy(sym->name, name, NAME_LENGTH);
 
-  if (strcmp(name, "run") == 0) {
-    sym->llvm_name = realloc_space(sym->llvm_name, strlen(name) + 1);
-    strcpy(sym->llvm_name, name);
+  sym->name[NAME_LENGTH] = '\0';
+
+  if (memcmp(name, "run", 3) == 0) {
+    sym->llvm_name = (char*) arena_alloc(context->a, NAME_LENGTH+1);
+
+    memcpy(sym->llvm_name, name, NAME_LENGTH);
+    sym->llvm_name[NAME_LENGTH] = '\0';
   } else {
-    // Mangle the name to ensure uniqueness across nested functions
-    char mangled[256];
-    snprintf(mangled, sizeof(mangled), "%s_%d", name, context->symbol_count);
-    sym->llvm_name = realloc_space(sym->llvm_name, strlen(mangled) + 1);
-    strcpy(sym->llvm_name, mangled);
+    //get number of digits.
+    uint32_t s_count = (uint32_t) context->symbol_count;
+    uint32_t n_digits = 0;
+    while(s_count != 0){
+      n_digits++;
+      s_count %= 10;
+      s_count /=10;
+    }
+
+    char mangled[NAME_LENGTH + n_digits + 2];
+
+
+   memcpy(mangled, name, NAME_LENGTH);
+   mangled[NAME_LENGTH] = '_';
+
+   uint32_t i = NAME_LENGTH + 1 + n_digits;
+
+   mangled[i] = '\0';
+
+   uint32_t s_count_2 = (uint32_t) context->symbol_count;
+
+   do {
+    mangled[--i] = '0' + (s_count_2 % 10);
+   }while(s_count_2 > 0);
+
+    sym->llvm_name = arena_alloc(context->a, i+2);
+    memcpy(sym->llvm_name, mangled, i);
+
+    sym->llvm_name[i] = '\0';
   }
 
   sym->type = return_type;

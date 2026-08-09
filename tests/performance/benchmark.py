@@ -191,6 +191,10 @@ if __name__ == "__main__":
         ct, rt, tt = run_benchmark("var_decl_no_dt", var_decl_no_dt)
         current_results["var_decl_no_dt"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
 
+        for_loop_continous_println = "fxn run()->(void){\n   int x; for(int i = 0; i < 1000000; i++){ x += i; println(x);} \n}"
+        ct, rt, tt = run_benchmark("for_loop_continous_println", for_loop_continous_println)
+        current_results["for_loop_continous_println"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
+
 
 
         

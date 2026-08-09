@@ -87,7 +87,7 @@ static ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
   if (token.type == TOKEN_IDENTIFIER) {
     advance(parser);
     if (parser->current.type == TOKEN_LPARETH) {
-      char *potential_name = alloc_space(token.length + 1, sizeof(char));
+      char *potential_name = (char *)arena_alloc(context->a, token.length+1);
       memcpy(potential_name, token.start, token.length);
       potential_name[token.length] = '\0';
       ASTNode *call_node =
@@ -373,7 +373,7 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
 
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
   const int NAME_LENGTH = parser->current.length;
-  char *potential_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
+  char *potential_name = (char*)arena_alloc(context->a, NAME_LENGTH+1);
   memcpy(potential_name, parser->current.start, NAME_LENGTH);
   potential_name[NAME_LENGTH] = '\0';
 
@@ -422,8 +422,9 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after for-loop condition.");
 
     const int NAME_LENGTH = parser->current.length;
-    char *loop_var_name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-    sprintf(loop_var_name, "%.*s", NAME_LENGTH, parser->current.start);
+    char *loop_var_name = arena_alloc(context->a, NAME_LENGTH+1);
+    memcpy(loop_var_name, parser->current.start, NAME_LENGTH);
+    loop_var_name[NAME_LENGTH] = '\0';
     advance(parser);
     ASTNode *var_operation = parse_assignment_or_increment(
         parser, context, loop_var_name, NAME_LENGTH);
@@ -499,7 +500,7 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   case TOKEN_RETURN:
     advance(parser);
     if(!parser->lexer->fxn->has_return_type) parser->lexer->fxn->has_return_type = true;
-    Fxn *fxn = (Fxn *)alloc_space(1, sizeof(Fxn));
+    Fxn *fxn = (Fxn *)arena_alloc(context->a, sizeof(Fxn));
     fxn = parser->lexer->fxn;
     ASTNode *value = parse_logical_or(parser, context);
     ASTNode *ret_node = create_ret_node(context, *fxn, value, context->a);
@@ -589,11 +590,12 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   Token name_token = parser->current;
 
   const int NAME_LENGTH = name_token.length;
-  char *name = alloc_space(NAME_LENGTH + 1, sizeof(char));
-  sprintf(name, "%.*s", NAME_LENGTH, name_token.start);
+  char *name = (char *)arena_alloc(context->a, NAME_LENGTH+1);
+  memcpy(name, name_token.start, NAME_LENGTH);
+  name[NAME_LENGTH] = '\0';
 
   Fxn *parent = parser->lexer->fxn;
-  Fxn *fxn = (Fxn *)alloc_space(1, sizeof(Fxn));
+  Fxn *fxn = (Fxn *)arena_alloc(context->a, sizeof(Fxn));
 
   fxn->length = NAME_LENGTH;
   fxn->name = name;
@@ -626,8 +628,6 @@ ASTNode *parse_function(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *begin(Parser *parser, CodegenContext *context) {
-  //parser->lexer->fxn = (Fxn *)alloc_space(1, sizeof(Fxn));
-
   parser->lexer->fxn = arena_alloc(context->a, sizeof(Fxn));
   *parser->lexer->fxn = (Fxn){.length = 0,
                               .level = 0,
@@ -700,7 +700,7 @@ void change_active_state(CodegenContext *context, Lexer *lexer) {
 }
 
 Params *get_params(CodegenContext *context, Parser *parser) {
-  Params *p = (Params *)alloc_space(1, sizeof(Params));
+  Params *p = (Params *)arena_alloc(context->a, sizeof(Params));
 
   switch (parser->current.type) {
   case DECLARE_INT: {
@@ -739,7 +739,7 @@ Params *get_params(CodegenContext *context, Parser *parser) {
 }
 
 Args *get_args(CodegenContext *context, Parser *parser) {
-  Args *a = (Args *)alloc_space(1, sizeof(Args));
+  Args *a = (Args *)arena_alloc(context->a, sizeof(Args));
 
   a->arg = parse_logical_or(parser, context);
   if (parser->current.type == TOKEN_COMMA) {

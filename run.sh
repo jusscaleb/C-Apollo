@@ -2,9 +2,10 @@
 
 set -eu
 
+args="${1:-}"
 
 
-if [ "$1" != 'build' ]; then
+if [ "$args" != 'build' ]; then
     rm -rf build
     cmake -B build -G "MinGW Makefiles"
 
@@ -15,7 +16,7 @@ if [ "$1" != 'build' ]; then
 fi
 
 if [ "$#" -lt 1 ]; then
-  echo "No .apl argument, so exiting..."
+  echo "No <file.apl> argument, so exiting..."
   exit 0
 
 else

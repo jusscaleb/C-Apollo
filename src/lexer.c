@@ -321,7 +321,6 @@ Token next_token(Lexer *lexer) {
           char temp[len + 1];
           memcpy(temp, start, len);
           temp[len] = '\0'; 
-          //snprintf(temp, len + 1, "%.*s", len, start);
           lex_error(lexer, "Unterminated String", temp);
           Token token = {TOKEN_EOF, start, len, lexer->line};
           return token;
@@ -342,7 +341,6 @@ Token next_token(Lexer *lexer) {
       char temp[len + 1];
       memcpy(temp, start, len);
       temp[len] = '\0';
-      //snprintf(temp, len + 1, "%.*s", len, start);
       lex_error(lexer, "Unterminated String", temp);
       Token token = {TOKEN_EOF, start, len, lexer->line};
       return token;
@@ -373,7 +371,6 @@ Token next_token(Lexer *lexer) {
       if (!isdigit((unsigned char)*lexer->current)) {
         int len = (int)(lexer->current - start);
         char temp[len + 1];
-        //snprintf(temp, len + 1, "%.*s", len, start);
         memcpy(temp, start, len);
         temp[len] = '\0';
         lex_error(lexer, "Expected value int after '.' ", temp);
