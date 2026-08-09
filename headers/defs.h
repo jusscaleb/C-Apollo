@@ -67,13 +67,6 @@ char *realloc_space(char *value, int size);
 void grow_symbols_if_needed(CodegenContext *context);
 
 /**
- * Frees all memory associated with the code generation context and error stack.
- * @param context The codegen context.
- * @param s The error stack.
- */
-void free_codegen_context(CodegenContext *context);
-
-/**
  * Allocates memory initialized to zero.
  * @param num_elements Number of elements to allocate.
  * @param element_size Size of each element.

@@ -204,8 +204,6 @@ _DEBUG("[DRIVER] Starting semantic analysis.");
   fflush(stderr);
   if(_DB) trace("llvm backend emission finished");
   
-
-  //free_codegen_context(&compiler_context);
   arena_reset(compiler_context.a);
   arena_free(compiler_context.a);
 

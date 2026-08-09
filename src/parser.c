@@ -548,10 +548,7 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
 
   if (parser->current.type == TOKEN_ARROW) {
     advance(parser);
-    consume(parser, TOKEN_LPARETH,
-            "Expected open parenthesis '(' around return type specification.");
-
-    if (parser->current.type != TOKEN_RPARETH) {
+    if (parser->current.type != TOKEN_LBRACE) {
       switch (parser->current.type) {
       case DECLARE_INT:
         parser->lexer->fxn->return_type = TYPE_INT;
@@ -573,9 +570,6 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
       }
       advance(parser);
     }
-    consume(
-        parser, TOKEN_RPARETH,
-        "Expected closing parenthesis ')' around return type specification.");
   }
 
   ASTNode *body = parse_block(parser, context);

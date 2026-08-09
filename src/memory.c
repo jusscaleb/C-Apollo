@@ -39,14 +39,6 @@ void grow_symbols_if_needed(CodegenContext *context) {
         context->symbol_capacity == 0 ? 8 : context->symbol_capacity * 2;
 
     Symbol *new_symbols = arena_alloc(context->a, new_capacity * sizeof(Symbol));
-        //realloc(context->symbols, new_capacity * sizeof(Symbol));
-
-    //Symbol *new_symbols = arena_alloc(a, new_capacity* sizeof(Symbol));
-    
-    if (new_symbols == NULL) {
-      fprintf(stderr, "FATAL: Failed to allocate memory for symbol table.\n");
-      exit(EXIT_FAILURE);
-    }
 
     for (int i = context->symbol_capacity; i < new_capacity; i++) {
       new_symbols[i].name = NULL;
@@ -55,25 +47,6 @@ void grow_symbols_if_needed(CodegenContext *context) {
 
     context->symbols = new_symbols;
     context->symbol_capacity = new_capacity;
-  }
-}
-
-void free_codegen_context(CodegenContext *context) {
-  if (context->symbols != NULL) {
-    for (int i = 0; i < context->symbol_count; i++) {
-      free(context->symbols[i].name);
-    }
-    free(context->symbols);
-    context->symbols = NULL;
-    context->symbol_count = 0;
-    context->symbol_capacity = 0;
-  }
-
-  if (context->deferred_functions != NULL) {
-    free(context->deferred_functions);
-    context->deferred_functions = NULL;
-    context->deferred_count = 0;
-    context->deferred_capacity = 0;
   }
 }
 
