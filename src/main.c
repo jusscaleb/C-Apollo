@@ -11,6 +11,7 @@
 #include "../headers/semantic.h"
 #include "../headers/defs.h"
 #include "../headers/llvm_backend.h"
+#include "../headers/memory.h"
 
 
 ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context);
@@ -98,6 +99,12 @@ int main(int argc, char **argv) {
   if(_DB) trace("reading source");
   char *source = read_file(filename);
 
+  Arena arena;
+
+  arena_init(1024*1024, &arena);
+
+  //arena_free(arena);
+
   ErrorStack err_stack;
 
   Lexer lexer;
@@ -132,6 +139,9 @@ int main(int argc, char **argv) {
   fflush(stderr);
   if(_DB) trace("initializing codegen context");
   CodegenContext compiler_context = {0};
+
+  compiler_context.a = &arena;
+
   {
     char cwd[512];
     if (_getcwd(cwd, sizeof(cwd)) == NULL) {
@@ -195,7 +205,9 @@ _DEBUG("[DRIVER] Starting semantic analysis.");
   if(_DB) trace("llvm backend emission finished");
   
 
-  free_codegen_context(&compiler_context, &err_stack);
+  //free_codegen_context(&compiler_context);
+  arena_reset(compiler_context.a);
+  arena_free(compiler_context.a);
 
   free(source);
 

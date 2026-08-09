@@ -4,11 +4,11 @@
 
 ---------------------------------------------------------------------------------*/
 #include "../headers/ast.h"
+#include "../headers/memory.h"
 
 
-static ASTNode *allocate_node(ASTNodeType type) {
-  ASTNode *node = malloc(sizeof(ASTNode));
-
+static ASTNode *allocate_node(ASTNodeType type, Arena *a) {
+  ASTNode *node = arena_alloc(a, sizeof(ASTNode));
   if (node == NULL) {
     fprintf(stderr, "CRITICAL: Could not allocate AST node.\n");
     exit(EXIT_FAILURE);
@@ -19,24 +19,18 @@ static ASTNode *allocate_node(ASTNodeType type) {
   return node;
 }
 
-ASTNode *create_literal_node(Token token) {
-  ASTNode *node = allocate_node(AST_LITERAL_EXPR);
+ASTNode *create_literal_node(Token token, Arena *a) {
+  ASTNode *node = allocate_node(AST_LITERAL_EXPR, a);
   node->literal_expr.token = token;
 
   return node;
 }
 
-/*ASTNode *create_println_node(ASTNode *value) {
-  ASTNode *node = allocate_node(AST_PRINTLN);
 
-  node->println.value = value;
-
-  return node;
-}*/
 
 ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
-                            ASTNode *right) {
-  ASTNode *node = allocate_node(AST_BINARY_EXPR);
+                            ASTNode *right, Arena *a) {
+  ASTNode *node = allocate_node(AST_BINARY_EXPR, a);
 
   node->binary_expr.left = left;
   node->binary_expr.operator_type = operator_type;
@@ -47,8 +41,8 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
 
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level) {
-  ASTNode *node = allocate_node(AST_VAR_DECL);
+                              int level, Arena *a) {
+  ASTNode *node = allocate_node(AST_VAR_DECL, a);
 
   node->var_decl.name = name;
   node->var_decl.name_length = name_length;
@@ -61,8 +55,8 @@ ASTNode *create_var_decl_node(const char *name, int name_length,
 }
 
 ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
-                             int level) {
-  ASTNode *node = allocate_node(AST_VAR_REF);
+                             int level, Arena *a) {
+  ASTNode *node = allocate_node(AST_VAR_REF, a);
   node->var_ref.name = name;
   node->var_ref.name_length = name_length;
   node->var_ref.fxn = fxn;
@@ -72,8 +66,8 @@ ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
 }
 
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, Fxn fxn, int level) {
-  ASTNode *node = allocate_node(AST_VAR_ASS);
+                                ASTNode *value, Fxn fxn, int level, Arena *a) {
+  ASTNode *node = allocate_node(AST_VAR_ASS, a);
   node->var_assign.name = name;
   node->var_assign.name_length = name_length;
   node->var_assign.value = value;
@@ -84,33 +78,33 @@ ASTNode *create_var_assign_node(const char *name, int name_length,
 
 
 ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
-                        ASTNode *else_block) {
-  ASTNode *node = allocate_node(AST_IF);
+                        ASTNode *else_block, Arena *a) {
+  ASTNode *node = allocate_node(AST_IF, a);
   node->if_stmt.condition = condition;
   node->if_stmt.then_block = then_block;
   node->if_stmt.else_block = else_block;
   return node;
 }
 
-ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block) {
-  ASTNode *node = allocate_node(AST_WHILE);
+ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block, Arena *a) {
+  ASTNode *node = allocate_node(AST_WHILE, a);
   node->while_lp.condition = condition;
   node->while_lp.then_block = then_block;
 
   return node;
 }
 
-ASTNode *create_block_node() {
-  ASTNode *node = allocate_node(AST_BLOCK);
+ASTNode *create_block_node(Arena *a) {
+  ASTNode *node = allocate_node(AST_BLOCK, a);
   node->block.count = 0;
   node->block.capacity = 8;
-  node->block.statements = malloc(sizeof(ASTNode *) * node->block.capacity);
+  node->block.statements = arena_alloc(a,sizeof(ASTNode *) * node->block.capacity ) ;//malloc(sizeof(ASTNode *) * node->block.capacity);
   return node;
 }
 
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
-                         ASTNode *var_operation, ASTNode *then_block) {
-  ASTNode *node = allocate_node(AST_FOR);
+                         ASTNode *var_operation, ASTNode *then_block, Arena *a) {
+  ASTNode *node = allocate_node(AST_FOR, a);
   node->for_lp.var_operation = var_operation;
   node->for_lp.condtion = condition;
   node->for_lp.variable = variable;
@@ -118,7 +112,7 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
   return node;
 }
 
-void block_add_statement(ASTNode *block, ASTNode *statement) {
+void block_add_statement(ASTNode *block, ASTNode *statement, Arena *a) {
   if (block->block.count >= block->block.capacity) {
     block->block.capacity *= 2;
     block->block.statements = realloc(
@@ -128,8 +122,8 @@ void block_add_statement(ASTNode *block, ASTNode *statement) {
 }
 
 ASTNode *create_fxn_call_node(char *name, int name_length,
-                              Fxn fxn, int level, Args *args) {
-  ASTNode *node = allocate_node(AST_CALL_FXN);
+                              Fxn fxn, int level, Args *args, Arena *a) {
+  ASTNode *node = allocate_node(AST_CALL_FXN, a);
 
   node->call_fxn.name = name;
   node->call_fxn.name_length = name_length;
@@ -141,8 +135,8 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
 }
 
 ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
-                              Fxn fxn, int level) {
-  ASTNode *node = allocate_node(AST_FUNCTION);
+                              Fxn fxn, int level, Arena *a) {
+  ASTNode *node = allocate_node(AST_FUNCTION, a);
   node->function.name = name;
   node->function.name_length = name_length;
   node->function.body = body;
@@ -151,15 +145,15 @@ ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
   return node;
 }
 
-ASTNode *create_program_node(ASTNode *block) {
-  ASTNode *node = allocate_node(AST_PROGRAM);
+ASTNode *create_program_node(ASTNode *block, Arena *a) {
+  ASTNode *node = allocate_node(AST_PROGRAM, a);
   node->program.function =
       block; // Using 'function' field to store the block of functions for now
   return node;
 }
 
-ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value) {
-  ASTNode *node = allocate_node(AST_RET_NODE);
+ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value, Arena *a) {
+  ASTNode *node = allocate_node(AST_RET_NODE, a);
   node->ret_node.fxn = fxn;
   node->ret_node.value = value;
   return node;

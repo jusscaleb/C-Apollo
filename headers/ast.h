@@ -16,6 +16,8 @@
 #include "arithmetic.h"
 #include "token.h"
 #include "variables.h"
+#include "../headers/memory.h"
+
 
 struct Symbol;
 
@@ -166,7 +168,7 @@ struct ASTNode {
  * Creates an AST node representing a literal value.
  * @param token The Token representing the literal (number, string, bool, null).
  */
-ASTNode *create_literal_node(Token token);
+ASTNode *create_literal_node(Token token, Arena *a);
 
 /**
  * Creates an AST node representing a binary operation.
@@ -175,7 +177,7 @@ ASTNode *create_literal_node(Token token);
  * @param right The AST node for the right operand.
  */
 ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
-                            ASTNode *right);
+                            ASTNode *right, Arena *a);
 
 /**
  * Creates an AST node representing a variable declaration.
@@ -188,18 +190,18 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
  */
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level);
+                              int level, Arena *a);
 
 /**
  * Creates an AST node representing a println statement.
  * @param value The AST node representing the expression to print.
  */
-ASTNode *create_println_node(ASTNode *value);
+ASTNode *create_println_node(ASTNode *value, Arena *a);
 
 /**
  * Creates an empty AST block container to hold statements.
  */
-ASTNode *create_block_node();
+ASTNode *create_block_node(Arena *a);
 
 /**
  * Creates an AST node representing a reference to a variable by name.
@@ -209,7 +211,7 @@ ASTNode *create_block_node();
  * @param level scope level of the variable.
  */
 ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
-                             int level);
+                             int level, Arena *a);
 
 /**
  * Creates an AST node representing a variable reassignment.
@@ -220,7 +222,7 @@ ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
  * @param level scope level of the variable.
  */
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, Fxn fxn, int level);
+                                ASTNode *value, Fxn fxn, int level, Arena *a);
 
 /**
  * Creates an AST node representing conditional branching (if/elif/else).
@@ -230,7 +232,7 @@ ASTNode *create_var_assign_node(const char *name, int name_length,
  * false.
  */
 ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
-                        ASTNode *else_block);
+                        ASTNode *else_block, Arena *a);
 
 /**
  * Creates an AST node representing a while loop.
@@ -238,7 +240,7 @@ ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
  * @param then_block The AST block to execute repeatedly while condition is
  * true.
  */
-ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block);
+ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block, Arena *a);
 
 /**
  * Creates an AST node representing a for loop.
@@ -249,7 +251,7 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block);
  * true.
  */
 ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
-                         ASTNode *var_operation, ASTNode *then_block);
+                         ASTNode *var_operation, ASTNode *then_block, Arena *a);
 
 /**
  * Creates an AST node representing fxn call.
@@ -261,7 +263,7 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
  * @param args Pointer to the list of arguments passed to the function.
  */
 ASTNode *create_fxn_call_node(char *name, int name_length, Fxn fxn, int level,
-                              Args *args);
+                              Args *args, Arena *a);
 
 /*--------------------------------------------------------------------------------
 
@@ -276,29 +278,29 @@ ASTNode *create_fxn_call_node(char *name, int name_length, Fxn fxn, int level,
  * @param body The AST block node representing the function body.
  */
 ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
-                              Fxn fxn, int level);
+                              Fxn fxn, int level, Arena *a);
 
 /**
  * Creates an AST node representing the entire program.
  * @param block The block containing top-level declarations/functions.
  */
-ASTNode *create_program_node(ASTNode *block);
+ASTNode *create_program_node(ASTNode *block, Arena *a);
 
-ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value);
+ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value, Arena *a);
 
 /**
  * Realloc more memory to the AST block
  * @param block The AST node representing the block to add.
  * @param statement The type of statement the block falls under.
  */
-void block_add_statement(ASTNode *block, ASTNode *statement);
+void block_add_statement(ASTNode *block, ASTNode *statement, Arena *a);
 
 /**
  * Generates LLVM IR for a println statement.
  * @param context The codegen context containing output file and state.
  * @param println_node The AST node representing the println statement.
  */
-void gen_println_from_ast(CodegenContext *context, ASTNode *println_node);
+void gen_println_from_ast(CodegenContext *context, ASTNode *println_node, Arena *a);
 
 /**
  * Generates LLVM IR for an expression and returns its result type/value.
@@ -306,62 +308,62 @@ void gen_println_from_ast(CodegenContext *context, ASTNode *println_node);
  * @param expr The AST node representing the expression.
  * @return ExprResult containing the LLVM value string and type.
  */
-ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr);
+ExprResult gen_expr_from_ast(CodegenContext *context, ASTNode *expr, Arena *a);
 
 /**
  * Generates LLVM IR for a variable declaration.
  * @param context The codegen context.
  * @param var_node The AST node representing the variable declaration.
  */
-void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node);
+void gen_var_decl_from_ast(CodegenContext *context, ASTNode *var_node, Arena *a);
 
 /**
  * Generates LLVM IR for a variable reassignment.
  * @param context The codegen context.
  * @param assign_node The AST node representing the reassignment.
  */
-void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node);
+void gen_var_assign_from_ast(CodegenContext *context, ASTNode *assign_node, Arena *a);
 
 /**
  * Generates LLVM IR for an if/elif/else branching structure.
  * @param context The codegen context.
  * @param if_node The AST node representing the conditional block.
  */
-void gen_if_from_ast(CodegenContext *context, ASTNode *if_node);
+void gen_if_from_ast(CodegenContext *context, ASTNode *if_node, Arena *a);
 
 /**
  * Generates LLVM IR for a block of statements.
  * @param context The codegen context.
  * @param block_node The AST block node containing statements to generate.
  */
-void gen_block_from_ast(CodegenContext *context, ASTNode *block_node);
+void gen_block_from_ast(CodegenContext *context, ASTNode *block_node, Arena *a);
 
 /**
  * Generates LLVM IR for a while loop.
  * @param context The codegen context.
  * @param while_node The AST node representing the while loop.
  */
-void gen_while_from_ast(CodegenContext *context, ASTNode *while_node);
+void gen_while_from_ast(CodegenContext *context, ASTNode *while_node, Arena *a);
 
 /**
  * Generates LLVM IR for a for loop.
  * @param context The codegen context.
  * @param for_node The AST node representing the for loop.
  */
-void gen_for_from_ast(CodegenContext *context, ASTNode *for_node);
+void gen_for_from_ast(CodegenContext *context, ASTNode *for_node, Arena *a);
 
 /**
  * Generates LLVM IR for a function call.
  * @param context The codegen context.
  * @param call_node The AST node representing the function call.
  */
-void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node);
+void gen_fxn_call_from_ast(CodegenContext *context, ASTNode *call_node, Arena *a);
 
 /**
  * Generates the entry point and LLVM IR for the entire program.
  * @param context The codegen context.
  * @param program_node The root AST program node.
  */
-void gen_program_from_ast(CodegenContext *context, ASTNode *program_node);
+void gen_program_from_ast(CodegenContext *context, ASTNode *program_node, Arena *a);
 
 #endif

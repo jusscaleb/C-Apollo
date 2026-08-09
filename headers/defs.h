@@ -14,6 +14,7 @@
 #define DEFS_H
 
 #include "variables.h"
+#include "memory.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -46,6 +47,7 @@ typedef struct CodegenContext {
   ASTNode **deferred_functions;
   int deferred_count;
   int deferred_capacity;
+  Arena *a;
 } CodegenContext;
 
 /**
@@ -68,7 +70,7 @@ void grow_symbols_if_needed(CodegenContext *context);
  * @param context The codegen context.
  * @param s The error stack.
  */
-void free_codegen_context(CodegenContext *context, ErrorStack *s);
+void free_codegen_context(CodegenContext *context);
 
 /**
  * Allocates memory initialized to zero.

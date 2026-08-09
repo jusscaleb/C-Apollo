@@ -8,7 +8,7 @@ if [ "$1" != 'build' ]; then
     rm -rf build
     cmake -B build -G "MinGW Makefiles"
 
-    cmake --build build
+    cmake --build build 
 
     echo "Apollo compiled successfully!"
 

@@ -6,8 +6,11 @@
 
 #include "../headers/defs.h"
 #include "../headers/error.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "../headers/memory.h"
 
 char *realloc_space(char *value, int size) {
   char *alloc_space = realloc(value, size);
@@ -35,8 +38,11 @@ void grow_symbols_if_needed(CodegenContext *context) {
     int new_capacity =
         context->symbol_capacity == 0 ? 8 : context->symbol_capacity * 2;
 
-    Symbol *new_symbols =
-        realloc(context->symbols, new_capacity * sizeof(Symbol));
+    Symbol *new_symbols = arena_alloc(context->a, new_capacity * sizeof(Symbol));
+        //realloc(context->symbols, new_capacity * sizeof(Symbol));
+
+    //Symbol *new_symbols = arena_alloc(a, new_capacity* sizeof(Symbol));
+    
     if (new_symbols == NULL) {
       fprintf(stderr, "FATAL: Failed to allocate memory for symbol table.\n");
       exit(EXIT_FAILURE);
@@ -52,7 +58,7 @@ void grow_symbols_if_needed(CodegenContext *context) {
   }
 }
 
-void free_codegen_context(CodegenContext *context, ErrorStack *s) {
+void free_codegen_context(CodegenContext *context) {
   if (context->symbols != NULL) {
     for (int i = 0; i < context->symbol_count; i++) {
       free(context->symbols[i].name);
@@ -104,4 +110,95 @@ void errorStack_free(ErrorStack *s) {
     s->size = 0;
     s->capacity = 0;
   }
+}
+
+
+void arena_init(size_t capacity, Arena *a){
+  a->mem = alloc_space(capacity, 1);
+  //a->mem = malloc(capacity);
+
+  if(a->mem == NULL){
+    perror("Could not allocate memory to arena.");
+    exit(1);
+  }
+
+  a->capacity = capacity;
+  a->offset = 0;
+  a->next_arena = NULL;
+}
+
+
+/*void *arena_alloc(Arena *a, size_t size){
+  if(a->offset + size > a->capacity){
+    a->mem = realloc_space(a->mem, a->capacity * 2);
+    a->capacity *= 2;
+  }
+
+  void* p = a->mem + a->offset;
+
+  a->offset += size;
+
+  return p;
+}
+
+void arena_reset(Arena *a){
+  a->offset = 0;
+
+}*/
+
+
+void* arena_alloc(Arena *a, size_t size){
+  size_t  aligned_size = (size + (ARENA_ALIGNMENT - 1)) & ~(ARENA_ALIGNMENT - 1);
+
+  if(a->mem == NULL || (a->offset + aligned_size > a->capacity)){
+    size_t new_capacity = a->capacity > 0 ? a->capacity : 1024*1024;
+
+    if(aligned_size > new_capacity) new_capacity = aligned_size;
+
+    
+  Arena *old_chunk = (Arena *)alloc_space(1, sizeof(Arena));
+
+  old_chunk->mem = a->mem;
+  old_chunk->capacity = a->capacity;
+  old_chunk->offset = a->offset;
+  old_chunk->next_arena = a->next_arena;
+
+  arena_init(new_capacity, a);
+  a->next_arena = old_chunk;
+
+  }
+
+  void *p = a->mem + a->offset;
+  a->offset += aligned_size;
+  return p;
+
+
+}
+
+void arena_reset(Arena *a){
+  Arena *current = a;
+
+  while(current != NULL){
+    current->offset = 0;
+    current = current->next_arena;
+  }
+}
+
+void arena_free(Arena *a) {
+  if (a->mem != NULL) {
+    free(a->mem);
+    a->mem = NULL;
+  }
+  a->capacity = 0;
+  a->offset = 0;
+  Arena *curr = a->next_arena;
+  while (curr != NULL) {
+    Arena *next = curr->next_arena;
+    if (curr->mem != NULL) {
+      free(curr->mem);
+    }
+    free(curr);
+    curr = next;
+  }
+  a->next_arena = NULL;
 }

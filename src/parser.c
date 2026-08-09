@@ -10,13 +10,14 @@
 #include "../headers/functions.h"
 #include "../headers/token.h"
 #include "../headers/variables.h"
+#include "../headers/memory.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-static ASTNode *parse_logical_and(Parser *parser);
+static ASTNode *parse_logical_and(Parser *parser, CodegenContext *context);
 
-static ASTNode *parse_logical_or(Parser *parser);
+static ASTNode *parse_logical_or(Parser *parser, CodegenContext *context);
 static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
 static ASTNode *parse_block(Parser *parser, CodegenContext *context);
 ASTNode *parse_function(Parser *parser, CodegenContext *context);
@@ -59,28 +60,28 @@ consume(Parser *parser, TokenType type, const char *errorMessage) {
 /*------------------ARITHMETICS------------------*/
 
 // 1st Priority
-static ASTNode *parse_primary(Parser *parser) {
+static ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
   Token token = parser->current;
 
   if (token.type == TOKEN_INT) {
     consume(parser, TOKEN_INT, "Expected integer literal.");
-    return create_literal_node(token);
+    return create_literal_node(token, context->a);
   }
 
   if (token.type == TOKEN_STRING) {
     consume(parser, TOKEN_STRING, "Expected string literal.");
-    return create_literal_node(token);
+    return create_literal_node(token, context->a);
   }
   if (token.type == TOKEN_BOOL || token.type == TOKEN_NULL) {
     (token.type == TOKEN_BOOL)
         ? consume(parser, TOKEN_BOOL, "Expected boolean literal.")
         : consume(parser, TOKEN_NULL, "Expected null value literal.");
-    return create_literal_node(token);
+    return create_literal_node(token, context->a);
   }
 
   if (token.type == TOKEN_FLOAT) {
     consume(parser, TOKEN_FLOAT, "Expected float literal.");
-    return create_literal_node(token);
+    return create_literal_node(token, context->a);
   }
 
   if (token.type == TOKEN_IDENTIFIER) {
@@ -94,12 +95,12 @@ static ASTNode *parse_primary(Parser *parser) {
       return call_node;
     }
     return create_var_ref_node(token.start, token.length, *parser->lexer->fxn,
-                               parser->lexer->scope_level);
+                               parser->lexer->scope_level, context->a);
   }
 
   if (token.type == TOKEN_COMMA) {
     advance(parser);
-    return parse_primary(parser);
+    return parse_primary(parser, context);
   }
 
   if (!(parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0)) {
@@ -110,8 +111,8 @@ static ASTNode *parse_primary(Parser *parser) {
 }
 
 // Second Priority
-static ASTNode *parse_factor(Parser *parser) {
-  ASTNode *left = parse_primary(parser);
+static ASTNode *parse_factor(Parser *parser, CodegenContext *context) {
+  ASTNode *left = parse_primary(parser, context);
 
   while (parser->current.type == TOKEN_MUL ||
          parser->current.type == TOKEN_DIV ||
@@ -119,32 +120,32 @@ static ASTNode *parse_factor(Parser *parser) {
     TokenType operator_type = parser->current.type;
     advance(parser);
 
-    ASTNode *right = parse_primary(parser);
-    left = create_binary_node(left, operator_type, right);
+    ASTNode *right = parse_primary(parser, context);
+    left = create_binary_node(left, operator_type, right, context->a);
   }
 
   return left;
 }
 
 // Third Priority
-static ASTNode *parse_expression(Parser *parser) {
-  ASTNode *left = parse_factor(parser);
+static ASTNode *parse_expression(Parser *parser, CodegenContext *context) {
+  ASTNode *left = parse_factor(parser, context);
 
   while (parser->current.type == TOKEN_ADD ||
          parser->current.type == TOKEN_SUB) {
     TokenType operator_type = parser->current.type;
     advance(parser);
 
-    ASTNode *right = parse_factor(parser);
-    left = create_binary_node(left, operator_type, right);
+    ASTNode *right = parse_factor(parser, context);
+    left = create_binary_node(left, operator_type, right, context->a);
   }
 
   return left;
 }
 
 // Fourth Priority
-static ASTNode *parse_comparison(Parser *parser) {
-  ASTNode *left = parse_expression(parser);
+static ASTNode *parse_comparison(Parser *parser, CodegenContext *context) {
+  ASTNode *left = parse_expression(parser, context);
 
   while (parser->current.type == TOKEN_GT || parser->current.type == TOKEN_ST ||
          parser->current.type == TOKEN_GE || parser->current.type == TOKEN_SE ||
@@ -153,33 +154,33 @@ static ASTNode *parse_comparison(Parser *parser) {
     TokenType operator_type = parser->current.type;
     advance(parser);
 
-    ASTNode *right = parse_expression(parser);
-    left = create_binary_node(left, operator_type, right);
+    ASTNode *right = parse_expression(parser, context);
+    left = create_binary_node(left, operator_type, right, context->a);
   }
 
   return left;
 }
 
 // Fifth Priority
-static ASTNode *parse_logical_and(Parser *parser) {
-  ASTNode *left = parse_comparison(parser);
+static ASTNode *parse_logical_and(Parser *parser, CodegenContext *context) {
+  ASTNode *left = parse_comparison(parser, context);
   while (parser->current.type == TOKEN_AND) {
     TokenType operator_type = parser->current.type;
     advance(parser);
-    ASTNode *right = parse_comparison(parser);
-    left = create_binary_node(left, operator_type, right);
+    ASTNode *right = parse_comparison(parser, context);
+    left = create_binary_node(left, operator_type, right, context->a);
   }
   return left;
 }
 
 // High priority
-static ASTNode *parse_logical_or(Parser *parser) {
-  ASTNode *left = parse_logical_and(parser);
+static ASTNode *parse_logical_or(Parser *parser, CodegenContext *context) {
+  ASTNode *left = parse_logical_and(parser, context);
   while (parser->current.type == TOKEN_OR) {
     TokenType operator_type = parser->current.type;
     advance(parser);
-    ASTNode *right = parse_logical_and(parser);
-    left = create_binary_node(left, operator_type, right);
+    ASTNode *right = parse_logical_and(parser, context);
+    left = create_binary_node(left, operator_type, right, context->a);
   }
   return left;
 }
@@ -233,7 +234,7 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
     }
     }
 
-    value = create_literal_node(var_decl_token);
+    value = create_literal_node(var_decl_token, context->a);
   }
 
   if (parser->current.type == TOKEN_COMMA ||
@@ -266,17 +267,17 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
     }
     }
 
-    value = create_literal_node(var_decl_token);
+    value = create_literal_node(var_decl_token, context->a);
   }
 
   if (!declaring && !decl_param) {
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
-    value = parse_logical_or(parser);
+    value = parse_logical_or(parser, context);
   }
 
   ASTNode *var_node =
       create_var_decl_node(name_token.start, name_token.length, dt, value,
-                           *parser->lexer->fxn, parser->lexer->scope_level);
+                           *parser->lexer->fxn, parser->lexer->scope_level, context->a);
 
   // consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
   return var_node;
@@ -297,13 +298,13 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     TokenType op = parser->current.type == TOKEN_INC ? TOKEN_ADD : TOKEN_SUB;
     ASTNode *var_ref =
         create_var_ref_node(potential_var_name, NAME_LENGTH,
-                            *parser->lexer->fxn, parser->lexer->scope_level);
+                            *parser->lexer->fxn, parser->lexer->scope_level, context->a);
     Token one_token = {.type = TOKEN_INT,
                        .start = "1",
                        .length = 1,
                        .line = parser->current.line};
-    ASTNode *literal_one = create_literal_node(one_token);
-    value = create_binary_node(var_ref, op, literal_one);
+    ASTNode *literal_one = create_literal_node(one_token, context->a);
+    value = create_binary_node(var_ref, op, literal_one, context->a);
     advance(parser);
   }
 
@@ -340,20 +341,20 @@ static ASTNode *parse_assignment_or_increment(Parser *parser,
     }
     ASTNode *var_ref =
         create_var_ref_node(potential_var_name, NAME_LENGTH,
-                            *parser->lexer->fxn, parser->lexer->scope_level);
+                            *parser->lexer->fxn, parser->lexer->scope_level, context->a);
     advance(parser);
-    ASTNode *left = parse_logical_or(parser);
-    value = create_binary_node(var_ref, op, left);
+    ASTNode *left = parse_logical_or(parser, context);
+    value = create_binary_node(var_ref, op, left, context->a);
   }
 
   if (!incrementation) {
     consume(parser, TOKEN_ASSIGN, "Expected '=' after variable.");
-    value = parse_logical_or(parser);
+    value = parse_logical_or(parser, context);
   }
 
   return create_var_assign_node(potential_var_name, NAME_LENGTH, value,
                                 *parser->lexer->fxn,
-                                parser->lexer->scope_level);
+                                parser->lexer->scope_level, context->a);
 }
 
 static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
@@ -367,7 +368,7 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
   }
   consume(parser, TOKEN_RPARETH, "Expected ')' after arguments.");
   return create_fxn_call_node(name, name_length,*parser->lexer->fxn,
-                              parser->lexer->scope_level, args);
+                              parser->lexer->scope_level, args, context->a);
 }
 
 static ASTNode *identifier(Parser *parser, CodegenContext *context) {
@@ -404,11 +405,11 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
   if (parser->current.type == TOKEN_WHILE) {
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('.");
-    ASTNode *condition = parse_logical_or(parser);
+    ASTNode *condition = parse_logical_or(parser, context);
     consume(parser, TOKEN_RPARETH, "Expected ')'.");
     ASTNode *then_block = parse_block(parser, context);
 
-    return create_while_node(condition, then_block);
+    return create_while_node(condition, then_block, context->a);
   }
 
   if (parser->current.type == TOKEN_FOR) {
@@ -417,7 +418,7 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     ASTNode *variable = var(parser, context, TYPE_NULL);
     consume(parser, TOKEN_SEMICOLON,
             "Expected ';' after for-loop variable initialization.");
-    ASTNode *condition = parse_logical_or(parser);
+    ASTNode *condition = parse_logical_or(parser, context);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after for-loop condition.");
 
     const int NAME_LENGTH = parser->current.length;
@@ -429,12 +430,12 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_RPARETH, "Expected ')'");
 
     ASTNode *then_block = parse_block(parser, context);
-    return create_for_node(variable, condition, var_operation, then_block);
+    return create_for_node(variable, condition, var_operation, then_block, context->a);
   }
   if (parser->current.type == TOKEN_IF || parser->current.type == TOKEN_ELIF) {
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('.");
-    ASTNode *condition = parse_logical_or(parser);
+    ASTNode *condition = parse_logical_or(parser, context);
     consume(parser, TOKEN_RPARETH, "Expected ')'.");
 
     ASTNode *then_block = parse_block(parser, context);
@@ -447,7 +448,7 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
       else_block = parse_block(parser, context);
     }
 
-    return create_if_node(condition, then_block, else_block);
+    return create_if_node(condition, then_block, else_block, context->a);
   }
   advance(parser);
 }
@@ -500,8 +501,8 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     if(!parser->lexer->fxn->has_return_type) parser->lexer->fxn->has_return_type = true;
     Fxn *fxn = (Fxn *)alloc_space(1, sizeof(Fxn));
     fxn = parser->lexer->fxn;
-    ASTNode *value = parse_logical_or(parser);
-    ASTNode *ret_node = create_ret_node(context, *fxn, value);
+    ASTNode *value = parse_logical_or(parser, context);
+    ASTNode *ret_node = create_ret_node(context, *fxn, value, context->a);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
     return ret_node;
 
@@ -516,13 +517,13 @@ static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 static ASTNode *parse_block(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_LBRACE, "Expected open brace '{' to begin block.");
 
-  ASTNode *block = create_block_node();
+  ASTNode *block = create_block_node(context->a);
 
   while (parser->current.type != TOKEN_RBRACE &&
          parser->current.type != TOKEN_EOF) {
     ASTNode *stmt = parse_body_statement(parser, context);
     if (stmt != NULL) {
-      block_add_statement(block, stmt);
+      block_add_statement(block, stmt, context->a);
     }
   }
 
@@ -580,7 +581,7 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
 
   int name_length = strlen(parser->lexer->fxn->name);
   return create_function_node(parser->lexer->fxn->name, name_length, body,
-                              *parser->lexer->fxn, parser->lexer->scope_level);
+                              *parser->lexer->fxn, parser->lexer->scope_level, context->a);
 }
 
 ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
@@ -625,8 +626,9 @@ ASTNode *parse_function(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *begin(Parser *parser, CodegenContext *context) {
-  parser->lexer->fxn = (Fxn *)alloc_space(1, sizeof(Fxn));
+  //parser->lexer->fxn = (Fxn *)alloc_space(1, sizeof(Fxn));
 
+  parser->lexer->fxn = arena_alloc(context->a, sizeof(Fxn));
   *parser->lexer->fxn = (Fxn){.length = 0,
                               .level = 0,
                               .line = 0,
@@ -634,25 +636,25 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
                               .name = "global",
                               .parent_fxn = NULL,
                               .has_return_type = false};
-  ASTNode *program_block = create_block_node();
+  ASTNode *program_block = create_block_node(context->a);
 
   // Checking global variables
   while (parser->current.type == TOKEN_VAR) {
     ASTNode *var_node = var(parser, context, TYPE_NULL);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
     if (var_node) {
-      block_add_statement(program_block, var_node);
+      block_add_statement(program_block, var_node, context->a);
     }
   }
 
   while (parser->current.type == TOKEN_FXN) {
     ASTNode *fxn_node = parse_function(parser, context);
     if (fxn_node) {
-      block_add_statement(program_block, fxn_node);
+      block_add_statement(program_block, fxn_node, context->a);
     }
   }
 
-  return create_program_node(program_block);
+  return create_program_node(program_block, context->a);
 }
 
 ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context) {
@@ -739,7 +741,7 @@ Params *get_params(CodegenContext *context, Parser *parser) {
 Args *get_args(CodegenContext *context, Parser *parser) {
   Args *a = (Args *)alloc_space(1, sizeof(Args));
 
-  a->arg = parse_logical_or(parser);
+  a->arg = parse_logical_or(parser, context);
   if (parser->current.type == TOKEN_COMMA) {
     advance(parser);
     a->next = get_args(context, parser);
