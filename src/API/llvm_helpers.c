@@ -146,7 +146,7 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
         switch(a->datatype){
           case TYPE_INT:{
             if(a->arg->Type == AST_LITERAL_EXPR){
-               args[i] = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), (int)return_eval_int(a->arg), 0);
+               args[i] = LLVMConstInt(_apl_get_llvm_type(components, a->datatype), (int)return_eval_int(a->arg), 0);
                 break;
             }
 
@@ -184,4 +184,15 @@ uint32_t _apl_get_n_args(LLVMComponents *components, Args *a){
     a = a->next;
   }
   return n;
+}
+
+
+__attribute__((always_inline)) LLVMTypeRef _apl_get_llvm_type(LLVMComponents*components, DataType dt){
+  switch(dt){
+    case TYPE_INT: return LLVMInt32TypeInContext(components->ctx);
+    case TYPE_FLOAT: return LLVMFloatTypeInContext(components->ctx);
+    case TYPE_BOOL: return LLVMInt1TypeInContext(components->ctx);
+    case TYPE_NULL: return LLVMVoidTypeInContext(components->ctx);
+    default: return LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
+  }
 }

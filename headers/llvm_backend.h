@@ -115,4 +115,7 @@ uint32_t _apl_get_n_params(LLVMComponents *components, Params *p);
 
 uint32_t _apl_get_n_args(LLVMComponents *components, Args *a);
 
+
+LLVMTypeRef _apl_get_llvm_type(LLVMComponents*components, DataType dt);
+
 #endif

@@ -80,5 +80,46 @@
                 "total_time": 0.3580320000182837
             }
         }
+    },
+    {
+        "timestamp": "2026-08-10 20:46:57",
+        "total_speed": 2.864783400320448,
+        "results": {
+            "small_program": {
+                "compile_time": 0.3782605000305921,
+                "run_time": 0.031471800059080124,
+                "total_time": 0.4097323000896722
+            },
+            "large_compilation": {
+                "compile_time": 0.33390870003495365,
+                "run_time": 0.01565319998189807,
+                "total_time": 0.3495619000168517
+            },
+            "for_loop": {
+                "compile_time": 0.32981590006966144,
+                "run_time": 0.011485100025311112,
+                "total_time": 0.34130100009497255
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.39542890002485365,
+                "run_time": 0.028970599989406765,
+                "total_time": 0.4243995000142604
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.4002529000863433,
+                "run_time": 0.024702299968339503,
+                "total_time": 0.4249552000546828
+            },
+            "for_loop_continous_println": {
+                "compile_time": 0.42658339999616146,
+                "run_time": 0.016105800052173436,
+                "total_time": 0.4426892000483349
+            },
+            "recursion": {
+                "compile_time": 0.4467047000071034,
+                "run_time": 0.025439599994570017,
+                "total_time": 0.4721443000016734
+            }
+        }
     }
 ]

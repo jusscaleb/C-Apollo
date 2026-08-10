@@ -63,8 +63,39 @@ Overall Total Speed: 3.1379 seconds
       Execute: 0.0141s
       Total:   0.3580s
 ----------------------------------------
+Date and Time: 2026-08-10 20:46:57
+Overall Total Speed: 2.8648 seconds
+  - small_program:
+      Compile: 0.3783s
+      Execute: 0.0315s
+      Total:   0.4097s
+  - large_compilation:
+      Compile: 0.3339s
+      Execute: 0.0157s
+      Total:   0.3496s
+  - for_loop:
+      Compile: 0.3298s
+      Execute: 0.0115s
+      Total:   0.3413s
+  - var_decl_with_dt:
+      Compile: 0.3954s
+      Execute: 0.0290s
+      Total:   0.4244s
+  - var_decl_no_dt:
+      Compile: 0.4003s
+      Execute: 0.0247s
+      Total:   0.4250s
+  - for_loop_continous_println:
+      Compile: 0.4266s
+      Execute: 0.0161s
+      Total:   0.4427s
+  - recursion:
+      Compile: 0.4467s
+      Execute: 0.0254s
+      Total:   0.4721s
+----------------------------------------
 
 Summary Statistics
 ========================
-Average Speed (last 2 runs): 3.1808 seconds
-Percentage Difference: -2.66% (Faster than last run)
+Average Speed (last 3 runs): 3.0755 seconds
+Percentage Difference: -8.70% (Faster than last run)

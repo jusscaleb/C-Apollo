@@ -16,9 +16,7 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
   switch (arg_type) {
   case TYPE_INT:
   case TYPE_FLOAT: {
-    param_types[0] = (arg_type == TYPE_INT)
-                         ? LLVMInt32TypeInContext(components->ctx)
-                         : LLVMFloatTypeInContext(components->ctx);
+    param_types[0] = _apl_get_llvm_type(components, arg_type);
     println_fxn = LLVMGetNamedFunction(
         components->module,
         (arg_type == TYPE_INT) ? "_apl_print_int" : "_apl_print_float");
@@ -137,12 +135,16 @@ void _apl_gen_function_start(LLVMComponents *components,
 
     for (uint32_t i = 0; i < p_number; i++) {
 
-      switch (p->param->var_decl.value_type) {
+      /*switch (p->param->var_decl.value_type) {
       case TYPE_INT: {
         param_types[i] = LLVMInt32TypeInContext(components->ctx);
         break;
+      }case TYPE_FLOAT:{
+        param_types[i] = LLVMFloatTypeInContext(context->ctx);
       }
-      }
+      }*/
+
+      param_types[i] = _apl_get_llvm_type(components, p->param->var_decl.value_type);
 
       p = p->next;
     }
