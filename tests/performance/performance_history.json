@@ -121,5 +121,46 @@
                 "total_time": 0.4721443000016734
             }
         }
+    },
+    {
+        "timestamp": "2026-08-10 22:44:37",
+        "total_speed": 2.8390151999192312,
+        "results": {
+            "small_program": {
+                "compile_time": 0.362526600016281,
+                "run_time": 0.02869589999318123,
+                "total_time": 0.39122250000946224
+            },
+            "large_compilation": {
+                "compile_time": 0.4759079000214115,
+                "run_time": 0.015042899991385639,
+                "total_time": 0.4909508000127971
+            },
+            "for_loop": {
+                "compile_time": 0.3498263000510633,
+                "run_time": 0.015591400093398988,
+                "total_time": 0.3654177001444623
+            },
+            "var_decl_with_dt": {
+                "compile_time": 0.394434200017713,
+                "run_time": 0.02166239998769015,
+                "total_time": 0.41609660000540316
+            },
+            "var_decl_no_dt": {
+                "compile_time": 0.40825849992688745,
+                "run_time": 0.015569499926641583,
+                "total_time": 0.42382799985352904
+            },
+            "for_loop_continous_println": {
+                "compile_time": 0.4089506999589503,
+                "run_time": 0.009477999992668629,
+                "total_time": 0.4184286999516189
+            },
+            "recursion": {
+                "compile_time": 0.31929199991282076,
+                "run_time": 0.01377890002913773,
+                "total_time": 0.3330708999419585
+            }
+        }
     }
 ]

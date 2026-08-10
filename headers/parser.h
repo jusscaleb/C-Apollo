@@ -11,19 +11,31 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
-static ASTNode *parse_logical_and(Parser *parser, CodegenContext *context);
+ASTNode *parse_logical_and(Parser *parser, CodegenContext *context);
 
-static ASTNode *parse_logical_or(Parser *parser, CodegenContext *context);
-static ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
-static ASTNode *parse_block(Parser *parser, CodegenContext *context);
+ASTNode *parse_logical_or(Parser *parser, CodegenContext *context);
+ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
+ASTNode *parse_block(Parser *parser, CodegenContext *context);
 ASTNode *parse_function(Parser *parser, CodegenContext *context);
 void change_active_state(CodegenContext *context, Lexer *lexer);
 Params *get_params(CodegenContext *context, Parser *parser);
 Args *get_args(CodegenContext *context, Parser *parser);
-static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
+ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
                                char *name, int name_length);
+ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type);
+void advance(Parser *parser);
+void synchronize(Parser *parser, TokenType safe_token);
+void synchronize(Parser *parser, TokenType safe_token);
+ASTNode *parse_block(Parser *parser, CodegenContext *context);
+
+void consume(Parser *parser, TokenType type, const char *errorMessage);
+
+ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context);
+
+ASTNode *function(Parser *parser, CodegenContext *context);
+
+Token parser_get_var_token(Parser *parser, DataType dt);
 
 
 #endif
