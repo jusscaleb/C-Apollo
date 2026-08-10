@@ -13,6 +13,11 @@
 #ifndef SEMANTIC_H
 #define SEMANTIC_H
 
+#include "../headers/functions.h"
+#include "../headers/variables.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "ast.h"
 #include "defs.h"
 #include "error.h"
@@ -34,6 +39,12 @@ typedef struct {
  */
 void analyze_semantics(SemanticContext *context, ASTNode *node);
 
-static DataType infer_expr_type(SemanticContext *context, ASTNode *expr);
+DataType infer_expr_type(SemanticContext *context, ASTNode *expr);
+void report_semantic_error(SemanticContext *context, const char *msg);
+
+// Forward declarations for internal tree-walking functions
+static void analyze_node(SemanticContext *context, ASTNode *node);
+static void analyze_block(SemanticContext *context, ASTNode *block_node);
+
 
 #endif

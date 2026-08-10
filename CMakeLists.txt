@@ -7,7 +7,7 @@ set(CMAKE_C_EXTENSIONS ON)
 
 # Include header directories
 include_directories(src src/API)
-
+include_directories(src src/Semantics)
 # Find all C source files recursively under src/
 file(GLOB_RECURSE SOURCES "src/*.c")
 
