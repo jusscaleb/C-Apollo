@@ -21,7 +21,7 @@
 #include <stdio.h>
 
 
-#define _DB 1
+#define _DB 0
 #define _DEBUG(prompt)                                                         \
   do {                                                                         \
     if (_DB)                                                                   \

@@ -7,7 +7,6 @@
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args) {
 
-  printf("ARG TYPE: %d\n",args->datatype ? args->datatype : 89);
   DataType arg_type = args->datatype;
   ASTNode *expr = args->arg;
   LLVMTypeRef param_types[1];
@@ -123,7 +122,7 @@ void _apl_gen_function_start(LLVMComponents *components,
     components->current_fxn = main_fxn;
     return;
   }
-
+ 
   else {
     LLVMTypeRef fxn_type = LLVMFunctionType(
         _enquire_fxn_return_type(components, &block_node->function.fxn), NULL,

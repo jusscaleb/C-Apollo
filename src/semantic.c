@@ -318,14 +318,24 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
     Params *expected_param = (sym && sym->fxn) ? sym->fxn->params : NULL;
     Args *passed_arg = node->call_fxn.args;
+    bool passed_arg_ = passed_arg == NULL;
+    bool expected_param_ = expected_param == NULL;
+
+   if(passed_arg == NULL && expected_param != NULL && !is_println){
+        report_semantic_error(context, "Too few arguments in fxn call.");
+        break;
+    }
+    if(passed_arg != NULL && expected_param == NULL && !is_println){
+        report_semantic_error(context, "Too many arguments in fxn call.");
+        break;
+      }
 
     while (passed_arg != NULL) {
       analyze_node(context, passed_arg->arg);
       passed_arg->datatype = infer_expr_type(context, passed_arg->arg);
 
       if (expected_param != NULL) {
-        if (passed_arg->datatype !=
-            expected_param->param->var_decl.value_type) {
+        if (passed_arg->datatype != expected_param->param->var_decl.value_type) {
           report_semantic_error(context, "Argument type mismatch in function call.");
           break;
         }
@@ -333,6 +343,18 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       }
 
       passed_arg = passed_arg->next;
+
+      if(!is_println)continue;
+      if(passed_arg == NULL && expected_param != NULL ){
+        report_semantic_error(context, "Too many arguments in fxn call.");
+        break;
+      }
+
+      if(passed_arg != NULL && expected_param == NULL){
+        printf("passed_arg dt: %d\n", passed_arg->datatype);
+        report_semantic_error(context, "Too few arguments in fxn call.");
+        break;
+      }
     }
 
     break;
