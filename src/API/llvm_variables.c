@@ -111,15 +111,12 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
 
   switch (var_Type) {
   case TYPE_INT: {
-    printf("AST NODE TYPE: %d\n", value_node->Type);
     if (value_node->Type == AST_LITERAL_EXPR) {
       int i_val = (int)return_eval_int(value_node);
       new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
     } else if(value_node->Type == AST_BINARY_EXPR){
-      printf("ARITHMETICS.\n");
       new_val = arihmetics(components, value_node, "");
     } else {
-      printf("VALUE_REF\n");
       new_val = load_variable(components, value_node);
     }
     break;

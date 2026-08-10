@@ -149,7 +149,6 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       _apl_create_local_variable(components, context, stmt);
       break;
     case AST_VAR_ASS:
-    printf("REASSIGN VARIABLE.\n");
       _apl_reassign_variable(components, context, stmt);
       break;
     case AST_IF:

@@ -262,7 +262,6 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       }
 
       if(passed_arg != NULL && expected_param == NULL){
-        printf("passed_arg dt: %d\n", passed_arg->datatype);
         report_semantic_error(context, "Too few arguments in fxn call.");
         break;
       }

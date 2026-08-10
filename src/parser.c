@@ -30,7 +30,6 @@ static ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,
 
 // move on to next token
 __attribute__((always_inline)) static void advance(Parser *parser) {
-  // printf("REGISTERING Fxn(parser): %s\n", parser->lexer->fxn->name);
   parser->previous = parser->current;
   parser->current = next_token(parser->lexer);
 }
@@ -722,7 +721,6 @@ Params *get_params(CodegenContext *context, Parser *parser) {
   }
 
   default: {
-    // error(parser, "Unrecognized DataType", SYNTAXERROR);
     return NULL;
   }
   }

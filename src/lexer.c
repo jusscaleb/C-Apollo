@@ -36,7 +36,6 @@ const char *TokenNames[] = {
  *Checks if the keyword is reserved.
  *If not it is a user-defined keyword
  */
-
  //TO BE MODIFIED FOR OPTIMIZATION.
 __attribute__((always_inline)) static TokenType check_keyword(const char *start, int length) {
   //check length 3
