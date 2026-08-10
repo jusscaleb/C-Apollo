@@ -102,9 +102,6 @@ int main(int argc, char **argv) {
   Arena arena;
 
   arena_init(1024*1024, &arena);
-
-  //arena_free(arena);
-
   ErrorStack err_stack;
 
   Lexer lexer;

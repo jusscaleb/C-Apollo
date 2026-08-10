@@ -93,6 +93,7 @@ struct ASTNode {
       Fxn fxn;
       int level;
       struct Symbol *resolved_symbol;
+      int param_idx;
     } var_decl;
 
     struct {

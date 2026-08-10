@@ -4,6 +4,18 @@
 #include <stdio.h>
 #include <time.h>
 
+
+static FILE *trace_file = NULL;
+
+static void trace(const char *message) {
+  if (!trace_file) {
+    trace_file = fopen("llvm.log", "w");
+  }
+  if (trace_file) {
+    fprintf(trace_file, "%s\n", message);
+    fflush(trace_file);
+  }
+}
 void _apl_load_runtime_libraries(LLVMComponents *components) {
   const char *libs[] = RUNTIME_LIBS;
   const size_t libs_count = sizeof(libs) / sizeof(libs[0]);
@@ -84,6 +96,10 @@ static LLVMValueRef _apl_get_runtime_function(LLVMComponents *components,
 }
 
 void _apl_save_and_shutdown(LLVMComponents *components) {
+
+  char *ir = LLVMPrintModuleToString(components->module);
+  trace("LLVM Code:\n");
+  trace(ir);
   char *verify_msg = NULL;
   if (LLVMVerifyModule(components->module, LLVMPrintMessageAction,
                        &verify_msg) != 0) {

@@ -134,5 +134,5 @@ void gen_println_float(CodegenContext *context, const char *float_start,
  */
 void gen_function_end(CodegenContext *context, bool is_main,
                       DataType return_type);
-
+static void trace(const char *message);
 #endif

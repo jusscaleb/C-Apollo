@@ -126,8 +126,11 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
     // Analyze Parameters.
     Params *param = node->function.fxn.params;
+    int p_idx = 0;
     while (param) {
       analyze_node(context, param->param);
+      param->param->var_decl.param_idx = p_idx;
+      p_idx++;
       param = param->next;
     }
 

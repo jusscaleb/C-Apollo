@@ -124,9 +124,28 @@ void _apl_gen_function_start(LLVMComponents *components,
   }
  
   else {
+    uint32_t p_number = (block_node->function.fxn.params) ? _apl_get_n_params(components, block_node->function.fxn.params)  : 0;
+    LLVMTypeRef param_types[p_number];
+
+    Params *p = block_node->function.fxn.params;
+
+    for(uint32_t i = 0; i < p_number; i++){
+      
+      switch (p->param->var_decl.value_type) {
+        case TYPE_INT:{
+          param_types[i] = LLVMInt32TypeInContext(components->ctx);
+          break;
+        }
+      
+      }
+
+      p = p->next;
+
+    }
+    
     LLVMTypeRef fxn_type = LLVMFunctionType(
-        _enquire_fxn_return_type(components, &block_node->function.fxn), NULL,
-        0, false);
+        _enquire_fxn_return_type(components, &block_node->function.fxn), (p_number == 0) ? NULL : param_types,
+         p_number, false);
     LLVMValueRef fxn = LLVMAddFunction(components->module,
                                        block_node->function.name, fxn_type);
     LLVMBasicBlockRef entry =
@@ -196,7 +215,11 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
   if (memcmp(stmt->call_fxn.name, "println", 7) == 0) {
     _apl_gen_println_ir(components, context, stmt->call_fxn.args);
     return;
+  }else{
+    printf("FUNCTION CALL\n");
+
   }
+  
 }
 
 

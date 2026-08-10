@@ -1,4 +1,5 @@
 #include "../../headers/llvm_backend.h"
+#include <stdint.h>
 
 
 
@@ -133,8 +134,42 @@ __attribute__((always_inline)) float return_eval_int(ASTNode* expr){
 __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
       LLVMValueRef result;
       FxnCallMetaData meta_data = node->call_fxn.resolved_symbol->fxn_meta_data;
+      uint32_t a_numbers = (node->call_fxn.args) ? _apl_get_n_args(components, node->call_fxn.args): 0;
+      LLVMValueRef args[a_numbers];
 
-      result = LLVMBuildCall2(components->builder,meta_data.fxn_type, meta_data.the_fxn, NULL, 0, "");
+      Args *a = node->call_fxn.args;
+      
 
+      for(int i = 0; i < a_numbers; i++){
+        switch(a->datatype){
+          case TYPE_INT:{
+            args[i] = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), (int)return_eval_int(a->arg), 0);
+            break;
+          }
+        }
+          a = a->next;
+      }
+
+
+      result = LLVMBuildCall2(components->builder,meta_data.fxn_type, meta_data.the_fxn, args, a_numbers, "");
+     
       return result;
+}
+
+uint32_t _apl_get_n_params(LLVMComponents *components, Params *p){
+  uint32_t n = 0;
+  while(p != NULL){
+    n++;
+    p = p->next;
+  }
+  return n;
+}
+
+uint32_t _apl_get_n_args(LLVMComponents *components, Args *a){
+  uint32_t n = 0;
+  while(a != NULL){
+    n++;
+    a = a->next;
+  }
+  return n;
 }

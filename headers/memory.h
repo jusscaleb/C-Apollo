@@ -17,7 +17,6 @@ void arena_init(size_t capacity, Arena *a);
 
 void *arena_alloc(Arena *a, size_t size);
 
-
 void arena_reset(Arena *a);
 
 void arena_free(Arena *a);

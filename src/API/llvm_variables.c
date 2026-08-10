@@ -155,9 +155,12 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
 
   switch (var_sym->type) {
   case TYPE_INT: {
-    llvm_var = LLVMBuildLoad2(components->builder,
-                              LLVMInt32TypeInContext(components->ctx),
-                              var_sym->llvm_val_ref, var_sym->name);
+    if(var_sym->llvm_val_ref)
+      llvm_var = LLVMBuildLoad2(components->builder,
+                                LLVMInt32TypeInContext(components->ctx),
+                                var_sym->llvm_val_ref, var_sym->name);
+    else
+     llvm_var = LLVMGetParam(components->current_fxn, var_ref_node->var_decl.param_idx);
     break;
   }
   case TYPE_STRING: {

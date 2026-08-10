@@ -100,26 +100,6 @@ void arena_init(size_t capacity, Arena *a){
   a->next_arena = NULL;
 }
 
-
-/*void *arena_alloc(Arena *a, size_t size){
-  if(a->offset + size > a->capacity){
-    a->mem = realloc_space(a->mem, a->capacity * 2);
-    a->capacity *= 2;
-  }
-
-  void* p = a->mem + a->offset;
-
-  a->offset += size;
-
-  return p;
-}
-
-void arena_reset(Arena *a){
-  a->offset = 0;
-
-}*/
-
-
 void* arena_alloc(Arena *a, size_t size){
   size_t  aligned_size = (size + (ARENA_ALIGNMENT - 1)) & ~(ARENA_ALIGNMENT - 1);
 

@@ -26,6 +26,7 @@
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Types.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #define RUNTIME_LIBS                                                           \
@@ -109,5 +110,9 @@ void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNo
 float return_eval_int(ASTNode* expr);
 
 LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node);
+
+uint32_t _apl_get_n_params(LLVMComponents *components, Params *p);
+
+uint32_t _apl_get_n_args(LLVMComponents *components, Args *a);
 
 #endif
