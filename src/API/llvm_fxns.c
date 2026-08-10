@@ -165,6 +165,9 @@ void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
     LLVMBuildRet(
         components->builder,
         LLVMConstInt(LLVMInt32TypeInContext(components->ctx), 0, false));
+  }else{
+    LLVMBuildRetVoid(components->builder);
+    
   }
 }
 
@@ -182,8 +185,6 @@ void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNo
         ret_val = _apl_eval_function_call(components, node->ret_node.value);
         break;
       }
-
-
       uint32_t number = (int) return_eval_int(node->ret_node.value);
       ret_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false);
       break;
@@ -216,8 +217,9 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
     _apl_gen_println_ir(components, context, stmt->call_fxn.args);
     return;
   }else{
-    printf("FUNCTION CALL\n");
 
+          _apl_eval_function_call(components, stmt);
+          return;
   }
   
 }

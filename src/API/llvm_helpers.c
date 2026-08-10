@@ -143,7 +143,17 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
       for(int i = 0; i < a_numbers; i++){
         switch(a->datatype){
           case TYPE_INT:{
-            args[i] = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), (int)return_eval_int(a->arg), 0);
+            if(a->arg->Type == AST_LITERAL_EXPR){
+               args[i] = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), (int)return_eval_int(a->arg), 0);
+                break;
+            }
+
+            if(a->arg->Type == AST_BINARY_EXPR){
+               args[i] = arihmetics(components, a->arg, "");
+               break;
+            }
+
+            args[i] = load_variable(components, a->arg);
             break;
           }
         }
