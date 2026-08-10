@@ -50,7 +50,9 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
     return LLVMConstInt(LLVMInt32TypeInContext(components->ctx), val, 0);
   }
 
+  
   if (node->Type == AST_VAR_REF) {
+    printf("VAR REF\n");
     return load_variable(components, node);
   }if(node->Type == AST_CALL_FXN){
     return _apl_eval_function_call(components, node);

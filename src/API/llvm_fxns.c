@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 
-
-/*================================================== INBUILT FUNCTIONS =====================================================*/
+/*================================================== INBUILT FUNCTIONS
+ * =====================================================*/
 void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                          Args *args) {
 
@@ -30,13 +30,15 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     if (expr->Type == AST_BINARY_EXPR) {
       println_args = arihmetics(components, expr, "");
       break;
-    }if(expr->Type == AST_CALL_FXN){
+    }
+    if (expr->Type == AST_CALL_FXN) {
       println_args = _apl_eval_function_call(components, expr);
       break;
     }
-    println_args = (arg_type == TYPE_INT)
-                       ? LLVMConstInt(param_types[0], (int)return_eval_int(expr), 0)
-                       : LLVMConstReal(param_types[0], return_eval_int(expr));
+    println_args =
+        (arg_type == TYPE_INT)
+            ? LLVMConstInt(param_types[0], (int)return_eval_int(expr), 0)
+            : LLVMConstReal(param_types[0], return_eval_int(expr));
     break;
   }
 
@@ -65,7 +67,8 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
     if (expr->Type == AST_VAR_REF) {
       println_args = load_variable(components, expr);
       break;
-    }if(expr->Type == AST_CALL_FXN){
+    }
+    if (expr->Type == AST_CALL_FXN) {
       println_args = _apl_eval_function_call(components, expr);
       break;
     }
@@ -122,30 +125,31 @@ void _apl_gen_function_start(LLVMComponents *components,
     components->current_fxn = main_fxn;
     return;
   }
- 
+
   else {
-    uint32_t p_number = (block_node->function.fxn.params) ? _apl_get_n_params(components, block_node->function.fxn.params)  : 0;
+    uint32_t p_number =
+        (block_node->function.fxn.params)
+            ? _apl_get_n_params(components, block_node->function.fxn.params)
+            : 0;
     LLVMTypeRef param_types[p_number];
 
     Params *p = block_node->function.fxn.params;
 
-    for(uint32_t i = 0; i < p_number; i++){
-      
+    for (uint32_t i = 0; i < p_number; i++) {
+
       switch (p->param->var_decl.value_type) {
-        case TYPE_INT:{
-          param_types[i] = LLVMInt32TypeInContext(components->ctx);
-          break;
-        }
-      
+      case TYPE_INT: {
+        param_types[i] = LLVMInt32TypeInContext(components->ctx);
+        break;
+      }
       }
 
       p = p->next;
-
     }
-    
+
     LLVMTypeRef fxn_type = LLVMFunctionType(
-        _enquire_fxn_return_type(components, &block_node->function.fxn), (p_number == 0) ? NULL : param_types,
-         p_number, false);
+        _enquire_fxn_return_type(components, &block_node->function.fxn),
+        (p_number == 0) ? NULL : param_types, p_number, false);
     LLVMValueRef fxn = LLVMAddFunction(components->module,
                                        block_node->function.name, fxn_type);
     LLVMBasicBlockRef entry =
@@ -155,6 +159,22 @@ void _apl_gen_function_start(LLVMComponents *components,
     block_node->function.resolved_symbol->fxn_meta_data.fxn_type = fxn_type;
     block_node->function.resolved_symbol->fxn_meta_data.the_fxn = fxn;
     components->current_fxn = fxn;
+
+    p = block_node->function.fxn.params;
+    for (uint32_t i = 0; i < p_number; i++) {
+      if (p && p->param && p->param->var_decl.resolved_symbol) {
+        Symbol *sym = p->param->var_decl.resolved_symbol;
+        char p_name[p->param->var_decl.name_length + 1];
+        memcpy(p_name, p->param->var_decl.name, p->param->var_decl.name_length);
+        p_name[p->param->var_decl.name_length] = '\0';
+
+        LLVMValueRef param_val = LLVMGetParam(fxn, i);
+        LLVMValueRef alloc = LLVMBuildAlloca(components->builder, param_types[i], p_name);
+        LLVMBuildStore(components->builder, param_val, alloc);
+        sym->llvm_val_ref = alloc;
+      }
+      p = p->next;
+    }
     return;
   }
 }
@@ -165,64 +185,65 @@ void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
     LLVMBuildRet(
         components->builder,
         LLVMConstInt(LLVMInt32TypeInContext(components->ctx), 0, false));
-  }else{
+  } else {
     LLVMBuildRetVoid(components->builder);
-    
   }
 }
 
-void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNode *node){
-    LLVMValueRef ret_val;
-    switch(node->ret_node.fxn.return_type){
-    case TYPE_INT:{
-      if(node->ret_node.value->Type == AST_BINARY_EXPR){
-        ret_val = arihmetics(components, node->ret_node.value, "");
-        break;
-      }if(node->ret_node.value->Type == AST_VAR_REF){
-        ret_val = load_variable(components, node->ret_node.value);
-        break;
-      }if(node->ret_node.value->Type == AST_CALL_FXN){
-        ret_val = _apl_eval_function_call(components, node->ret_node.value);
-        break;
-      }
-      uint32_t number = (int) return_eval_int(node->ret_node.value);
-      ret_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false);
-      break;
-    }case TYPE_BOOL :{
-      uint8_t b = (node->ret_node.value->literal_expr.token.length >= 4) ? 1 : 0;
-      ret_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b , false);
-      break;
-    } case TYPE_STRING: {
-      const uint32_t LENGTH = node->ret_node.value->literal_expr.token.length;
-      char str[LENGTH+1];
-      slice_string(node->ret_node.value->literal_expr.token, str);
-      ret_val = LLVMBuildGlobalStringPtr(components->builder, str, "");
+void _apl_gen_return(LLVMComponents *components, CodegenContext *context,
+                     ASTNode *node) {
+  LLVMValueRef ret_val;
+  switch (node->ret_node.fxn.return_type) {
+  case TYPE_INT: {
+    if (node->ret_node.value->Type == AST_BINARY_EXPR) {
+      ret_val = arihmetics(components, node->ret_node.value, "");
       break;
     }
-    case TYPE_FLOAT: {
-      float number = return_eval_int(node->ret_node.value);
-      ret_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), number);
+    if (node->ret_node.value->Type == AST_VAR_REF) {
+      ret_val = load_variable(components, node->ret_node.value);
+      break;
     }
+    if (node->ret_node.value->Type == AST_CALL_FXN) {
+      ret_val = _apl_eval_function_call(components, node->ret_node.value);
+      break;
+    }
+    uint32_t number = (int)return_eval_int(node->ret_node.value);
+    ret_val =
+        LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false);
+    break;
+  }
+  case TYPE_BOOL: {
+    uint8_t b = (node->ret_node.value->literal_expr.token.length >= 4) ? 1 : 0;
+    ret_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b, false);
+    break;
+  }
+  case TYPE_STRING: {
+    const uint32_t LENGTH = node->ret_node.value->literal_expr.token.length;
+    char str[LENGTH + 1];
+    slice_string(node->ret_node.value->literal_expr.token, str);
+    ret_val = LLVMBuildGlobalStringPtr(components->builder, str, "");
+    break;
+  }
+  case TYPE_FLOAT: {
+    float number = return_eval_int(node->ret_node.value);
+    ret_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), number);
+  }
   }
 
   LLVMBuildRet(components->builder, ret_val);
 }
 
-
-/*==================================================FXN CALLS=====================================================*/
+/*==================================================FXN
+ * CALLS=====================================================*/
 
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
                                 CodegenContext *context, ASTNode *stmt) {
   if (memcmp(stmt->call_fxn.name, "println", 7) == 0) {
     _apl_gen_println_ir(components, context, stmt->call_fxn.args);
     return;
-  }else{
+  } else {
 
-          _apl_eval_function_call(components, stmt);
-          return;
+    _apl_eval_function_call(components, stmt);
+    return;
   }
-  
 }
-
-
-

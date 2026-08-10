@@ -1,6 +1,5 @@
 #include "../../headers/llvm_backend.h"
-
-
+#include <malloc.h>
 
 void _apl_create_local_variable(LLVMComponents *components,
                                 CodegenContext *context, ASTNode *var_node) {
@@ -30,7 +29,7 @@ void _apl_create_local_variable(LLVMComponents *components,
           LLVMBuildAlloca(components->builder,
                           LLVMInt1TypeInContext(components->ctx), var_name);
       val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
-    } else {
+    } else{
       val = arihmetics(components, expr, "");
     }
 
@@ -107,17 +106,21 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
                             ASTNode *node) {
 
   DataType var_Type = node->var_assign.resolved_symbol->type;
-  LLVMValueRef var = node->var_assign.resolved_symbol->llvm_val_ref;
-  LLVMValueRef new_val;
+  LLVMValueRef new_val = NULL;
   ASTNode *value_node = node->var_assign.value;
 
   switch (var_Type) {
   case TYPE_INT: {
+    printf("AST NODE TYPE: %d\n", value_node->Type);
     if (value_node->Type == AST_LITERAL_EXPR) {
       int i_val = (int)return_eval_int(value_node);
       new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
-    } else {
+    } else if(value_node->Type == AST_BINARY_EXPR){
+      printf("ARITHMETICS.\n");
       new_val = arihmetics(components, value_node, "");
+    } else {
+      printf("VALUE_REF\n");
+      new_val = load_variable(components, value_node);
     }
     break;
   }
@@ -147,6 +150,8 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
   default:
     break;
   }
+
+  LLVMValueRef var = node->var_assign.resolved_symbol->llvm_val_ref;
   LLVMBuildStore(components->builder, new_val, var);
 }
 LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
@@ -155,12 +160,18 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
 
   switch (var_sym->type) {
   case TYPE_INT: {
-    if(var_sym->llvm_val_ref)
-      llvm_var = LLVMBuildLoad2(components->builder,
+    if(!var_sym->llvm_val_ref){
+       LLVMValueRef alloc = LLVMBuildAlloca(components->builder, LLVMInt32TypeInContext(components->ctx), "");
+       LLVMValueRef p_val = LLVMGetParam(components->current_fxn,
+                              var_sym->param_idx);
+      LLVMBuildStore(components->builder, p_val, alloc);
+      var_sym->llvm_val_ref = alloc;
+
+    }
+    llvm_var = LLVMBuildLoad2(components->builder,
                                 LLVMInt32TypeInContext(components->ctx),
                                 var_sym->llvm_val_ref, var_sym->name);
-    else
-     llvm_var = LLVMGetParam(components->current_fxn, var_ref_node->var_decl.param_idx);
+      break;
     break;
   }
   case TYPE_STRING: {

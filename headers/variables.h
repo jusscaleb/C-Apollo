@@ -70,7 +70,8 @@ typedef struct Symbol {
   bool is_active;
   LLVMValueRef llvm_val_ref;
   FxnCallMetaData fxn_meta_data;
-  
+  int param_idx;
+
 } Symbol;
 
 /**

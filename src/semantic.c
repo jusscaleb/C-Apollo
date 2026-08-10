@@ -129,7 +129,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     int p_idx = 0;
     while (param) {
       analyze_node(context, param->param);
-      param->param->var_decl.param_idx = p_idx;
+      param->param->var_decl.resolved_symbol->param_idx = p_idx;
       p_idx++;
       param = param->next;
     }
