@@ -195,8 +195,9 @@ if __name__ == "__main__":
         ct, rt, tt = run_benchmark("for_loop_continous_println", for_loop_continous_println)
         current_results["for_loop_continous_println"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
 
-
-
+        recursion = "fxn factorial(int n) -> int { if (n == 1) { return 1;}return n * factorial(n - 1);}fxn run() -> void {println(factorial(5));}"
+        ct, rt, tt = run_benchmark("recursion", for_loop_continous_println)
+        current_results["recursion"] = {"compile_time": ct, "run_time": rt, "total_time": tt}
         
         update_performance_log(current_results)
         
