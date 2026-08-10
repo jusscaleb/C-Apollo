@@ -1,8 +1,8 @@
 #include "../headers/variables.h"
 #include "../headers/defs.h"
 #include "../headers/functions.h"
-#include <stdint.h>
-#include <string.h>
+
+
 
 Symbol *register_variable(CodegenContext *context, const char *name,
                           DataType variable_type, Fxn *fxn, int level) {

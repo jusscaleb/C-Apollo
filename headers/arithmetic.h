@@ -42,7 +42,7 @@ ExprResult make_literal_expr(Token token);
  * @param context The codegen context.
  * @param left The left operand expression result.
  * @param operator_type The token type of the binary operator (e.g.,
- * TOKEN_PLUS).
+ * TOKEN_ADD).
  * @param right The right operand expression result.
  * @return An ExprResult containing the LLVM temporary variable representing the
  * computation result.

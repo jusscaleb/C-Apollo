@@ -8,3 +8,5 @@ temp/
 headers/trace.log
 *.log
 build/
+.cache/
+.vscode/

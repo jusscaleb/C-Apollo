@@ -1,11 +1,4 @@
-/*--------------------------------------------------------------------------------
-
-                          THE NEAT FREAK :)
-
----------------------------------------------------------------------------------*/
 #include "../headers/ast.h"
-#include "../headers/memory.h"
-#include <stdio.h>
 
 
 static ASTNode *allocate_node(ASTNodeType type, Arena *a) {

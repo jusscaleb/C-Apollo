@@ -1,16 +1,6 @@
-/*=======================================================================================
-
-                         RESOURCE DISTRIBUTOR
-
-=========================================================================================*/
-
-#include "../headers/defs.h"
-#include "../headers/error.h"
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "../headers/memory.h"
+#include "../headers/error.h"
+
 
 char *realloc_space(char *value, int size) {
   char *alloc_space = realloc(value, size);

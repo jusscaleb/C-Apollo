@@ -1,3 +1,16 @@
+/*===================================================================
+                          parser.h
+
+                        (c)2026 SCXRPIUS.dev
+
+              The Apollo Parser Compile time library.
+          Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
+     
+----------------------------------------------------------------------
+    Licensed under the MIT License. See LICENSE file for details.
+====================================================================*/
+
+
 #ifndef PARSER_H
 #define PARSER_H
 

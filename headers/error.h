@@ -9,10 +9,6 @@
 ----------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
-
-
-
-
 #ifndef APOLLO_ERROR_H
 #define APOLLO_ERROR_H
 

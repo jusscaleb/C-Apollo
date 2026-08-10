@@ -1,9 +1,3 @@
-/*=========================================================================
-
-                            THE REPORTER
-
-==========================================================================*/
-
 #include "../headers/error.h"
 #include <string.h>
 
@@ -60,7 +54,6 @@ void error(Parser *parser, const char *errorMessage, ErrorType type) {
   if (parser->current.start != NULL) {
     memcpy(e->got, parser->current.start, len);
     e->got[len] = '\0';
-    //sprintf(e->got, "%.*s", len, parser->current.start);
   } else {
     e->got[0] = '\0';
   }

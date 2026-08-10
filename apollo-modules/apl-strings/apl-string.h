@@ -10,7 +10,6 @@
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
 
-#pragma once
 #ifndef APL_STRING_H
 #define APL_STRING_H
 

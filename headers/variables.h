@@ -16,6 +16,8 @@
 
 #include <llvm-c/Core.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
 
 

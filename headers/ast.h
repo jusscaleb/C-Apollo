@@ -10,7 +10,6 @@
     Licensed under the MIT License. See LICENSE file for details.
 =======================================================================*/
 
-#pragma once
 #ifndef AST_H
 #define AST_H
 #include "arithmetic.h"

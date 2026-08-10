@@ -1,16 +1,8 @@
-/*--------------------------------------------------------------------------------
-
-                        CHARACTER GROUPER :)
-
----------------------------------------------------------------------------------*/
-
-#include "../headers/error.h"
 #include "../headers/token.h"
-#include <ctype.h>
-#include <stdbool.h>
-#include <string.h>
+#include "../headers/error.h"
 
-// Defining the TokenNames in token.h
+
+
 const char *TokenNames[] = {
     "Fxn",    "EOF",    "run",    "void",   "IDENTIFIER", "->", "STRING",
     "(", ")", "{", "}", ";",   "INT",   "DOUBLE",

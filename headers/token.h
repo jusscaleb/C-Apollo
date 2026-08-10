@@ -16,6 +16,9 @@
 
 #include "defs.h"
 #include "functions.h"
+#include <ctype.h>
+#include <stdbool.h>
+#include <string.h>
 
 
 typedef struct ErrorStack ErrorStack;

@@ -72,9 +72,10 @@ void llvm_compilation() {
   int result = system(command);
 
   if (result == 0) {
-    printf("--- Running Apollo Program Output ---\n");
+    printf("=== Running Apollo Program Output ===\n");
     system(exe_path);
-    printf("-------------------------------------\n");
+    printf("=====================================\n");
+
     exit(EXIT_SUCCESS);
   } else {
     fprintf(stderr,

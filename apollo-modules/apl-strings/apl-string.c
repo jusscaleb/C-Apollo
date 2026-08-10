@@ -1,6 +1,5 @@
 #include "apl-string.h"
-#include <stdio.h>
-#include <string.h>
+
 
 void __apl_create_str__(String *__meta_dt__, const char *__str__) {
   __meta_dt__->_str_ = __str__;

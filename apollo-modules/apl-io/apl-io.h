@@ -10,7 +10,6 @@
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
 
-#pragma once
 #ifndef APL_IO_H
 #define APL_IO_H
 
