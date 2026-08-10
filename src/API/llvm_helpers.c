@@ -1,52 +1,8 @@
 #include "../../headers/llvm_backend.h"
 
-LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
-  Symbol *var_sym = var_ref_node->var_ref.resolved_symbol;
-  LLVMValueRef llvm_var;
 
-  switch (var_sym->type) {
-  case TYPE_INT: {
-    llvm_var = LLVMBuildLoad2(components->builder,
-                              LLVMInt32TypeInContext(components->ctx),
-                              var_sym->llvm_val_ref, var_sym->name);
-    break;
-  }
-  case TYPE_STRING: {
-    LLVMTypeRef str_members[] = {
-        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
-        LLVMInt32TypeInContext(components->ctx)};
-    LLVMTypeRef string_struct_type =
-        LLVMStructTypeInContext(components->ctx, str_members, 2, false);
-    LLVMValueRef char_ptr_gep =
-        LLVMBuildStructGEP2(components->builder, string_struct_type,
-                            var_sym->llvm_val_ref, 0, "str_gep");
-    llvm_var = LLVMBuildLoad2(
-        components->builder,
-        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
-        char_ptr_gep, var_sym->name);
-    break;
-  }
 
-  case TYPE_FLOAT: {
-    llvm_var = LLVMBuildLoad2(components->builder,
-                              LLVMFloatTypeInContext(components->ctx),
-                              var_sym->llvm_val_ref, var_sym->name);
-    break;
-  }
-  case TYPE_BOOL: {
-    llvm_var = LLVMBuildLoad2(components->builder,
-                              LLVMInt1TypeInContext(components->ctx),
-                              var_sym->llvm_val_ref, var_sym->name);
-    break;
-  }
-  default:
-    break;
-  }
-
-  return llvm_var;
-}
-
-void slice_string(Token string, char *clean_str) {
+__attribute__((always_inline)) void slice_string(Token string, char *clean_str) {
   const char *sliced_start = string.start + 1;
 
   int sliced_length = string.length - 1;
@@ -55,7 +11,7 @@ void slice_string(Token string, char *clean_str) {
   clean_str[sliced_length] = '\0';
 }
 
-float str_to_int_k(const char *s, int k) {
+__attribute__((always_inline)) float str_to_int_k(const char *s, int k) {
   int result = 0;
   float final;
   int dp = 1;
@@ -148,7 +104,7 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
   }
 }
 
-LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
+__attribute__((always_inline)) LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
   switch (fxn->return_type) {
   case TYPE_INT:
     return LLVMInt32TypeInContext(components->ctx);
@@ -174,7 +130,7 @@ __attribute__((always_inline)) float return_eval_int(ASTNode* expr){
 
 }
 
-LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
+__attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
       LLVMValueRef result;
       FxnCallMetaData meta_data = node->call_fxn.resolved_symbol->fxn_meta_data;
 

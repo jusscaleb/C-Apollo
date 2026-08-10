@@ -118,7 +118,6 @@ void _apl_llvm_shutdown(LLVMComponents *components) {
   LLVMContextDispose(components->ctx);
 }
 
-// AST Dictionary
 void _apl_gen_block_from_ast(LLVMComponents *components,
                              CodegenContext *context, ASTNode *block_node) {
   if (block_node == NULL || block_node->Type != AST_BLOCK)

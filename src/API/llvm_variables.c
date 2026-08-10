@@ -149,3 +149,48 @@ void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
   }
   LLVMBuildStore(components->builder, new_val, var);
 }
+LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
+  Symbol *var_sym = var_ref_node->var_ref.resolved_symbol;
+  LLVMValueRef llvm_var;
+
+  switch (var_sym->type) {
+  case TYPE_INT: {
+    llvm_var = LLVMBuildLoad2(components->builder,
+                              LLVMInt32TypeInContext(components->ctx),
+                              var_sym->llvm_val_ref, var_sym->name);
+    break;
+  }
+  case TYPE_STRING: {
+    LLVMTypeRef str_members[] = {
+        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
+        LLVMInt32TypeInContext(components->ctx)};
+    LLVMTypeRef string_struct_type =
+        LLVMStructTypeInContext(components->ctx, str_members, 2, false);
+    LLVMValueRef char_ptr_gep =
+        LLVMBuildStructGEP2(components->builder, string_struct_type,
+                            var_sym->llvm_val_ref, 0, "str_gep");
+    llvm_var = LLVMBuildLoad2(
+        components->builder,
+        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
+        char_ptr_gep, var_sym->name);
+    break;
+  }
+
+  case TYPE_FLOAT: {
+    llvm_var = LLVMBuildLoad2(components->builder,
+                              LLVMFloatTypeInContext(components->ctx),
+                              var_sym->llvm_val_ref, var_sym->name);
+    break;
+  }
+  case TYPE_BOOL: {
+    llvm_var = LLVMBuildLoad2(components->builder,
+                              LLVMInt1TypeInContext(components->ctx),
+                              var_sym->llvm_val_ref, var_sym->name);
+    break;
+  }
+  default:
+    break;
+  }
+
+  return llvm_var;
+}

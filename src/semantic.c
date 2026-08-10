@@ -143,14 +143,13 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
 
   case AST_VAR_DECL: {
-
     const int NAME_LENGTH = node->var_decl.name_length;
     char name[NAME_LENGTH + 1];
     memcpy(name, node->var_decl.name, NAME_LENGTH);
     name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, name, &node->var_decl.fxn,
                                node->var_decl.level);
-    if (sym) {
+    if (sym && memcmp(sym->fxn->name, node->var_decl.fxn.name, strlen(sym->fxn->name)) == 1) {
       report_semantic_error(context, "Multiple definition of variable.");
       break;
     }
