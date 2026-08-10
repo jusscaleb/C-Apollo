@@ -28,11 +28,16 @@ void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
 
   _apl_gen_block_from_ast(components, context, then);
 
-  LLVMBuildBr(components->builder, mergeBB);
+  if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
+    LLVMBuildBr(components->builder, mergeBB);
+  }
+
   if (elseBB) {
     LLVMPositionBuilderAtEnd(components->builder, elseBB);
     _apl_gen_block_from_ast(components, context, elseB);
-    LLVMBuildBr(components->builder, mergeBB);
+    if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
+      LLVMBuildBr(components->builder, mergeBB);
+    }
   }
 
   LLVMPositionBuilderAtEnd(components->builder, mergeBB);
@@ -65,7 +70,9 @@ void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
 
   LLVMPositionBuilderAtEnd(components->builder, thenBB);
   _apl_gen_block_from_ast(components, context, then);
-  LLVMBuildBr(components->builder, condBB);
+  if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
+    LLVMBuildBr(components->builder, condBB);
+  }
 
   LLVMPositionBuilderAtEnd(components->builder, afterBB);
 }
@@ -122,7 +129,9 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
       _apl_gen_fxn_call_from_ast(components, context, body);
     }
   }
-  LLVMBuildBr(components->builder, stepBB);
+  if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
+    LLVMBuildBr(components->builder, stepBB);
+  }
 
   LLVMPositionBuilderAtEnd(components->builder, stepBB);
   if (step != NULL) {
@@ -134,7 +143,9 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
       _apl_gen_fxn_call_from_ast(components, context, step);
     }
   }
-  LLVMBuildBr(components->builder, condBB);
+  if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
+    LLVMBuildBr(components->builder, condBB);
+  }
 
   LLVMPositionBuilderAtEnd(components->builder, afterBB);
 }

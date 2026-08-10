@@ -181,6 +181,10 @@ void _apl_gen_function_start(LLVMComponents *components,
 
 void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
                            ASTNode *block_node) {
+
+  LLVMBasicBlockRef current_block = LLVMGetInsertBlock(components->builder);
+
+  if (LLVMGetBasicBlockTerminator(current_block)) return;
   if (memcmp(block_node->function.name, "run", 3) == 0) {
     LLVMBuildRet(
         components->builder,
@@ -238,6 +242,8 @@ void _apl_gen_return(LLVMComponents *components, CodegenContext *context,
 
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
                                 CodegenContext *context, ASTNode *stmt) {
+
+
   if (memcmp(stmt->call_fxn.name, "println", 7) == 0) {
     _apl_gen_println_ir(components, context, stmt->call_fxn.args);
     return;
