@@ -31,7 +31,7 @@
 
 #define RUNTIME_LIBS                                                           \
   {"apollo-modules/apl-io/apl-io.bc",                                          \
-   "apollo-modules/apl-strings/apl-string.bc"}
+   "apollo-modules/apl-string/apl-string.bc"}
 
 typedef struct LLVMComponents {
   LLVMContextRef ctx;
