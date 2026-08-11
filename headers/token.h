@@ -16,12 +16,15 @@
 
 #include "defs.h"
 #include "functions.h"
-#include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
 
 
 typedef struct ErrorStack ErrorStack;
+
+#define _IS_DIGIT_(c)((unsigned)((c) - '0') <= 9)
+#define _IS_ALPHA_(c)(((unsigned)((c) | 32) - 'a') <= 25)
+#define _IS_ALNUM_(c)(_IS_DIGIT_(c) || _IS_ALPHA_(c))
 
 
 /*-------------TOKEN TYPES-------------*/
@@ -134,5 +137,7 @@ typedef struct {
   Token previous; // takes details of the previous token
   ErrorStack *error;
 } Parser;
+
+Token check_number(Lexer *lexer, const char* start);
 
 #endif

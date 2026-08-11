@@ -23,12 +23,15 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
 
   case AST_FUNCTION:
-    if(node->function.fxn.return_type != TYPE_NULL && !node->function.fxn.has_return_type){
-     report_semantic_error(context, "Function not of return type null but returns no expression.");
 
-     break;
-
+    if(node->function.fxn.return_type != TYPE_NULL && (node->function.fxn.block_nodes != node->function.fxn.ret_nodes)){
+      if(node->function.fxn.block_nodes > node->function.fxn.ret_nodes)
+        report_semantic_error(context, "All branches of fxn should return a value.");
+      else
+       report_semantic_error(context, "Expression cannot be reached in fxn.");
     }
+      
+      
     if (lookup_token(context->codegen, node->function.name, &node->function.fxn,
                      node->function.level)) {
       report_semantic_error(context, "Cannot redefine function.");

@@ -130,6 +130,7 @@ ASTNode *parse_block(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_LBRACE, "Expected open brace '{' to begin block.");
 
   ASTNode *block = create_block_node(context->a);
+  parser->lexer->fxn->block_nodes++;
 
   while (parser->current.type != TOKEN_RBRACE &&
          parser->current.type != TOKEN_EOF) {

@@ -243,7 +243,7 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 
   case TOKEN_RETURN:
     advance(parser);
-    if(!parser->lexer->fxn->has_return_type) parser->lexer->fxn->has_return_type = true;
+    parser->lexer->fxn->ret_nodes++;
     Fxn *fxn = (Fxn *)arena_alloc(context->a, sizeof(Fxn));
     fxn = parser->lexer->fxn;
     ASTNode *value = parse_logical_or(parser, context);

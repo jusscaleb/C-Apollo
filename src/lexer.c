@@ -128,7 +128,10 @@ Token next_token(Lexer *lexer) {
   }
 
   case '-': {
-    
+    if(_IS_DIGIT_((unsigned char) *lexer->current)){ 
+      return check_number(lexer, start);
+    }
+
     if (*lexer->current == '>') {
       lexer->current++;
       lexer->column++;
@@ -149,6 +152,7 @@ Token next_token(Lexer *lexer) {
 
     Token token = {TOKEN_SUB, start, 1, lexer->line};
     return token;
+  
   }
 
   case '+':
@@ -346,43 +350,14 @@ Token next_token(Lexer *lexer) {
   }
 
   // Checking Int
-  if (isdigit((unsigned char)c)) {
-    set is_float = false;
-
-    while (isdigit((unsigned char)*lexer->current)) {
-      lexer->current++;
-      lexer->column++;
-    }
-
-    if (*lexer->current == '.') {
-      is_float = true;
-      lexer->current++;
-      lexer->column++;
-
-      if (!isdigit((unsigned char)*lexer->current)) {
-        int len = (int)(lexer->current - start);
-        char temp[len + 1];
-        memcpy(temp, start, len);
-        temp[len] = '\0';
-        lex_error(lexer, "Expected value int after '.' ", temp);
-      }
-    }
-    while (isdigit((unsigned char)*lexer->current)) {
-      lexer->current++;
-      lexer->column++;
-    }
-
-    int length = (int)(lexer->current - start);
-
-    TokenType type = (is_float) ? TOKEN_FLOAT : TOKEN_INT;
-    Token token = {type, start, length, lexer->line};
-    return token;
+  if (_IS_DIGIT_((unsigned char)c)) {
+    return check_number(lexer, start);
   }
 
   // Catering for other types of Keywords
-  if (isalpha(c) || c == '_') {
+  if (_IS_ALPHA_(c) || c == '_') {
     // Could my_number_2...
-    while (isalnum((unsigned char)*lexer->current) || *lexer->current == '_') {
+    while (_IS_ALNUM_((unsigned char)*lexer->current) || *lexer->current == '_') {
       lexer->current++;
       lexer->column++;
     }
@@ -402,4 +377,37 @@ Token next_token(Lexer *lexer) {
   lex_error(lexer, "Undefined string.", temp);
   Token token = {TOKEN_EOF, start, 1, lexer->line};
   return token;
+}
+
+__attribute__((always_inline))Token check_number(Lexer *lexer, const char* start){
+      set is_float = false;
+    while (_IS_DIGIT_((unsigned char)*lexer->current)) {
+      lexer->current++;
+      lexer->column++;
+    }
+
+    if (*lexer->current == '.') {
+      is_float = true;
+      lexer->current++;
+      lexer->column++;
+
+      if (!_IS_DIGIT_((unsigned char)*lexer->current)) {
+        int len = (int)(lexer->current - start);
+        char temp[len + 1];
+        memcpy(temp, start, len);
+        temp[len] = '\0';
+        lex_error(lexer, "Expected value int after '.' ", temp);
+      }
+    }
+    while (_IS_DIGIT_((unsigned char)*lexer->current)) {
+      lexer->current++;
+      lexer->column++;
+    }
+
+    int length = (int)(lexer->current - start);
+
+    TokenType type = (is_float) ? TOKEN_FLOAT : TOKEN_INT;
+    Token token = {type, start, length, lexer->line};
+    return token;
+
 }

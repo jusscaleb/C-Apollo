@@ -27,7 +27,8 @@ typedef struct Fxn {
   const char *name;
   struct Fxn *parent_fxn;
   Params *params;
-  bool has_return_type;
+  int ret_nodes;
+  int block_nodes;
 } Fxn;
 
 /**

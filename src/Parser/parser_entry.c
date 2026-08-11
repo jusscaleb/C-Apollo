@@ -10,7 +10,8 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
                               .return_type = TYPE_NULL,
                               .name = "global",
                               .parent_fxn = NULL,
-                              .has_return_type = false};
+                              .ret_nodes = 0,
+                              .block_nodes = 0};
   ASTNode *program_block = create_block_node(context->a);
 
   // Checking global variables
