@@ -26,7 +26,7 @@ void _apl_print_string(const char *str) {
   }
 }
 
-void _apl_print_bool(int val) {
+__attribute__((always_inline)) void _apl_print_bool(int val) {
   if (val) {
     _apl_print_string("true");
   } else {
@@ -36,12 +36,12 @@ void _apl_print_bool(int val) {
   _apl_flush();
 }
 
-void _apl_print_newline() {
+__attribute__((always_inline)) void _apl_print_newline() {
   _apl_print_char('\n');
   _apl_flush();
 }
 
-void _apl_print_int(int val) {
+__attribute__((always_inline)) void _apl_print_int(int val) {
   _DEBUG("INT PRINT WORKS.")
 
   if (val == 0) {
@@ -66,7 +66,7 @@ void _apl_print_int(int val) {
   }
 }
 
-void _apl_print_float(float val) {
+__attribute__((always_inline)) void _apl_print_float(float val) {
   if (val < 0) {
     _apl_print_char('-');
     val = -val;

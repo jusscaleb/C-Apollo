@@ -1,18 +1,18 @@
 #include "apl-string.h"
 
 
-void __apl_create_str__(String *__meta_dt__, const char *__str__) {
+__attribute__((always_inline)) void __apl_create_str__(String *__meta_dt__, const char *__str__) {
   __meta_dt__->_str_ = __str__;
   __meta_dt__->_length_ = __apl_get_length__(__str__);
 }
 
-int __apl_get_length__(const char *__str__) {
+__attribute__((always_inline)) int __apl_get_length__(const char *__str__) {
   if (__str__ == NULL)
     return 0;
   return strlen(__str__);
 }
 
-int __apl_compare_str__(String *_str_1, String *_str_2) {
+__attribute__((always_inline)) int __apl_compare_str__(String *_str_1, String *_str_2) {
   if (_str_1->_str_ == _str_2->_str_)
     return 0;
   if (_str_1->_length_ != _str_2->_length_)
@@ -21,7 +21,7 @@ int __apl_compare_str__(String *_str_1, String *_str_2) {
   return memcmp(_str_1->_str_, _str_2->_str_, _str_1->_length_);
 }
 
-void __apl_concat_str__(String *out, String *_str_1, String *_str_2) {
+__attribute__((always_inline)) void __apl_concat_str__(String *out, String *_str_1, String *_str_2) {
   out->_length_ = _str_1->_length_ + _str_2->_length_;
 
   // Best case: Empty String.
@@ -47,7 +47,7 @@ void __apl_concat_str__(String *out, String *_str_1, String *_str_2) {
   out->_str_ = new_buf;
 }
 
-int __apl_index__of__(String *__str__, char _char_) {
+__attribute__((always_inline)) int __apl_index__of__(String *__str__, char _char_) {
   const int WORD_LENGTH = __str__->_length_;
 
   // Best Case
@@ -63,7 +63,7 @@ int __apl_index__of__(String *__str__, char _char_) {
   return -1;
 }
 
-char __apl_char_at__(String *__str__, int index) {
+__attribute__((always_inline)) char __apl_char_at__(String *__str__, int index) {
   if (__str__->_length_ < index || __str__->_length_ <= 0)
     return '\0';
 
@@ -102,7 +102,7 @@ void __apl_concat_str_int(String *out, String *_str_1, int _int_) {
   __apl_create_str__(out, __concat_val__);
 }
 
-void __apl_concat_str_bool(String *out, String *_str_1, int _bool_) {
+__attribute__((always_inline)) void __apl_concat_str_bool(String *out, String *_str_1, int _bool_) {
   const char *bool_str = _bool_ ? "true" : "false";
   int bool_length = _bool_ ? 4 : 5;
 
@@ -118,7 +118,7 @@ void __apl_concat_str_bool(String *out, String *_str_1, int _bool_) {
   __apl_create_str__(out, __concat_val__);
 }
 
-void __apl_concat_str_float(String *out, String *_str_1, float _float_) {
+__attribute__((always_inline)) void __apl_concat_str_float(String *out, String *_str_1, float _float_) {
   char float_buf[32];
   char *float_ptr = float_buf + 31;
   *float_ptr = '\0';
