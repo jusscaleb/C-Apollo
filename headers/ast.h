@@ -26,8 +26,6 @@ typedef enum {
   AST_BLOCK,
 
   AST_VAR_DECL,
-  AST_PRINTLN,
-
   AST_LITERAL_EXPR,
   AST_BINARY_EXPR,
 

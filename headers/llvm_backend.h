@@ -40,6 +40,7 @@ typedef struct LLVMComponents {
   LLVMValueRef current_fxn;
 } LLVMComponents;
 
+
 // initializes the required llvmlibs for LLVM to work.
 void _apl_llvm_environment_setup(
                                  LLVMComponents *components,
@@ -110,5 +111,7 @@ uint32_t _apl_get_n_args(LLVMComponents *components, Args *a);
 
 
 LLVMTypeRef _apl_get_llvm_type(LLVMComponents*components, DataType dt);
+
+void _apl_build_string_reassign(LLVMComponents *components, LLVMValueRef str_struct_ptr, char* char_ptr, LLVMTypeRef struct_type);
 
 #endif

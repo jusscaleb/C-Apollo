@@ -12,10 +12,12 @@ void report_semantic_error(SemanticContext *context, const char *msg) {
 }
 
 DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
+
   if (!expr)
     return TYPE_NULL;
 
   if (expr->Type == AST_LITERAL_EXPR) {
+
     if (expr->literal_expr.token.type == TOKEN_FLOAT)
       return TYPE_FLOAT;
     if (expr->literal_expr.token.type == TOKEN_BOOL)
@@ -24,7 +26,6 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       return TYPE_NULL;
     if (expr->literal_expr.token.type == TOKEN_STRING)
       return TYPE_STRING;
-  
     if(expr->literal_expr.token.type == TOKEN_INT)
       return TYPE_INT;
     return TYPE_NULL;
