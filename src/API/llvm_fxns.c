@@ -4,7 +4,7 @@
 
 /*================================================== INBUILT FUNCTIONS
  * =====================================================*/
-void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_println_ir(LLVMComponents *components, 
                          Args *args) {
 
   DataType arg_type = args->datatype;
@@ -97,7 +97,7 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
                  "");
 
   if (args->next) {
-    _apl_gen_println_ir(components, context, args->next);
+    _apl_gen_println_ir(components, args->next);
   }
 
   LLVMValueRef newline_fxn =
@@ -110,7 +110,7 @@ void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
 }
 
 void _apl_gen_function_start(LLVMComponents *components,
-                             CodegenContext *context, ASTNode *block_node) {
+                              ASTNode *block_node) {
   if (memcmp(block_node->function.name, "run", 3) == 0) {
     LLVMTypeRef main_fxn_type = LLVMFunctionType(
         LLVMInt32TypeInContext(components->ctx), NULL, 0, false);
@@ -134,16 +134,6 @@ void _apl_gen_function_start(LLVMComponents *components,
     Params *p = block_node->function.fxn.params;
 
     for (uint32_t i = 0; i < p_number; i++) {
-
-      /*switch (p->param->var_decl.value_type) {
-      case TYPE_INT: {
-        param_types[i] = LLVMInt32TypeInContext(components->ctx);
-        break;
-      }case TYPE_FLOAT:{
-        param_types[i] = LLVMFloatTypeInContext(context->ctx);
-      }
-      }*/
-
       param_types[i] = _apl_get_llvm_type(components, p->param->var_decl.value_type);
 
       p = p->next;
@@ -181,7 +171,7 @@ void _apl_gen_function_start(LLVMComponents *components,
   }
 }
 
-void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_function_end(LLVMComponents *components, 
                            ASTNode *block_node) {
 
   LLVMBasicBlockRef current_block = LLVMGetInsertBlock(components->builder);
@@ -196,7 +186,7 @@ void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
   }
 }
 
-void _apl_gen_return(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_return(LLVMComponents *components, 
                      ASTNode *node) {
   LLVMValueRef ret_val;
   switch (node->ret_node.fxn.return_type) {
@@ -239,15 +229,14 @@ void _apl_gen_return(LLVMComponents *components, CodegenContext *context,
   LLVMBuildRet(components->builder, ret_val);
 }
 
-/*==================================================FXN
- * CALLS=====================================================*/
+/*==================================================FXN CALLS=====================================================*/
 
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
-                                CodegenContext *context, ASTNode *stmt) {
+                                 ASTNode *stmt) {
 
 
   if (memcmp(stmt->call_fxn.name, "println", 7) == 0) {
-    _apl_gen_println_ir(components, context, stmt->call_fxn.args);
+    _apl_gen_println_ir(components, stmt->call_fxn.args);
     return;
   } else {
 

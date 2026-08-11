@@ -29,6 +29,15 @@ typedef struct Arena{
     Arena *next_arena;
 }Arena;
 
+/**
+ * Allocates memory initialized to zero.
+ * @param num_elements Number of elements to allocate.
+ * @param element_size Size of each element.
+ * @return A pointer to the allocated memory.
+ */
+char *alloc_space(int num_elements, int element_size);
+
+
 
 void arena_init(size_t capacity, Arena *a);
 

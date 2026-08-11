@@ -1,7 +1,7 @@
 #include "../../headers/llvm_backend.h"
 
 
-void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_if_block(LLVMComponents *components,
                        ASTNode *node) {
   ASTNode *cond = node->if_stmt.condition;
   ASTNode *then = node->if_stmt.then_block;
@@ -26,7 +26,7 @@ void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
 
   LLVMPositionBuilderAtEnd(components->builder, thenBB);
 
-  _apl_gen_block_from_ast(components, context, then);
+  _apl_gen_block_from_ast(components, then);
 
   if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
     LLVMBuildBr(components->builder, mergeBB);
@@ -34,7 +34,7 @@ void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
 
   if (elseBB) {
     LLVMPositionBuilderAtEnd(components->builder, elseBB);
-    _apl_gen_block_from_ast(components, context, elseB);
+    _apl_gen_block_from_ast(components, elseB);
     if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
       LLVMBuildBr(components->builder, mergeBB);
     }
@@ -43,7 +43,7 @@ void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
   LLVMPositionBuilderAtEnd(components->builder, mergeBB);
 }
 
-void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_while_loop(LLVMComponents *components,
                          ASTNode *node) {
   ASTNode *cond = node->while_lp.condition;
   ASTNode *then = node->while_lp.then_block;
@@ -69,7 +69,7 @@ void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
   LLVMBuildCondBr(components->builder, cond_gen, thenBB, afterBB);
 
   LLVMPositionBuilderAtEnd(components->builder, thenBB);
-  _apl_gen_block_from_ast(components, context, then);
+  _apl_gen_block_from_ast(components, then);
   if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
     LLVMBuildBr(components->builder, condBB);
   }
@@ -77,7 +77,7 @@ void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
   LLVMPositionBuilderAtEnd(components->builder, afterBB);
 }
 
-void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_for_loop(LLVMComponents *components,
                        ASTNode *node) {
   ASTNode *init = node->for_lp.variable;
   ASTNode *cond = node->for_lp.condtion;
@@ -86,9 +86,9 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
 
   if (init != NULL) {
     if (init->Type == AST_VAR_DECL) {
-      _apl_create_local_variable(components, context, init);
+      _apl_create_local_variable(components, init);
     } else if (init->Type == AST_VAR_ASS) {
-      _apl_reassign_variable(components, context, init);
+      _apl_reassign_variable(components, init);
     }
   }
 
@@ -120,13 +120,13 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
   LLVMPositionBuilderAtEnd(components->builder, bodyBB);
   if (body != NULL) {
     if (body->Type == AST_BLOCK) {
-      _apl_gen_block_from_ast(components, context, body);
+      _apl_gen_block_from_ast(components, body);
     } else if (body->Type == AST_VAR_DECL) {
-      _apl_create_local_variable(components, context, body);
+      _apl_create_local_variable(components, body);
     } else if (body->Type == AST_VAR_ASS) {
-      _apl_reassign_variable(components, context, body);
+      _apl_reassign_variable(components, body);
     } else if (body->Type == AST_CALL_FXN) {
-      _apl_gen_fxn_call_from_ast(components, context, body);
+      _apl_gen_fxn_call_from_ast(components, body);
     }
   }
   if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
@@ -136,11 +136,11 @@ void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
   LLVMPositionBuilderAtEnd(components->builder, stepBB);
   if (step != NULL) {
     if (step->Type == AST_VAR_ASS) {
-      _apl_reassign_variable(components, context, step);
+      _apl_reassign_variable(components, step);
     } else if (step->Type == AST_VAR_DECL) {
-      _apl_create_local_variable(components, context, step);
+      _apl_create_local_variable(components, step);
     } else if (step->Type == AST_CALL_FXN) {
-      _apl_gen_fxn_call_from_ast(components, context, step);
+      _apl_gen_fxn_call_from_ast(components, step);
     }
   }
   if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {

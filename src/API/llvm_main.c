@@ -65,7 +65,7 @@ void _apl_import_runtime(LLVMModuleRef dest_module, const char *filename) {
   }
 }
 
-void _apl_llvm_environment_setup(CodegenContext *context,
+void _apl_llvm_environment_setup(
                                  LLVMComponents *components,
                                  ASTNode *block_node) {
   LLVMContextRef ctx = LLVMContextCreate();
@@ -78,9 +78,9 @@ void _apl_llvm_environment_setup(CodegenContext *context,
 
   _apl_load_runtime_libraries(components);
   if (block_node != NULL && block_node->Type == AST_PROGRAM) {
-    _apl_gen_block_from_ast(components, context, block_node->program.function);
+    _apl_gen_block_from_ast(components, block_node->program.function);
   } else {
-    _apl_gen_block_from_ast(components, context, block_node);
+    _apl_gen_block_from_ast(components, block_node);
   }
 
   _apl_save_and_shutdown(components);
@@ -135,7 +135,7 @@ void _apl_llvm_shutdown(LLVMComponents *components) {
 }
 
 void _apl_gen_block_from_ast(LLVMComponents *components,
-                             CodegenContext *context, ASTNode *block_node) {
+                              ASTNode *block_node) {
   if (block_node == NULL || block_node->Type != AST_BLOCK)
     return;
 
@@ -146,32 +146,32 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
 
     switch (stmt->Type) {
     case AST_VAR_DECL:
-      _apl_create_local_variable(components, context, stmt);
+      _apl_create_local_variable(components, stmt);
       break;
     case AST_VAR_ASS:
-      _apl_reassign_variable(components, context, stmt);
+      _apl_reassign_variable(components, stmt);
       break;
     case AST_IF:
-      _apl_gen_if_block(components, context, stmt);
+      _apl_gen_if_block(components, stmt);
       break;
     case AST_WHILE:
-      _apl_gen_while_loop(components, context, stmt);
+      _apl_gen_while_loop(components, stmt);
       break;
     case AST_FOR:
-      _apl_gen_for_loop(components, context, stmt);
+      _apl_gen_for_loop(components, stmt);
       break;
     case AST_CALL_FXN:
-      _apl_gen_fxn_call_from_ast(components, context, stmt);
+      _apl_gen_fxn_call_from_ast(components, stmt);
       break;
     case AST_RET_NODE:
-      _apl_gen_return(components, context, stmt);
+      _apl_gen_return(components, stmt);
 
       break;
     case AST_FUNCTION: {
-      _apl_gen_function_start(components, context, stmt);
-      _apl_gen_block_from_ast(components, context, stmt->function.body);
+      _apl_gen_function_start(components, stmt);
+      _apl_gen_block_from_ast(components, stmt->function.body);
 
-      if(stmt->function.fxn.return_type == TYPE_NULL) _apl_gen_function_end(components, context, stmt);
+      if(stmt->function.fxn.return_type == TYPE_NULL) _apl_gen_function_end(components, stmt);
 
       break;
     }

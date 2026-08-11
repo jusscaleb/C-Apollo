@@ -100,14 +100,12 @@ typedef enum {
 /*-------------DEFINING THE TOKEN-------------*/
 typedef struct {
   TokenType type;    // Token type
-  const char *start; // RAM Address of Token
-  int length;        //
+  const char *start; // Address of Token
+  int length;        // Length of Token
   int line;
 } Token;
 
-/*Tells compiler that the variable exists in another file,
-  Check lexer.c
-*/
+
 extern const char *TokenNames[];
 
 // ACTS AS A POINTER THAT KEEPS TRACK OF POSITION IN SOURCE CODE

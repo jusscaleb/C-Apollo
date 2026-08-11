@@ -51,13 +51,6 @@ typedef struct CodegenContext {
   Arena *a;
 } CodegenContext;
 
-/**
- * Reallocates memory space for a string, ensuring null termination.
- * @param value The existing string pointer.
- * @param size The new size required.
- * @return A pointer to the newly reallocated string.
- */
-char *realloc_space(char *value, int size);
 
 /**
  * Grows the symbol table array inside the CodegenContext if capacity is
@@ -66,13 +59,6 @@ char *realloc_space(char *value, int size);
  */
 void grow_symbols_if_needed(CodegenContext *context);
 
-/**
- * Allocates memory initialized to zero.
- * @param num_elements Number of elements to allocate.
- * @param element_size Size of each element.
- * @return A pointer to the allocated memory.
- */
-char *alloc_space(int num_elements, int element_size);
 
 /**
  * Initializes the code generation context and opens the output file.
@@ -81,58 +67,6 @@ char *alloc_space(int num_elements, int element_size);
  */
 void codegen_init(CodegenContext *context, const char *output_filename);
 
-/**
- * Initializes the LLVM backend scaffolding used for API-driven codegen.
- * The implementation is intentionally isolated from the current text emitter.
- */
-bool llvm_backend_init(ApolloLLVMBackend *backend, const char *module_name,
-                       const char *output_path);
 
-/**
- * Releases any LLVM backend resources allocated by llvm_backend_init.
- */
-void llvm_backend_dispose(ApolloLLVMBackend *backend);
-
-/**
- * Emits LLVM IR to define the start of a function.
- * @param context The codegen context.
- * @param name The name of the function.
- */
-void gen_function_start(CodegenContext *context, ASTNode *func_node);
-
-/**
- * Emits LLVM IR to print a string literal.
- * @param context The codegen context.
- * @param string_start Pointer to the start of the string literal token.
- * @param length Length of the string literal.
- */
-void gen_println_statement(CodegenContext *context, const char *string_start,
-                           int length);
-
-/**
- * Emits LLVM IR to print an integer literal.
- * @param context The codegen context.
- * @param number_start Pointer to the start of the integer literal token.
- * @param length Length of the integer literal.
- */
-void gen_println_integer(CodegenContext *context, const char *number_start,
-                         int length);
-
-/**
- * Emits LLVM IR to print a float literal.
- * @param context The codegen context.
- * @param float_start Pointer to the start of the float literal token.
- * @param length Length of the float literal.
- */
-void gen_println_float(CodegenContext *context, const char *float_start,
-                       int length);
-
-/**
- * Emits LLVM IR to close a function block.
- * @param context The codegen context.
- * @param is_main Boolean flag indicating if this is the program entry point.
- */
-void gen_function_end(CodegenContext *context, bool is_main,
-                      DataType return_type);
 static void trace(const char *message);
 #endif

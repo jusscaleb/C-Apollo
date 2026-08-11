@@ -196,7 +196,7 @@ _DEBUG("[DRIVER] Starting semantic analysis.");
   if(_DB) trace("starting llvm backend emission");
   LLVMComponents components = {0};
   
-  _apl_llvm_environment_setup(&compiler_context, &components, program_ast);
+  _apl_llvm_environment_setup(&components, program_ast);
 
   _DEBUG("[DRIVER] LLVM backend emission finished.");
   fflush(stderr);

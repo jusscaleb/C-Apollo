@@ -47,7 +47,7 @@ ASTNode *parse_assignment_or_increment(Parser *parser,
                                               char *potential_var_name,
                                               int NAME_LENGTH) {
   ASTNode *value;
-  set incrementation = false;
+  bool incrementation = false;
 
   TokenType alternatives[] = {TOKEN_AEQ, TOKEN_SEQ, TOKEN_MEQ, TOKEN_DEQ,
                               TOKEN_PEQ};
@@ -67,7 +67,7 @@ ASTNode *parse_assignment_or_increment(Parser *parser,
     advance(parser);
   }
 
-  set is_alternative = false;
+  bool is_alternative = false;
   for (int i = 0; i <= 4; i++) {
     if (parser->current.type == alternatives[i]) {
       is_alternative = true;

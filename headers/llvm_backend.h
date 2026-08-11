@@ -40,14 +40,8 @@ typedef struct LLVMComponents {
   LLVMValueRef current_fxn;
 } LLVMComponents;
 
-typedef struct LLVMArithmetic {
-  char *result_name;
-  LLVMValueRef left;
-  LLVMValueRef right;
-} LLVMArithmetic;
-
 // initializes the required llvmlibs for LLVM to work.
-void _apl_llvm_environment_setup(CodegenContext *context,
+void _apl_llvm_environment_setup(
                                  LLVMComponents *components,
                                  ASTNode *program_node);
 // shutsdown LLVM.
@@ -62,28 +56,27 @@ void _apl_import_runtime(LLVMModuleRef dest_module, const char *filename);
 void _apl_save_and_shutdown(LLVMComponents *components);
 
 void _apl_gen_block_from_ast(LLVMComponents *components,
-                             CodegenContext *context, ASTNode *block_node);
+                              ASTNode *block_node);
 
 void _apl_gen_function_start(LLVMComponents *components,
-                             CodegenContext *context, ASTNode *block_node);
+                              ASTNode *block_node);
 
-void _apl_gen_function_end(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_function_end(LLVMComponents *components, 
                            ASTNode *block_node);
 
 void _apl_create_local_variable(LLVMComponents *components,
-                                CodegenContext *context, ASTNode *var_node);
+                                 ASTNode *var_node);
 
 DataType _apl_get_token_datatype(LLVMComponents *components,
-                                 CodegenContext *context, ASTNode *token_node);
+                                  ASTNode *token_node);
 
-Symbol *get_token(CodegenContext *context, const char *name);
 
 LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn);
 
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
-                                CodegenContext *context, ASTNode *stmt);
+                                 ASTNode *stmt);
 
-void _apl_gen_println_ir(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_println_ir(LLVMComponents *components, 
                          Args *args);
 void slice_string(Token string, char *clean_str);
 
@@ -93,19 +86,19 @@ load_variable(LLVMComponents *components, ASTNode *var_ref_node);
 LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
                         char *result_name);
 
-void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
+void _apl_reassign_variable(LLVMComponents *components, 
                             ASTNode *node);
-void _apl_gen_if_block(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_if_block(LLVMComponents *components, 
                        ASTNode *node);
-void _apl_gen_while_loop(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_while_loop(LLVMComponents *components, 
                          ASTNode *node);
 
-void _apl_gen_for_loop(LLVMComponents *components, CodegenContext *context,
+void _apl_gen_for_loop(LLVMComponents *components, 
                        ASTNode *node);
 
 float str_to_int_k(const char *s, int k);
 
-void  _apl_gen_return(LLVMComponents *components, CodegenContext *context, ASTNode *node);
+void  _apl_gen_return(LLVMComponents *components,  ASTNode *node);
 
 float return_eval_int(ASTNode* expr);
 

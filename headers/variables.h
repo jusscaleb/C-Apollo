@@ -58,7 +58,6 @@ typedef enum {
   CLASS,
   OBJ,
   ARR,
-
 } token_type;
 
 typedef struct Symbol {
@@ -98,25 +97,5 @@ Symbol *register_variable(CodegenContext *context, const char *name,
  */
 Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn,
                      int level);
-
-/**
- * Creates an LLVM local variable (alloca) for a newly declared variable.
- * @param context The codegen context.
- * @param number_start The string pointer to the literal value or expression
- * start.
- * @param length The length of the literal sequence.
- * @param name The LLVM identifier name for the variable.
- */
-void create_var(CodegenContext *context, const char *number_start, int length,
-                const char *name);
-
-/**
- * Emits LLVM instructions to print a resolved variable to standard output.
- * @param context The codegen context.
- * @param sym The resolved Symbol pointer representing the variable.
- * @param scope_level The current scope level.
- */
-void gen_println_variable(CodegenContext *context, Symbol *sym,
-                          int scope_level);
 
 #endif

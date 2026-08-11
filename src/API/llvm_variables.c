@@ -2,7 +2,7 @@
 #include <malloc.h>
 
 void _apl_create_local_variable(LLVMComponents *components,
-                                CodegenContext *context, ASTNode *var_node) {
+                                 ASTNode *var_node) {
 
   char var_name[var_node->var_decl.name_length + 1];
   memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
@@ -102,7 +102,7 @@ void _apl_create_local_variable(LLVMComponents *components,
   var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
 }
 
-void _apl_reassign_variable(LLVMComponents *components, CodegenContext *context,
+void _apl_reassign_variable(LLVMComponents *components, 
                             ASTNode *node) {
 
   DataType var_Type = node->var_assign.resolved_symbol->type;

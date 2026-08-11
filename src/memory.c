@@ -2,16 +2,6 @@
 #include "../headers/error.h"
 
 
-char *realloc_space(char *value, int size) {
-  char *alloc_space = realloc(value, size);
-
-  if (alloc_space == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    exit(EXIT_FAILURE);
-  }
-  return alloc_space;
-}
-
 char *alloc_space(int num_elements, int element_size) {
   char *alloc_space = calloc(num_elements, element_size);
 
