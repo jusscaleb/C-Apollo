@@ -1,5 +1,6 @@
 #include "../../headers/llvm_backend.h"
 #include <malloc.h>
+#include <string.h>
 
 void _apl_create_local_variable(LLVMComponents *components,
                                  ASTNode *var_node) {
@@ -75,24 +76,10 @@ void _apl_create_local_variable(LLVMComponents *components,
     LLVMTypeRef str_members[] = {
         LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
         LLVMInt32TypeInContext(components->ctx)};
-
     LLVMTypeRef string_struct_type =
         LLVMStructTypeInContext(components->ctx, str_members, 2, false);
-    var_ptr =
-        LLVMBuildAlloca(components->builder, string_struct_type, var_name);
-    LLVMTypeRef param_types[] = {
-        LLVMPointerType(string_struct_type, 0),
-        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0)};
-    LLVMTypeRef create_str_fxn_type = LLVMFunctionType(
-        LLVMVoidTypeInContext(components->ctx), param_types, 2, false);
-    LLVMValueRef create_str_fxn =
-        LLVMGetNamedFunction(components->module, "__apl_create_str__");
-    LLVMValueRef llvm_str_lit =
-        LLVMBuildGlobalStringPtr(components->builder, str, "str_lit");
-    LLVMValueRef args[] = {var_ptr, llvm_str_lit};
-
-    LLVMValueRef ret_struct = LLVMBuildCall2(
-        components->builder, create_str_fxn_type, create_str_fxn, args, 2, "");
+    var_ptr = LLVMBuildAlloca(components->builder, string_struct_type, var_name);
+    _apl_build_string_reassign(components,var_ptr, str ,string_struct_type);
 
     break;
   }
@@ -106,7 +93,7 @@ void _apl_reassign_variable(LLVMComponents *components,
                             ASTNode *node) {
 
   DataType var_Type = node->var_assign.resolved_symbol->type;
-  LLVMValueRef new_val = NULL;
+  LLVMValueRef new_val;
   ASTNode *value_node = node->var_assign.value;
 
   switch (var_Type) {
@@ -132,7 +119,18 @@ void _apl_reassign_variable(LLVMComponents *components,
     break;
   }
   case TYPE_STRING: {
-    break;
+    char str[value_node->literal_expr.token.length+1];
+    slice_string(value_node->literal_expr.token, str);
+    LLVMTypeRef str_members[] = {
+        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
+        LLVMInt32TypeInContext(components->ctx)};
+    LLVMTypeRef string_struct_type =
+        LLVMStructTypeInContext(components->ctx, str_members, 2, false);
+    
+    new_val = node->var_assign.resolved_symbol->llvm_val_ref;
+    _apl_build_string_reassign(components, new_val, str ,string_struct_type);
+    
+    return;
   }
 
   case TYPE_BOOL: {

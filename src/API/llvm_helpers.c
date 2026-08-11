@@ -3,6 +3,7 @@
 
 
 
+
 __attribute__((always_inline)) void slice_string(Token string, char *clean_str) {
   const char *sliced_start = string.start + 1;
 
@@ -194,4 +195,18 @@ __attribute__((always_inline)) LLVMTypeRef _apl_get_llvm_type(LLVMComponents*com
     case TYPE_NULL: return LLVMVoidTypeInContext(components->ctx);
     default: return LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
   }
+}
+
+void _apl_build_string_reassign(LLVMComponents *components, LLVMValueRef var_ptr, char* char_ptr, LLVMTypeRef struct_type){
+  LLVMTypeRef param_types[] = {LLVMPointerType(struct_type, 0),
+     LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0)};
+    LLVMTypeRef create_str_fxn_type = LLVMFunctionType(
+        LLVMVoidTypeInContext(components->ctx), param_types, 2, false);
+    LLVMValueRef create_str_fxn =
+        LLVMGetNamedFunction(components->module, "__apl_create_str__");
+    LLVMValueRef llvm_str_lit =
+        LLVMBuildGlobalStringPtr(components->builder, char_ptr, "str_lit");
+    LLVMValueRef args[] = {var_ptr, llvm_str_lit};
+
+    LLVMBuildCall2(components->builder, create_str_fxn_type, create_str_fxn, args, 2, "");
 }

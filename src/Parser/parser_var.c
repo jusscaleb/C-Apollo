@@ -17,8 +17,7 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
   if (parser->current.type == TOKEN_SEMICOLON) {
     declaring = true;
-    Token var_decl_token;
-
+    Token var_decl_token = parser_get_var_token(parser, dt);
 
     value = create_literal_node(var_decl_token, context->a);
   }

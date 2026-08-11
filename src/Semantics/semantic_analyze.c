@@ -76,6 +76,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       } else {
         DataType expected_type = node->var_decl.value_type;
         inferred = infer_expr_type(context, node->var_decl.value);
+
         if (inferred != expected_type) {
           report_semantic_error(context, "Datatype Mismatch.");
           break;

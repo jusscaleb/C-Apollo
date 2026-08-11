@@ -167,7 +167,9 @@ void _apl_gen_function_start(LLVMComponents *components,
       }
       p = p->next;
     }
-    return;
+
+    printf("DONE HERE\n");
+
   }
 }
 

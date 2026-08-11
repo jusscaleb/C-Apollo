@@ -42,6 +42,9 @@ typedef enum {
   TYPE_NULL,
 } DataType;
 
+
+extern const char *dt_names[];
+
 //char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
 
 typedef struct {

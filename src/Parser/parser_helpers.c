@@ -10,7 +10,6 @@ __attribute__((always_inline)) void advance(Parser *parser) {
 
 void change_active_state(CodegenContext *context, Lexer *lexer) {
   int new_level = lexer->scope_level;
-  // printf("Symbol Count: %s\n", context->symbols[0].name);
   ASTNode var;
   for (int i = context->symbol_count - 1; i >= 0; i--) {
     if (context->symbols[i].scope_level > new_level) {
@@ -123,7 +122,7 @@ Args *get_args(CodegenContext *context, Parser *parser) {
 __attribute__((always_inline))Token parser_get_var_token(Parser *parser, DataType dt){
     switch (dt) {
     case TYPE_INT:    return (Token){TOKEN_INT, "0", 1, parser->current.line};
-    case TYPE_STRING: return (Token){TOKEN_STRING, "null", 4, parser->current.line};
+    case TYPE_STRING: return (Token){TOKEN_STRING, "", 4, parser->current.line};
     case TYPE_FLOAT:  return (Token){TOKEN_FLOAT, "0.0", 3, parser->current.line};
     case TYPE_BOOL:   return (Token){TOKEN_BOOL, "null", 4, parser->current.line};
     case TYPE_NULL:   return(Token){TOKEN_NULL, "null", 4, parser->current.line};
