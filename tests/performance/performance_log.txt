@@ -125,8 +125,194 @@ Overall Total Speed: 2.8390 seconds
       Execute: 0.0138s
       Total:   0.3331s
 ----------------------------------------
+Date and Time: 2026-08-11 21:29:22
+Overall Total Speed: 5.2079 seconds
+  - small_program:
+      Compile: 1.0647s
+      Execute: 0.8407s
+      Total:   1.9054s
+  - large_compilation:
+      Compile: 0.4897s
+      Execute: 0.0153s
+      Total:   0.5050s
+  - for_loop:
+      Compile: 0.5931s
+      Execute: 0.0206s
+      Total:   0.6137s
+  - var_decl_with_dt:
+      Compile: 0.6142s
+      Execute: 0.0176s
+      Total:   0.6319s
+  - var_decl_no_dt:
+      Compile: 0.4587s
+      Execute: 0.0154s
+      Total:   0.4741s
+  - for_loop_continous_println:
+      Compile: 0.4747s
+      Execute: 0.0289s
+      Total:   0.5036s
+  - recursion:
+      Compile: 0.5441s
+      Execute: 0.0302s
+      Total:   0.5743s
+----------------------------------------
+Date and Time: 2026-08-11 21:29:34
+Overall Total Speed: 4.3015 seconds
+  - small_program:
+      Compile: 0.8572s
+      Execute: 0.0367s
+      Total:   0.8939s
+  - large_compilation:
+      Compile: 0.6891s
+      Execute: 0.0167s
+      Total:   0.7058s
+  - for_loop:
+      Compile: 0.5124s
+      Execute: 0.0173s
+      Total:   0.5297s
+  - var_decl_with_dt:
+      Compile: 0.5326s
+      Execute: 0.0207s
+      Total:   0.5533s
+  - var_decl_no_dt:
+      Compile: 0.5537s
+      Execute: 0.0174s
+      Total:   0.5711s
+  - for_loop_continous_println:
+      Compile: 0.5167s
+      Execute: 0.0172s
+      Total:   0.5338s
+  - recursion:
+      Compile: 0.4952s
+      Execute: 0.0187s
+      Total:   0.5139s
+----------------------------------------
+Date and Time: 2026-08-11 21:29:42
+Overall Total Speed: 5.3188 seconds
+  - small_program:
+      Compile: 1.2671s
+      Execute: 0.0558s
+      Total:   1.3228s
+  - large_compilation:
+      Compile: 1.0147s
+      Execute: 0.0202s
+      Total:   1.0350s
+  - for_loop:
+      Compile: 0.5609s
+      Execute: 0.0147s
+      Total:   0.5756s
+  - var_decl_with_dt:
+      Compile: 0.5541s
+      Execute: 0.0287s
+      Total:   0.5827s
+  - var_decl_no_dt:
+      Compile: 0.5675s
+      Execute: 0.0345s
+      Total:   0.6020s
+  - for_loop_continous_println:
+      Compile: 0.7302s
+      Execute: 0.0170s
+      Total:   0.7472s
+  - recursion:
+      Compile: 0.4377s
+      Execute: 0.0157s
+      Total:   0.4534s
+----------------------------------------
+Date and Time: 2026-08-11 21:29:47
+Overall Total Speed: 3.1952 seconds
+  - small_program:
+      Compile: 0.4308s
+      Execute: 0.0158s
+      Total:   0.4466s
+  - large_compilation:
+      Compile: 0.4278s
+      Execute: 0.0160s
+      Total:   0.4438s
+  - for_loop:
+      Compile: 0.4261s
+      Execute: 0.0269s
+      Total:   0.4530s
+  - var_decl_with_dt:
+      Compile: 0.4251s
+      Execute: 0.0261s
+      Total:   0.4512s
+  - var_decl_no_dt:
+      Compile: 0.4680s
+      Execute: 0.0169s
+      Total:   0.4849s
+  - for_loop_continous_println:
+      Compile: 0.5045s
+      Execute: 0.0227s
+      Total:   0.5272s
+  - recursion:
+      Compile: 0.3665s
+      Execute: 0.0222s
+      Total:   0.3886s
+----------------------------------------
+Date and Time: 2026-08-11 21:29:52
+Overall Total Speed: 3.0443 seconds
+  - small_program:
+      Compile: 0.3958s
+      Execute: 0.0159s
+      Total:   0.4117s
+  - large_compilation:
+      Compile: 0.4903s
+      Execute: 0.0228s
+      Total:   0.5131s
+  - for_loop:
+      Compile: 0.4943s
+      Execute: 0.0294s
+      Total:   0.5237s
+  - var_decl_with_dt:
+      Compile: 0.3666s
+      Execute: 0.0206s
+      Total:   0.3873s
+  - var_decl_no_dt:
+      Compile: 0.3348s
+      Execute: 0.0184s
+      Total:   0.3532s
+  - for_loop_continous_println:
+      Compile: 0.3344s
+      Execute: 0.0149s
+      Total:   0.3493s
+  - recursion:
+      Compile: 0.4933s
+      Execute: 0.0127s
+      Total:   0.5060s
+----------------------------------------
+Date and Time: 2026-08-11 21:31:13
+Overall Total Speed: 2.8306 seconds
+  - small_program:
+      Compile: 0.3533s
+      Execute: 0.0316s
+      Total:   0.3849s
+  - large_compilation:
+      Compile: 0.3148s
+      Execute: 0.0136s
+      Total:   0.3284s
+  - for_loop:
+      Compile: 0.3472s
+      Execute: 0.0172s
+      Total:   0.3644s
+  - var_decl_with_dt:
+      Compile: 0.4841s
+      Execute: 0.0214s
+      Total:   0.5055s
+  - var_decl_no_dt:
+      Compile: 0.3552s
+      Execute: 0.0212s
+      Total:   0.3764s
+  - for_loop_continous_println:
+      Compile: 0.4116s
+      Execute: 0.0166s
+      Total:   0.4283s
+  - recursion:
+      Compile: 0.4106s
+      Execute: 0.0321s
+      Total:   0.4427s
+----------------------------------------
 
 Summary Statistics
 ========================
-Average Speed (last 4 runs): 3.0164 seconds
-Percentage Difference: -0.90% (Faster than last run)
+Average Speed (last 10 runs): 3.5964 seconds
+Percentage Difference: -7.02% (Faster than last run)
