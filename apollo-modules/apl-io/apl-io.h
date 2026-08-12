@@ -66,6 +66,6 @@ void _apl_print_float(float val);
 
 __attribute__((always_inline)) static void _apl_clear_();
 
-String __apl_input__(const char *__prompt__);
+void __apl_input__(const char *__prompt__, String *__input__);
 
 #endif

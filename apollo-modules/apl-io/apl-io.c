@@ -109,8 +109,7 @@ __attribute__((always_inline)) void _apl_print_float(float val) {
   _apl_flush();
 }
 
-String __apl_input__(const char *__prompt__) {
-  String __input__;
+void __apl_input__(const char *__prompt__, String *__input__) {
 
   _apl_print_string(__prompt__);
 
@@ -138,10 +137,8 @@ String __apl_input__(const char *__prompt__) {
   }
   new_buf[length] = '\0';
 
-  __input__._str_ = new_buf;
-  __input__._length_ = length;
+  __input__->_str_ = new_buf;
+  __input__->_length_ = length;
 
   arena_offset += length + 1;
-
-  return __input__;
 }
