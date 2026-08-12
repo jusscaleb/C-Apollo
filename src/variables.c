@@ -8,7 +8,6 @@
 
 const char *dt_names[] = {"str", "int", "char", "float", "bool", "null"};
 
-
 Symbol *register_variable(CodegenContext *context, const char *name,
                           DataType variable_type, Fxn *fxn, int level) {
 
