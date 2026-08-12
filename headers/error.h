@@ -14,6 +14,7 @@
 
 #include "token.h"
 #include <stdbool.h>
+#include "memory.h"
 
 typedef enum {
   SYNTAXERROR,

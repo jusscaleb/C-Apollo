@@ -7,7 +7,7 @@ args="${1:-}"
 
 if [ "$args" != 'build' ]; then
     rm -rf build
-    cmake -B build -G "MinGW Makefiles"
+    cmake -B build -G "MinGW Makefiles" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     cmake --build build 
 

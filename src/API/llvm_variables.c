@@ -1,5 +1,4 @@
 #include "../../headers/llvm_backend.h"
-#include <malloc.h>
 #include <string.h>
 
 void _apl_create_local_variable(LLVMComponents *components,
@@ -17,19 +16,16 @@ void _apl_create_local_variable(LLVMComponents *components,
   LLVMValueRef var_val;
 
   switch (VAR_TYPE) {
-
   case TYPE_BOOL: {
     LLVMValueRef val;
 
     if (expr->Type == AST_LITERAL_EXPR) {
       const int LENGTH = expr->literal_expr.token.length;
-
       int b_val = (LENGTH == 5) ? 0 : 1;
-
       var_ptr =
           LLVMBuildAlloca(components->builder,
-                          LLVMInt1TypeInContext(components->ctx), var_name);
-      val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
+                          I1(components->ctx), var_name);
+      val = LLVMConstInt(I1(components->ctx), b_val, 0);
     } else{
       val = arihmetics(components, expr, "");
     }
@@ -43,13 +39,13 @@ void _apl_create_local_variable(LLVMComponents *components,
 
     if (expr->Type == AST_LITERAL_EXPR) {
       float f_val = return_eval_int(expr);
-      val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
+      val = LLVMConstReal(F32(components->ctx), f_val);
     } else {
       val = arihmetics(components, expr, "");
     }
 
     var_ptr = LLVMBuildAlloca(
-        components->builder, LLVMFloatTypeInContext(components->ctx), var_name);
+        components->builder, F32(components->ctx), var_name);
     LLVMBuildStore(components->builder, val, var_ptr);
 
     break;
@@ -58,13 +54,13 @@ void _apl_create_local_variable(LLVMComponents *components,
     LLVMValueRef val;
     if (expr->Type == AST_LITERAL_EXPR) {
       int i_val = (int)return_eval_int(expr);
-      val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
+      val = LLVMConstInt(I32(components->ctx), i_val, 0);
     } else {
       val = arihmetics(components, expr, "");
     }
 
     var_ptr = LLVMBuildAlloca(
-        components->builder, LLVMInt32TypeInContext(components->ctx), var_name);
+        components->builder, I32(components->ctx), var_name);
     LLVMBuildStore(components->builder, val, var_ptr);
     break;
   }
@@ -74,8 +70,8 @@ void _apl_create_local_variable(LLVMComponents *components,
 
     slice_string(expr->literal_expr.token, str);
     LLVMTypeRef str_members[] = {
-        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
-        LLVMInt32TypeInContext(components->ctx)};
+        LLVMPointerType(I8(components->ctx), 0),
+        I32(components->ctx)};
     LLVMTypeRef string_struct_type =
         LLVMStructTypeInContext(components->ctx, str_members, 2, false);
     var_ptr = LLVMBuildAlloca(components->builder, string_struct_type, var_name);
@@ -100,7 +96,7 @@ void _apl_reassign_variable(LLVMComponents *components,
   case TYPE_INT: {
     if (value_node->Type == AST_LITERAL_EXPR) {
       int i_val = (int)return_eval_int(value_node);
-      new_val = LLVMConstInt(LLVMInt32TypeInContext(components->ctx), i_val, 0);
+      new_val = LLVMConstInt(I32(components->ctx), i_val, 0);
     } else if(value_node->Type == AST_BINARY_EXPR){
       new_val = arihmetics(components, value_node, "");
     } else {
@@ -112,7 +108,7 @@ void _apl_reassign_variable(LLVMComponents *components,
   case TYPE_FLOAT: {
     if (value_node->Type == AST_LITERAL_EXPR) {
       float f_val = return_eval_int(value_node);
-      new_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), f_val);
+      new_val = LLVMConstReal(F32(components->ctx), f_val);
     } else {
       new_val = arihmetics(components, value_node, "");
     }
@@ -122,8 +118,8 @@ void _apl_reassign_variable(LLVMComponents *components,
     char str[value_node->literal_expr.token.length+1];
     slice_string(value_node->literal_expr.token, str);
     LLVMTypeRef str_members[] = {
-        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
-        LLVMInt32TypeInContext(components->ctx)};
+        LLVMPointerType(I8(components->ctx), 0),
+        I32(components->ctx)};
     LLVMTypeRef string_struct_type =
         LLVMStructTypeInContext(components->ctx, str_members, 2, false);
     
@@ -136,7 +132,7 @@ void _apl_reassign_variable(LLVMComponents *components,
   case TYPE_BOOL: {
     if (value_node->Type == AST_LITERAL_EXPR) {
       int b_val = (value_node->literal_expr.token.length == 5) ? 0 : 1;
-      new_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b_val, 0);
+      new_val = LLVMConstInt(I1(components->ctx), b_val, 0);
     } else {
       new_val = arihmetics(components, value_node, "");
     }
@@ -156,7 +152,7 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
   switch (var_sym->type) {
   case TYPE_INT: {
     if(!var_sym->llvm_val_ref){
-       LLVMValueRef alloc = LLVMBuildAlloca(components->builder, LLVMInt32TypeInContext(components->ctx), "");
+       LLVMValueRef alloc = LLVMBuildAlloca(components->builder, I32(components->ctx), "");
        LLVMValueRef p_val = LLVMGetParam(components->current_fxn,
                               var_sym->param_idx);
       LLVMBuildStore(components->builder, p_val, alloc);
@@ -164,15 +160,15 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
 
     }
     llvm_var = LLVMBuildLoad2(components->builder,
-                                LLVMInt32TypeInContext(components->ctx),
+                                I32(components->ctx),
                                 var_sym->llvm_val_ref, var_sym->name);
       break;
     break;
   }
   case TYPE_STRING: {
     LLVMTypeRef str_members[] = {
-        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
-        LLVMInt32TypeInContext(components->ctx)};
+        LLVMPointerType(I8(components->ctx), 0),
+        I32(components->ctx)};
     LLVMTypeRef string_struct_type =
         LLVMStructTypeInContext(components->ctx, str_members, 2, false);
     LLVMValueRef char_ptr_gep =
@@ -180,20 +176,20 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
                             var_sym->llvm_val_ref, 0, "str_gep");
     llvm_var = LLVMBuildLoad2(
         components->builder,
-        LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0),
+        LLVMPointerType(I8(components->ctx), 0),
         char_ptr_gep, var_sym->name);
     break;
   }
 
   case TYPE_FLOAT: {
     llvm_var = LLVMBuildLoad2(components->builder,
-                              LLVMFloatTypeInContext(components->ctx),
+                              F32(components->ctx),
                               var_sym->llvm_val_ref, var_sym->name);
     break;
   }
   case TYPE_BOOL: {
     llvm_var = LLVMBuildLoad2(components->builder,
-                              LLVMInt1TypeInContext(components->ctx),
+                              I1(components->ctx),
                               var_sym->llvm_val_ref, var_sym->name);
     break;
   }

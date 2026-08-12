@@ -1,6 +1,8 @@
 #include "../headers/variables.h"
 #include "../headers/defs.h"
 #include "../headers/functions.h"
+#include "../headers/memory.h"
+
 
 
 

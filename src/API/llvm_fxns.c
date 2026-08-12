@@ -41,7 +41,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
   }
 
   case TYPE_BOOL:
-    param_types[0] = LLVMInt1TypeInContext(components->ctx);
+    param_types[0] = I1(components->ctx);
     println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
 
     if (expr->Type == AST_VAR_REF) {
@@ -59,7 +59,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
   case TYPE_CHAR:
     break;
   case TYPE_STRING: {
-    param_types[0] = LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
+    param_types[0] = LLVMPointerType(I8(components->ctx), 0);
     println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_string");
 
     if (expr->Type == AST_VAR_REF) {
@@ -90,7 +90,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
     break;
   }
 
-  func_type = LLVMFunctionType(LLVMVoidTypeInContext(components->ctx),
+  func_type = LLVMFunctionType(VOID(components->ctx),
                                param_types, 1, 0);
 
   LLVMBuildCall2(components->builder, func_type, println_fxn, &println_args, 1,
@@ -103,7 +103,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
   LLVMValueRef newline_fxn =
       LLVMGetNamedFunction(components->module, "_apl_print_newline");
   LLVMTypeRef newline_type =
-      LLVMFunctionType(LLVMVoidTypeInContext(components->ctx), NULL, 0, false);
+      LLVMFunctionType(VOID(components->ctx), NULL, 0, false);
   LLVMBuildCall2(components->builder, newline_type, newline_fxn, NULL, 0, "");
 
   return;
@@ -113,7 +113,7 @@ void _apl_gen_function_start(LLVMComponents *components,
                               ASTNode *block_node) {
   if (memcmp(block_node->function.name, "run", 3) == 0) {
     LLVMTypeRef main_fxn_type = LLVMFunctionType(
-        LLVMInt32TypeInContext(components->ctx), NULL, 0, false);
+        I32(components->ctx), NULL, 0, false);
     LLVMValueRef main_fxn =
         LLVMAddFunction(components->module, "main", main_fxn_type);
     LLVMBasicBlockRef entry =
@@ -140,7 +140,7 @@ void _apl_gen_function_start(LLVMComponents *components,
     }
 
     LLVMTypeRef fxn_type = LLVMFunctionType(
-        _enquire_fxn_return_type(components, &block_node->function.fxn),
+        _apl_get_llvm_type(components,block_node->function.fxn.return_type),
         (p_number == 0) ? NULL : param_types, p_number, false);
     LLVMValueRef fxn = LLVMAddFunction(components->module,
                                        block_node->function.name, fxn_type);
@@ -179,7 +179,7 @@ void _apl_gen_function_end(LLVMComponents *components,
   if (memcmp(block_node->function.name, "run", 3) == 0) {
     LLVMBuildRet(
         components->builder,
-        LLVMConstInt(LLVMInt32TypeInContext(components->ctx), 0, false));
+        LLVMConstInt(I32(components->ctx), 0, false));
   } else {
     LLVMBuildRetVoid(components->builder);
   }
@@ -204,12 +204,12 @@ void _apl_gen_return(LLVMComponents *components,
     }
     uint32_t number = (int)return_eval_int(node->ret_node.value);
     ret_val =
-        LLVMConstInt(LLVMInt32TypeInContext(components->ctx), number, false);
+        LLVMConstInt(I32(components->ctx), number, false);
     break;
   }
   case TYPE_BOOL: {
     uint8_t b = (node->ret_node.value->literal_expr.token.length >= 4) ? 1 : 0;
-    ret_val = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), b, false);
+    ret_val = LLVMConstInt(I1(components->ctx), b, false);
     break;
   }
   case TYPE_STRING: {
@@ -221,7 +221,7 @@ void _apl_gen_return(LLVMComponents *components,
   }
   case TYPE_FLOAT: {
     float number = return_eval_int(node->ret_node.value);
-    ret_val = LLVMConstReal(LLVMFloatTypeInContext(components->ctx), number);
+    ret_val = LLVMConstReal(F32(components->ctx), number);
   }
   }
 

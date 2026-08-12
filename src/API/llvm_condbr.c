@@ -10,11 +10,11 @@ void _apl_gen_if_block(LLVMComponents *components,
 
   if (cond->Type == AST_LITERAL_EXPR &&
       cond->literal_expr.token.type != TYPE_NULL)
-    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+    cond_gen = LLVMConstInt(I1(components->ctx), 1, 0);
   else if (cond->Type == AST_BINARY_EXPR)
     cond_gen = arihmetics(components, cond, "");
   else
-    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0);
+    cond_gen = LLVMConstInt(I1(components->ctx), 0, 0);
 
   LLVMBasicBlockRef thenBB = LLVMAppendBasicBlock(components->current_fxn, "");
   LLVMBasicBlockRef elseBB =
@@ -63,9 +63,9 @@ void _apl_gen_while_loop(LLVMComponents *components,
     cond_gen = arihmetics(components, cond, "");
   else if (cond->Type == AST_LITERAL_EXPR &&
            cond->literal_expr.token.type != TOKEN_NULL)
-    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+    cond_gen = LLVMConstInt(I1(components->ctx), 1, 0);
   else
-    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 0, 0);
+    cond_gen = LLVMConstInt(I1(components->ctx), 0, 0);
   LLVMBuildCondBr(components->builder, cond_gen, thenBB, afterBB);
 
   LLVMPositionBuilderAtEnd(components->builder, thenBB);
@@ -106,14 +106,14 @@ void _apl_gen_for_loop(LLVMComponents *components,
       cond_gen = arihmetics(components, cond, "");
     } else if (cond->Type == AST_LITERAL_EXPR &&
                cond->literal_expr.token.type != TOKEN_NULL) {
-      cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+      cond_gen = LLVMConstInt(I1(components->ctx), 1, 0);
     } else if (cond->Type == AST_VAR_REF) {
       cond_gen = load_variable(components, cond);
     } else {
-      cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+      cond_gen = LLVMConstInt(I1(components->ctx), 1, 0);
     }
   } else {
-    cond_gen = LLVMConstInt(LLVMInt1TypeInContext(components->ctx), 1, 0);
+    cond_gen = LLVMConstInt(I1(components->ctx), 1, 0);
   }
   LLVMBuildCondBr(components->builder, cond_gen, bodyBB, afterBB);
 

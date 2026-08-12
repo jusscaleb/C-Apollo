@@ -1,8 +1,5 @@
 #include "../../headers/llvm_backend.h"
-#include "llvm-c/Core.h"
-#include "llvm-c/Types.h"
-#include <stdio.h>
-#include <time.h>
+
 
 
 static FILE *trace_file = NULL;

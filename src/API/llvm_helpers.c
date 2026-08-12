@@ -48,7 +48,7 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
   if (node->Type == AST_LITERAL_EXPR) {
     int val = (int)str_to_int_k(node->literal_expr.token.start,
                                 node->literal_expr.token.length);
-    return LLVMConstInt(LLVMInt32TypeInContext(components->ctx), val, 0);
+    return LLVMConstInt(I32(components->ctx), val, 0);
   }
 
   
@@ -105,23 +105,9 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
 
     return NULL;
   }
-}
 
-__attribute__((always_inline)) LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn) {
-  switch (fxn->return_type) {
-  case TYPE_INT:
-    return LLVMInt32TypeInContext(components->ctx);
-  case TYPE_FLOAT:
-    return LLVMFloatTypeInContext(components->ctx);
-  case TYPE_STRING:
-    return LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
-  case TYPE_BOOL:
-    return LLVMInt1TypeInContext(components->ctx);
-  default:
-    return LLVMVoidTypeInContext(components->ctx);
-  }
+  return NULL;
 }
-
 
 __attribute__((always_inline)) float return_eval_int(ASTNode* expr){
     char int_str[expr->literal_expr.token.length + 1];
@@ -189,19 +175,19 @@ uint32_t _apl_get_n_args(LLVMComponents *components, Args *a){
 
 __attribute__((always_inline)) LLVMTypeRef _apl_get_llvm_type(LLVMComponents*components, DataType dt){
   switch(dt){
-    case TYPE_INT: return LLVMInt32TypeInContext(components->ctx);
-    case TYPE_FLOAT: return LLVMFloatTypeInContext(components->ctx);
-    case TYPE_BOOL: return LLVMInt1TypeInContext(components->ctx);
-    case TYPE_NULL: return LLVMVoidTypeInContext(components->ctx);
-    default: return LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0);
+    case TYPE_INT: return I32(components->ctx);
+    case TYPE_FLOAT: return F32(components->ctx);
+    case TYPE_BOOL: return I1(components->ctx);
+    case TYPE_NULL: return VOID(components->ctx);
+    default: return LLVMPointerType(I8(components->ctx), 0);
   }
 }
 
 void _apl_build_string_reassign(LLVMComponents *components, LLVMValueRef var_ptr, char* char_ptr, LLVMTypeRef struct_type){
   LLVMTypeRef param_types[] = {LLVMPointerType(struct_type, 0),
-     LLVMPointerType(LLVMInt8TypeInContext(components->ctx), 0)};
+     LLVMPointerType(I8(components->ctx), 0)};
     LLVMTypeRef create_str_fxn_type = LLVMFunctionType(
-        LLVMVoidTypeInContext(components->ctx), param_types, 2, false);
+        VOID(components->ctx), param_types, 2, false);
     LLVMValueRef create_str_fxn =
         LLVMGetNamedFunction(components->module, "__apl_create_str__");
     LLVMValueRef llvm_str_lit =

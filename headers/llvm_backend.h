@@ -9,15 +9,13 @@
 #ifndef APOLLO_LLVM_BACKEND_H
 #define APOLLO_LLVM_BACKEND_H
 
-#include "../headers/semantic.h"
-#include "ast.h"
+#include "ast.h" 
 #include "defs.h"
 #include "token.h"
-#include "llvm-c/Core.h"
 #include "variables.h"
 #include "llvm-c/Analysis.h"
 
-#include "llvm-c/Types.h"
+#include <llvm-c/Types.h>
 #include <llvm-c/BitReader.h>
 #include <llvm-c/BitWriter.h>
 #include <llvm-c/Core.h>
@@ -27,11 +25,18 @@
 #include <llvm-c/Types.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 #define RUNTIME_LIBS                                                           \
   {"apollo-modules/apl-io/apl-io.bc",                                          \
    "apollo-modules/apl-string/apl-string.bc"}
+
+
+#define VOID(x) (LLVMVoidTypeInContext(x))
+#define I32(x)  (LLVMInt32TypeInContext(x))
+#define F32(x)  (LLVMFloatTypeInContext(x))
+#define I1(x)   (LLVMInt1TypeInContext(x))
+#define I8(x)   (LLVMInt8TypeInContext(x))
+
 
 typedef struct LLVMComponents {
   LLVMContextRef ctx;
@@ -70,9 +75,6 @@ void _apl_create_local_variable(LLVMComponents *components,
 
 DataType _apl_get_token_datatype(LLVMComponents *components,
                                   ASTNode *token_node);
-
-
-LLVMTypeRef _enquire_fxn_return_type(LLVMComponents *components, Fxn *fxn);
 
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
                                  ASTNode *stmt);

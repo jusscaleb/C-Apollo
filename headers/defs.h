@@ -14,7 +14,6 @@
 #define DEFS_H
 
 #include "variables.h"
-#include "memory.h"
 #include <stdint.h>
 
 #include <stdbool.h>
@@ -33,6 +32,7 @@
 typedef struct ErrorStack ErrorStack;
 typedef struct ASTNode ASTNode;
 typedef struct ApolloLLVMBackend ApolloLLVMBackend;
+typedef struct Arena Arena ;
 
 #define EXPECTED_EXTENSION ".apl"
 typedef bool set;
