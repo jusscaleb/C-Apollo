@@ -1,4 +1,8 @@
 #include "../../headers/llvm_backend.h"
+#include "llvm-c/Core.h"
+#include "llvm-c/Error.h"
+#include "llvm-c/Transforms/PassBuilder.h"
+#include "llvm-c/Types.h"
 
 
 
@@ -80,7 +84,7 @@ void _apl_llvm_environment_setup(
     _apl_gen_block_from_ast(components, block_node);
   }
 
-  _apl_save_and_shutdown(components);
+  _apl_optimize_module(components);
 }
 static LLVMValueRef _apl_get_runtime_function(LLVMComponents *components,
                                               const char *name,
@@ -130,6 +134,20 @@ void _apl_llvm_shutdown(LLVMComponents *components) {
   LLVMDisposeBuilder(components->builder);
   LLVMContextDispose(components->ctx);
 }
+
+
+void _apl_optimize_module(LLVMComponents *components){
+  LLVMErrorRef err = LLVMRunPasses(components->module, "default<O3>", NULL, NULL);
+
+  if(err){
+    LLVMConsumeError(err);
+  }
+
+
+  _apl_save_and_shutdown(components);
+}
+
+
 
 void _apl_gen_block_from_ast(LLVMComponents *components,
                               ASTNode *block_node) {

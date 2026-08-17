@@ -14,6 +14,7 @@
 #include "token.h"
 #include "variables.h"
 #include "llvm-c/Analysis.h"
+#include <llvm-c/Transforms/PassBuilder.h>
 
 #include <llvm-c/Types.h>
 #include <llvm-c/BitReader.h>
@@ -115,5 +116,8 @@ uint32_t _apl_get_n_args(LLVMComponents *components, Args *a);
 LLVMTypeRef _apl_get_llvm_type(LLVMComponents*components, DataType dt);
 
 void _apl_build_string_reassign(LLVMComponents *components, LLVMValueRef str_struct_ptr, char* char_ptr, LLVMTypeRef struct_type);
+
+void _apl_optimize_module(LLVMComponents *components);
+
 
 #endif
