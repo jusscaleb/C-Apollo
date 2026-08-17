@@ -265,7 +265,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
       passed_arg = passed_arg->next;
 
-      if(!is_println)continue;
+      if(is_println)continue;
       if(passed_arg == NULL && expected_param != NULL ){
         report_semantic_error(context, "Too many arguments in fxn call.");
         break;
