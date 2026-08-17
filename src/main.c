@@ -13,6 +13,8 @@
 #include "../headers/llvm_backend.h"
 #include "../headers/memory.h"
 
+#include <process.h>
+
 
 ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context);
 

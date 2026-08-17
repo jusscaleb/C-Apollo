@@ -1,6 +1,8 @@
 #include "../../headers/llvm_backend.h"
 #include "llvm-c/Core.h"
 #include "llvm-c/Error.h"
+#include "llvm-c/Target.h"
+#include "llvm-c/TargetMachine.h"
 #include "llvm-c/Transforms/PassBuilder.h"
 #include "llvm-c/Types.h"
 
@@ -136,13 +138,52 @@ void _apl_llvm_shutdown(LLVMComponents *components) {
 }
 
 
-void _apl_optimize_module(LLVMComponents *components){
-  LLVMErrorRef err = LLVMRunPasses(components->module, "default<O3>", NULL, NULL);
+void _apl_optimize_module(LLVMComponents *components) {
+  if (!components || !components->module) return;
 
-  if(err){
+  LLVMInitializeNativeTarget();
+  LLVMInitializeNativeAsmPrinter();
+  LLVMInitializeNativeAsmParser();
+
+  // Fetch host machine triple, CPU model, and feature flags
+  char *target_triple = LLVMGetDefaultTargetTriple();
+  char *cpu = LLVMGetHostCPUName();
+  char *features = LLVMGetHostCPUFeatures();
+
+  LLVMTargetRef target;
+  char *err_msg = NULL;
+
+  if (LLVMGetTargetFromTriple(target_triple, &target, &err_msg)) {
+    if (err_msg) LLVMDisposeMessage(err_msg);
+    LLVMDisposeMessage(target_triple);
+    LLVMDisposeMessage(cpu);
+    LLVMDisposeMessage(features);
+    return;
+  }
+
+  LLVMTargetMachineRef target_machine = LLVMCreateTargetMachine(
+      target,
+      target_triple,
+      cpu,
+      features,
+      LLVMCodeGenLevelAggressive,
+      LLVMRelocDefault,
+      LLVMCodeModelDefault
+  );
+
+  LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
+
+  LLVMErrorRef err = LLVMRunPasses(components->module, "default<O3>", target_machine, options);
+
+  if (err) {
     LLVMConsumeError(err);
   }
 
+  LLVMDisposePassBuilderOptions(options);
+  LLVMDisposeTargetMachine(target_machine);
+  LLVMDisposeMessage(target_triple);
+  LLVMDisposeMessage(cpu);
+  LLVMDisposeMessage(features);
 
   _apl_save_and_shutdown(components);
 }
