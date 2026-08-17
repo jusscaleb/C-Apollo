@@ -1,7 +1,6 @@
 #include "../headers/token.h"
 #include "../headers/error.h"
-
-
+#include "../headers/keywords_hash.h"
 
 const char *TokenNames[] = {
     "Fxn",    "EOF",    "run",    "void",   "IDENTIFIER", "->", "STRING",
@@ -25,51 +24,12 @@ const char *TokenNames[] = {
 }
 
 /**
- *Checks if the keyword is reserved.
+ *Checks if the keyword is reserved using gperf pre-hashed lookup table.
  *If not it is a user-defined keyword
  */
- //TO BE MODIFIED FOR OPTIMIZATION.
-__attribute__((always_inline)) static TokenType check_keyword(const char *start, int length) {
-  //check length 3
-  TokenType token = TOKEN_IDENTIFIER;
-  switch(length){
-    case 2:
-      if(start[0] == 'o' && start[1] == 'r') token = TOKEN_OR;
-      if(start[0] == 'i' && start[1] == 'f') token = TOKEN_IF;
-      break;
-    
-    case 3:
-      if(memcmp(start, "fxn", 3) == 0) token = TOKEN_FXN;
-      if(memcmp(start, "run", 3) == 0) token = TOKEN_RUN;
-      if(memcmp(start, "var", 3) == 0) token = TOKEN_VAR;
-      if(memcmp(start, "and", 3) == 0) token = TOKEN_AND;
-      if(memcmp(start, "int", 3) == 0) token = DECLARE_INT;
-      if(memcmp(start, "for", 3) == 0) token = TOKEN_FOR;
-      if(memcmp(start, "str", 3) == 0) token = DECLARE_STR;
-      break;
-
-    case 4:
-      if(memcmp(start, "void", 4) == 0) token = TOKEN_VOID;
-      if(memcmp(start, "true", 4) == 0) token = TOKEN_BOOL;
-      if(memcmp(start, "else", 4) == 0) token = TOKEN_ELSE;
-      if(memcmp(start, "elif", 4) == 0) token = TOKEN_ELIF;
-      if(memcmp(start, "null", 4) == 0) token = TOKEN_NULL;
-      if(memcmp(start, "bool", 4) == 0) token = DECLARE_BOOL;
-      break;
-    
-    case 5:
-      if(memcmp(start, "false", 5) == 0) token = TOKEN_BOOL;
-      if(memcmp(start, "while", 5) == 0) token = TOKEN_WHILE;
-      if(memcmp(start, "float", 5) == 0) token = DECLARE_FLOAT;
-      break;
-    
-    case 6:
-      if(memcmp(start, "return", 6) == 0) token = TOKEN_RETURN;
-      break;
-      
-  }
-
-  return token;
+__attribute__((always_inline)) static inline TokenType check_keyword(const char *start, int length) {
+  const struct KeywordEntry *entry = in_word_set(start, length);
+  return entry ? entry->type : TOKEN_IDENTIFIER;
 }
 
 Token next_token(Lexer *lexer) {

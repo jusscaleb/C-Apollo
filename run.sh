@@ -21,7 +21,7 @@ if [ "$#" -lt 1 ]; then
 
 else
   echo "Executing apl file"
-  if [ "$1" == 'build' ]; then
+  if [ "$1" = 'build' ]; then
 
     ./build/apollo.exe "$2"
 
