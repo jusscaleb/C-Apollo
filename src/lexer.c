@@ -27,7 +27,7 @@ const char *TokenNames[] = {
  *Checks if the keyword is reserved using gperf pre-hashed lookup table.
  *If not it is a user-defined keyword
  */
-__attribute__((always_inline)) static inline TokenType check_keyword(const char *start, int length) {
+__attribute__((always_inline)) TokenType check_keyword(const char *start, int length) {
   const struct KeywordEntry *entry = in_word_set(start, length);
   return entry ? entry->type : TOKEN_IDENTIFIER;
 }
