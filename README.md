@@ -4,7 +4,7 @@
 **Release Channel:** Active Development / Unstable Preview  
 **Version Format:** `MAJOR.MINOR.PATCH.TAG`
 
-Apollo is a compiled programming language featuring a custom compiler frontend and LLVM C-API backend written in C. The pipeline lexes and parses Apollo source code (`.apl`), runs semantic analysis, generates LLVM IR bitcode using the LLVM C API (`libLLVM-19`), links runtime library bitcodes, and compiles down to native Windows executable binaries.
+Apollo is a modern compiled programming language featuring a modular custom compiler frontend and LLVM C-API backend written in C99. The compilation pipeline tokenizes and parses Apollo source code (`.apl`), executes static semantic analysis with strict type inference, generates LLVM IR bitcode using the official LLVM C API (`libLLVM-19`), links modular pre-compiled runtime libraries (`apollo-modules`), and compiles down to native executable binaries (`.exe`).
 
 ---
 
@@ -12,184 +12,283 @@ Apollo is a compiled programming language featuring a custom compiler frontend a
 
 ```text
 Apollo/
-├── apl.c                    Compiler driver wrapper (builds and executes compiler)
-├── caleb.apl                Sample Apollo source program
-├── headers/
-│   ├── arithmetic.h         Arithmetic types and operator declarations
-│   ├── ast.h                Abstract Syntax Tree (AST) node structures and constructors
-│   ├── defs.h               Codegen context structures and global declarations
-│   ├── error.h              Error handling structures and stack declarations
-│   ├── functions.h          Function signature and metadata tracking
-│   ├── llvm_backend.h       LLVM C API backend function prototypes & LLVMComponents struct
-│   ├── semantic.h           Semantic analyzer context and symbol checking prototypes
-│   ├── strings.h            String slice and utility declarations
-│   ├── token.h              Lexer tokens, Token types, Lexer state & Parser structs
-│   └── variables.h          Symbol table entries, variable resolution & scope tracking
-├── src/
-│   ├── ast.c                AST node allocation and tree construction logic
-│   ├── error.c              Error stack management and user-facing error reporting
-│   ├── lexer.c              Source code scanner / tokenization engine
-│   ├── llvm_backend.c       LLVM IR code generator (LLVM C API: functions, loops, if-else, etc.)
-│   ├── main.c               Compiler driver / main entry point
-│   ├── memory.c             Arena memory allocation and context cleanup utilities
-│   ├── parser.c             Recursive descent parser with panic-mode error recovery
-│   ├── semantic.c           Semantic analysis, type inference & scope resolution
-│   └── variables.c          Symbol table allocation, lookup, and scope level management
-├── run/                     Target directory for compiler binary (`main.exe`)
-└── temp/                    Intermediate IR output (`output.bc`) and compiled program (`program.exe`)
+├── CMakeLists.txt              # Build system configuration (CMake 3.20+, MinGW & LLVM-19)
+├── Contributions.md            # Guidelines for open-source contributions
+├── LICENSE                     # MIT Open Source License
+├── PERFORMANCE.md              # Benchmarks and performance analysis
+├── README.md                   # Project documentation and architectural overview
+├── Task.md                     # Roadmap and Object-Oriented Programming (OOP) migration plan
+├── run.sh                      # One-shot build & execution shell script
+├── diagnosis.sh                # Compiler pipeline diagnostic tool
+├── caleb.apl                   # Sample Apollo source program
+├── apollo-modules/             # Pre-compiled runtime library bitcodes linked during LLVM codegen
+│   ├── compile.sh              # Shell script to compile runtime C modules to LLVM bitcode
+│   ├── APLMODULES.md           # Runtime module specification and architecture
+│   ├── apl-io/                 # I/O primitives & string printing runtime (`apl-io.c`, `apl-io.h`, `apl-io.bc`)
+│   ├── apl-string/             # String manipulation runtime (`apl-string.c`, `apl-string.h`, `apl-string.bc`)
+│   └── apl-sys/                # System calls and OS interop runtime (`apl-sys.c`, `apl-sys.h`, `apl-sys.bc`)
+├── docs/                       # Web-based interactive documentation application
+│   ├── index.html              # Documentation app HTML shell
+│   ├── package.json            # Node.js dependencies and script definitions (Vite + React)
+│   ├── vite.config.js          # Vite build system configuration
+│   └── src/                    # Documentation web application components (`App.jsx`, `index.css`)
+├── headers/                    # Core compiler C header declarations
+│   ├── ast.h                   # Abstract Syntax Tree (AST) node structures and constructors
+│   ├── defs.h                  # Global compiler context, AST node types, and data types
+│   ├── error.h                 # Rich error diagnostic stack and reporting structures
+│   ├── functions.h             # Function signature tracking and symbol table entries
+│   ├── llvm_backend.h          # LLVM C-API backend prototypes and `LLVMComponents` struct
+│   ├── memory.h                # Arena memory allocator interface
+│   ├── parser.h                # Recursive descent parser state and entry declarations
+│   ├── semantic.h              # Semantic analyzer context and validation prototypes
+│   ├── token.h                 # Lexer tokens, token types, and scanner state
+│   └── variables.h             # Scope levels and symbol table variable tracking
+├── src/                        # Modular C source code implementation
+│   ├── main.c                  # Compiler driver entry point (`main()`)
+│   ├── ast.c                   # AST allocation, node construction, and tree utilities
+│   ├── error.c                 # Error stack allocation and formatted diagnostic output
+│   ├── lexer.c                 # Tokenizer / Scanner engine
+│   ├── memory.c                # Arena memory manager allocation & reset routines
+│   ├── variables.c             # Variable symbol table allocation and scope management
+│   ├── API/                    # LLVM Code Generation Engine (C-API)
+│   │   ├── llvm_main.c         # LLVM environment setup, module verification, runtime linking, & file output
+│   │   ├── llvm_fxns.c         # Code generation for function declarations and calls
+│   │   ├── llvm_condbr.c       # Code generation for `if`/`else` conditionals, `while` and `for` loops
+│   │   ├── llvm_variables.c    # Code generation for variable allocation (`alloca`), loads, stores, and in-place ops
+│   │   └── llvm_helpers.c      # LLVM IR builder helper utilities and type conversions
+│   ├── Parser/                 # Recursive Descent Parser Modules
+│   │   ├── parser_entry.c      # High-level entry point (`compile_parse()`) and program block parsing
+│   │   ├── parser_expr.c       # Expression parser with precedence climbing (Pratt parsing)
+│   │   ├── parser_functions.c  # Function declaration and parameter list parsing
+│   │   ├── parser_var.c        # Variable declaration and assignment statement parsing
+│   │   └── parser_helpers.c    # Parsing utility functions, token matching, and panic-mode error recovery
+│   └── Semantics/              # Static Type Checker & Analyzer
+│       ├── semantic_analyze.c  # AST traversal for static semantic checks and symbol validation
+│       └── semantic_helpers.c  # Type checking helpers and scope validation utilities
+├── tests/                      # Automated Python testing suite & benchmark cases
+│   ├── test.py                 # Primary test suite execution runner
+│   ├── conditionals.py         # Test cases for control flow structures (`if`/`else`, loops)
+│   ├── fxns.py                 # Test cases for function calls and recursion
+│   ├── println.py              # Test cases for standard output printing
+│   ├── variable.py             # Test cases for variable scope and type declarations
+│   └── performance/            # Performance and stress test benchmarks
+└── temp/                       # Intermediate artifacts (`output.bc`, `output.ll`, `program.exe`)
 ```
 
 ---
 
-## Quick Start
+## Quick Start & Building
 
-### 1. Build and Run via `apl.c` Driver
+### Prerequisites
 
-The simplest way to build the compiler and execute an Apollo script:
+- **GCC / MinGW-w64** (C99 compliant compiler)
+- **CMake** (v3.20 or newer)
+- **LLVM 19** development headers & libraries (`libLLVM-19`)
+- **Clang** (Used as native linker and LLVM bitcode compiler)
 
-```powershell
-gcc -O2 apl.c -o apl.exe
-.\apl.exe caleb.apl
-```
+---
 
-This compiles all compiler sources in `src/` against LLVM 19, creates `run/main.exe`, and immediately compiles & runs `caleb.apl`.
+### 1. Automated Build & Run via `run.sh`
 
-### 2. VS Code Task Execution
+The project includes a shell helper script (`run.sh`) that manages build directory setup, CMake configuration, compilation, and execution of `.apl` scripts:
 
-Open any `.apl` file in VS Code and press:
-```text
-Ctrl + Shift + B
-```
-This triggers the pre-configured `.vscode/tasks.json` runner.
+```bash
+# Build compiler and execute a source file
+./run.sh caleb.apl
 
-### 3. Manual Compiler Build
-
-If building `main.exe` manually using GCC with MSYS2 MinGW-w64:
-
-```powershell
-gcc src/main.c src/lexer.c src/parser.c src/ast.c src/memory.c src/error.c src/variables.c src/semantic.c src/llvm_backend.c `
-  -IC:\msys64\mingw64\include `
-  -LC:\msys64\mingw64\lib `
-  -lLLVM-19 `
-  -o run/main.exe
-
-.\run\main.exe caleb.apl
+# Run existing build without re-triggering CMake configuration
+./run.sh build caleb.apl
 ```
 
 ---
 
-## Compiler Architecture and Pipeline
+### 2. Manual CMake Build
+
+To build the compiler executable (`apollo.exe`) manually using CMake:
+
+```powershell
+# Create build directory and generate MinGW Makefiles
+cmake -B build -G "MinGW Makefiles" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+# Build target executable
+cmake --build build
+
+# Execute an Apollo script
+./build/apollo.exe caleb.apl
+```
+
+---
+
+### 3. Direct GCC Build Command
+
+If compiling directly without CMake via MinGW-w64:
+
+```powershell
+gcc src/main.c src/ast.c src/error.c src/lexer.c src/memory.c src/variables.c `
+    src/API/*.c src/Parser/*.c src/Semantics/*.c `
+    -Isrc -Isrc/API -Isrc/Parser -Isrc/Semantics -Iheaders `
+    -IC:\msys64\mingw64\include `
+    -LC:\msys64\mingw64\lib `
+    -lLLVM-19 -o build/apollo.exe
+
+./build/apollo.exe caleb.apl
+```
+
+---
+
+### 4. VS Code Task Integration
+
+Open any `.apl` script in VS Code and press `Ctrl + Shift + B` to trigger the pre-configured build task in `.vscode/tasks.json`.
+
+---
+
+## Compiler Architecture & Pipeline
 
 ```mermaid
-flowchart LR
-    Source[".apl Source"] --> Lexer["Lexer (src/lexer.c)"]
-    Lexer --> Parser["Parser (src/parser.c)"]
+flowchart TD
+    Source[".apl Source Code"] --> Lexer["Lexer (src/lexer.c)"]
+    Lexer --> Parser["Modular Parser (src/Parser/*)"]
     Parser --> AST["AST Representation"]
-    AST --> Semantic["Semantic Analysis (src/semantic.c)"]
-    Semantic --> LLVMBackend["LLVM C-API Backend (src/llvm_backend.c)"]
-    LLVMBackend --> Bitcode["LLVM Bitcode (temp/output.bc)"]
+    AST --> Semantic["Semantic Analyzer (src/Semantics/*)"]
+    Semantic --> LLVMBackend["LLVM C-API Backend (src/API/*)"]
+    Modules["Runtime Bitcodes (apollo-modules/*.bc)"] --> LLVMBackend
+    LLVMBackend --> Bitcode["Intermediate Bitcode (temp/output.bc)"]
     Bitcode --> Clang["Clang Compiler & Linker"]
-    Clang --> Executable["Native Binary (program.exe)"]
+    Clang --> Executable["Native Binary (temp/program.exe)"]
 ```
 
-1. **Lexical Analysis (`src/lexer.c`)**: Converts character streams into structured `Token` streams. Catches invalid characters and unterminated strings.
-2. **Syntactic Analysis (`src/parser.c`)**: Constructs an Abstract Syntax Tree (AST) using recursive descent parsing. Features **Panic-Mode Error Recovery** (`synchronize()`) to catch syntax errors without crashing or generating cascading false positives.
-3. **Semantic Analysis (`src/semantic.c`)**: 
-   - Resolves symbol references and scope levels.
-   - Performs strict type checking on assignments, variable declarations, and returns.
-   - Infers types for arithmetic (`+`, `-`, `*`, `/`) and logical comparison operations (`>`, `<`, `>=`, `<=`, `==`, `!=`, `and`, `or`), correctly evaluating comparison and logical ops as `TYPE_BOOL`.
-4. **LLVM Code Generation (`src/llvm_backend.c`)**:
-   - Emits LLVM IR using the official LLVM C API (`libLLVM-19`).
-   - Manages basic blocks for function entry/exit, conditionals (`if`/`else`), `while` loops, and `for` loops.
-   - Handles variable allocation (`alloca`), loads (`load`), stores (`store`), and expression evaluation (`arihmetics()`).
-   - Integrates `x++`, `x--`, `+=`, `-=`, `*=`, `/=`, and `%=` desugaring into LLVM reassignment logic.
-   - Validates generated LLVM modules via `LLVMVerifyModule`.
-   - Writes generated IR to bitcode file `temp/output.bc`.
-5. **Native Code Compilation**: Invokes Clang to compile `temp/output.bc` alongside Apollo's built-in runtime library into native executable binaries (`program.exe`).
+### Pipeline Phases
+
+1. **Lexical Analysis (`src/lexer.c`)**:
+   - Converts source text into a stream of typed tokens (`TOKEN_INT`, `TOKEN_IDENTIFIER`, `TOKEN_IF`, `TOKEN_FXN`, etc.).
+   - Tracks exact source line numbers and positions for diagnostic reporting.
+2. **Modular Syntactic Parsing (`src/Parser/`)**:
+   - Built using a recursive descent architecture split into focused sub-modules (`parser_var.c`, `parser_functions.c`, `parser_expr.c`).
+   - Expressions are parsed using **Pratt Precedence-Climbing** (`parser_expr.c`) to handle binary and unary operator precedence cleanly.
+   - Features **Panic-Mode Error Recovery** (`synchronize()` in `parser_helpers.c`) to isolate parsing errors without cascading failures.
+3. **Static Semantic Analysis & Type Inference (`src/Semantics/`)**:
+   - Traverses the AST to check symbol accessibility, variable initialization, and scope level boundaries.
+   - Performs static type checking and evaluates boolean/comparison expressions (`>`, `<`, `>=`, `<=`, `==`, `!=`, `and`, `or`).
+4. **LLVM Code Generation & Runtime Linking (`src/API/`)**:
+   - Emits optimized LLVM IR bitcode using the official `libLLVM-19` C API.
+   - Dynamically loads and links pre-compiled runtime bitcodes from `apollo-modules/` (`apl-io.bc`, `apl-string.bc`, `apl-sys.bc`) via `LLVMLinkModules2`.
+   - Validates generated LLVM modules using `LLVMVerifyModule`.
+   - Writes compiled bitcode to `temp/output.bc`.
+5. **Native Execution**:
+   - Calls `clang -O3 temp/output.bc -o temp/program.exe` to emit fully compiled, optimized Windows executable binaries.
 
 ---
 
-## Language Features and Syntax Overview
+## Language Syntax & Features
 
-### Function Declarations and Execution Entry
+### Function Declarations
+
+Functions are declared using the `fxn` keyword. The `run()` function serves as the primary entry point:
 
 ```apl
+fxn add(a, b) {
+    return a + b;
+}
+
 fxn run() -> (void) {
-  println("Hello from Apollo!");
+    var result = add(10, 20);
+    println("Result: ", result);
 }
 ```
 
-- Functions use the `fxn` keyword.
-- `run()` serves as the main entry point (compiled to `main` in LLVM IR).
+### Variables and Types
 
-### Variable Declarations and Reassignments
+Apollo supports strong typing with auto-inference or explicit declaration keywords (`var`, `#int`, `#float`, `#bool`, `#str`):
 
 ```apl
-var x = 10;
-#var word = false;
+var count = 10;
+var name = "Apollo";
+var is_active = true;
 
-x = x + 5;
-x++;
-x--;
+# In-place assignments and increments
+count++;
+count += 5;
 ```
-
-- Supports types: `int`, `float`, `bool`, `str`, `null`.
-- Explicit syntax for declarations (`var` / `#var` / `#int`, `#float`, `#bool`, `#str`).
-- In-place increments (`++`) and decrements (`--`) desugar cleanly to assignments.
 
 ### Control Flow
 
-#### `if` / `else` Statements
+#### `if` / `else` Conditional Branches
 ```apl
-if (x > 5) {
-  println("x is greater than 5");
+if (count > 10) {
+    println("Count is greater than 10");
 } else {
-  println("x is 5 or less");
+    println("Count is 10 or less");
 }
 ```
 
 #### `while` Loops
 ```apl
-var count = 0;
-while (count < 5) {
-  println("Count: ", count);
-  count++;
+var i = 0;
+while (i < 5) {
+    println("Iteration: ", i);
+    i++;
 }
 ```
 
 #### `for` Loops
 ```apl
-for (var i = 0; i < 5; i++) {
-  println("Value ", i);
+for (var j = 0; j < 10; j++) {
+    println("Value: ", j);
 }
 ```
 
-### Printing Outputs (`println`)
+---
 
-```apl
-println("Result: ", 45 > 3);
+## Standard Runtime Modules (`apollo-modules/`)
+
+Apollo delegates common runtime operations to modular C sub-libraries compiled into LLVM bitcode:
+
+- **`apl-io`**: Handles formatted console I/O, string printing, and scalar output.
+- **`apl-string`**: Supplies string allocation, concatenation, length, and slice helpers.
+- **`apl-sys`**: Provides OS-level utilities, memory allocation wrappers, and process operations.
+
+To re-compile runtime modules to LLVM bitcode:
+```bash
+cd apollo-modules
+./compile.sh apl-io
+./compile.sh apl-string
+./compile.sh apl-sys
 ```
-
-Supports variable arguments of multiple types (strings, integers, floats, booleans) printed in sequence.
 
 ---
 
-## LLVM Bitcode Inspection
+## Testing & Quality Assurance
 
-To inspect the generated LLVM assembly IR (`output.ll`) from bitcode (`output.bc`), ensure `llvm-dis` is on your PATH (e.g., `C:\msys64\mingw64\bin`) and run:
+Apollo includes an automated test runner suite written in Python located in `tests/`:
 
 ```powershell
-llvm-dis temp\output.bc -o temp\output.ll
-Get-Content temp\output.ll
+# Run the test suite
+python tests/test.py
 ```
 
 ---
 
-## Requirements
+## Frontend Documentation Portal (`docs/`)
 
-- **GCC**: MinGW-w64 (MSYS2 recommended)
-- **LLVM 19**: Header files and `libLLVM-19` dynamic library
-- **Clang**: Native linker/compiler toolchain for Windows
+The repository includes a modern React + Vite documentation site under `docs/`.
+
+To launch the documentation portal locally:
+```powershell
+cd docs
+npm install
+npm run dev
+```
+
+---
+
+## Roadmap
+
+See [Task.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/Task.md) for the active Object-Oriented Programming (OOP) evolution checklist, including upcoming support for:
+- Classes and Struct Data Encapsulation
+- Object Instantiation (`new`)
+- Member Access Dot Operator (`.`)
+- Method Dispatch and `this` Pointer Passing
+- Struct Embedding and V-Table Polymorphism
 
 ---
 

@@ -32,12 +32,10 @@ Currently, Apollo outputs LLVM bitcode to disk (`temp/output.bc`) and launches C
 
 ## 2. Frontend Optimizations (Lexer & Parser)
 
-### 1. Custom Memory Arena Allocator
-- **Problem**: Calling `malloc()` for every AST node, token, and string fragment causes memory fragmentation and CPU cache misses.
-- **Solution**: Implement a **Bump / Arena Allocator**:
-  - Allocate a large buffer (e.g. 1MB - 8MB) at start.
-  - Bump an offset pointer for every `ASTNode` creation.
-  - Reset the arena pointer at the end of compilation to free all nodes instantly in $O(1)$ time without calling `free()` thousands of times.
+### 1. Custom Memory Arena Allocator (Implemented in `src/memory.c`)
+- **Implementation**: The compiler uses a **Bump / Arena Allocator** (`Arena`) initialized in `src/main.c` (`arena_init`, `arena_alloc`, `arena_reset`).
+- **Benefit**: Allocates a continuous chunk (1MB+) at startup, bumping an offset pointer for AST node allocations. The arena is reset at the end of execution in $O(1)$ time, eliminating thousands of individual `malloc()`/`free()` overheads.
+
 
 ### 2. Fast String Handling & String Interning
 - Use a **String Interning Pool** (hash table of unique identifiers and strings) during lexing.
