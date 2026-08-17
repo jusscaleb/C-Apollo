@@ -54,26 +54,30 @@ static char *read_file(const char *filename) {
   return source;
 }
 
-// Automatically runs the program after successfully compilation.
+// Automatically runs the program after successful compilation.
 void llvm_compilation() {
   char cwd[512];
   if (_getcwd(cwd, sizeof(cwd)) == NULL) {
     perror("Could not resolve current working directory");
     exit(EXIT_FAILURE);
   }
+  size_t cwd_len = strlen(cwd);
 
   char bc_path[1024];
   char exe_path[1024];
-  snprintf(bc_path, sizeof(bc_path), "\"%s\\temp\\output.bc\"", cwd);
-  snprintf(exe_path, sizeof(exe_path), "\"%s\\temp\\program.exe\"", cwd);
 
-  char command[2048];
-  snprintf(command, sizeof(command), "clang -O3 %s -o %s", bc_path, exe_path);
-  int result = system(command);
+  memcpy(bc_path, cwd, cwd_len);
+  memcpy(bc_path + cwd_len, "\\temp\\output.bc", sizeof("\\temp\\output.bc"));
+
+  memcpy(exe_path, cwd, cwd_len);
+  memcpy(exe_path + cwd_len, "\\temp\\program.exe", sizeof("\\temp\\program.exe"));
+
+  // Execute Clang process directly without spawning intermediate cmd.exe / powershell shell
+  int result = _spawnlp(_P_WAIT, "clang", "clang", "-O3", bc_path, "-o", exe_path, NULL);
 
   if (result == 0) {
     printf("=== Running Apollo Program Output ===\n");
-    system(exe_path);
+    _spawnl(_P_WAIT, exe_path, exe_path, NULL);
     printf("=====================================\n");
 
     exit(EXIT_SUCCESS);
@@ -114,23 +118,11 @@ int main(int argc, char **argv) {
   errorStack_init(&err_stack);
   if(_DB) trace("error stack initialized");
 
-  // Ensure temp directory exists before parsing/codegen
+  // Ensure temp directory exists natively without shell overhead
   _DEBUG("[DRIVER] Ensuring temp directory exists.")
   fflush(stderr);
   if(_DB) trace("ensuring temp directory");
-  {
-    char cwd[512];
-    if (_getcwd(cwd, sizeof(cwd)) == NULL) {
-      perror("Could not resolve current working directory");
-      free(source);
-      exit(EXIT_FAILURE);
-    }
-
-    char mkdir_command[1024];
-    snprintf(mkdir_command, sizeof(mkdir_command), "mkdir \"%s\\temp\" 2>nul",
-             cwd);
-    system(mkdir_command);
-  }
+  _mkdir("temp");
 
   // We need the symbol table for parsing, so we init CodegenContext early.
   _DEBUG("[DRIVER] Initializing codegen context.");
@@ -147,9 +139,11 @@ int main(int argc, char **argv) {
       free(source);
       exit(EXIT_FAILURE);
     }
+    size_t cwd_len = strlen(cwd);
 
     char output_path[1024];
-    snprintf(output_path, sizeof(output_path), "%s\\temp\\output.bc", cwd);
+    memcpy(output_path, cwd, cwd_len);
+    memcpy(output_path + cwd_len, "\\temp\\output.bc", sizeof("\\temp\\output.bc"));
     codegen_init(&compiler_context, output_path);
   }
   _DEBUG("[DRIVER] Codegen context initialized.");
