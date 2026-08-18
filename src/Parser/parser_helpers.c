@@ -8,15 +8,6 @@ __attribute__((always_inline)) void advance(Parser *parser) {
 }
 
 
-void change_active_state(CodegenContext *context, Lexer *lexer) {
-  int new_level = lexer->scope_level;
-  ASTNode var;
-  for (int i = context->symbol_count - 1; i >= 0; i--) {
-    if (context->symbols[i].scope_level > new_level) {
-      context->symbols[i].is_active = false;
-    }
-  }
-}
 
 void synchronize(Parser *parser, TokenType safe_token) {
   advance(parser);

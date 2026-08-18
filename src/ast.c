@@ -88,10 +88,11 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block, Arena *a) {
   return node;
 }
 
-ASTNode *create_block_node(Arena *a) {
+ASTNode *create_block_node(int level, Arena *a) {
   ASTNode *node = allocate_node(AST_BLOCK, a);
   node->block.count = 0;
   node->block.capacity = 8;
+  node->block.level = level;
   node->block.statements = arena_alloc(a,sizeof(ASTNode *) * node->block.capacity ) ;//malloc(sizeof(ASTNode *) * node->block.capacity);
   return node;
 }

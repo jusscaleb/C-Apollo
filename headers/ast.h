@@ -78,7 +78,7 @@ struct ASTNode {
       ASTNode **statements;
       int count;
       int capacity;
-
+      int level;
     } block;
 
     struct {
@@ -190,7 +190,7 @@ ASTNode *create_var_decl_node(const char *name, int name_length,
 /**
  * Creates an empty AST block container to hold statements.
  */
-ASTNode *create_block_node(Arena *a);
+ASTNode *create_block_node(int level, Arena *a);
 
 /**
  * Creates an AST node representing a reference to a variable by name.

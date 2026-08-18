@@ -116,9 +116,10 @@ SymbolTable *symbol_table_init(Arena *a, uint32_t initial_capacity);
 
 void symbol_table_resize(SymbolTable *table, Arena *a);
 
-void symbol_table_inset(SymbolTable *table, Symbol *sym, Arena *a);
+void symbol_table_insert(SymbolTable *table, Symbol *sym, Arena *a);
 
 uint32_t hash_string(const char *key, uint32_t length);
 Symbol *symbol_table_lookup(SymbolTable *table, const char *name, uint32_t name_length);
+void symbol_table_exit_scope(SymbolTable *table, int scope_level);
 
 #endif

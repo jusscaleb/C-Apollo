@@ -1,5 +1,3 @@
-/*Coordinator*/
-
 #include <direct.h>
 #include "../headers/token.h"
 #include <stdio.h>

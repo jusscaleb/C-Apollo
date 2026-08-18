@@ -31,7 +31,6 @@ ASTNode *parse_logical_or(Parser *parser, CodegenContext *context);
 ASTNode *parse_body_statement(Parser *parser, CodegenContext *context);
 ASTNode *parse_block(Parser *parser, CodegenContext *context);
 ASTNode *parse_function(Parser *parser, CodegenContext *context);
-void change_active_state(CodegenContext *context, Lexer *lexer);
 Params *get_params(CodegenContext *context, Parser *parser);
 Args *get_args(CodegenContext *context, Parser *parser);
 ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context,

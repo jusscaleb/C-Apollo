@@ -129,7 +129,7 @@ ASTNode *parse_logical_or(Parser *parser, CodegenContext *context) {
 ASTNode *parse_block(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_LBRACE, "Expected open brace '{' to begin block.");
 
-  ASTNode *block = create_block_node(context->a);
+  ASTNode *block = create_block_node(parser->lexer->fxn->level, context->a);
   parser->lexer->fxn->block_nodes++;
 
   while (parser->current.type != TOKEN_RBRACE &&
@@ -143,7 +143,6 @@ ASTNode *parse_block(Parser *parser, CodegenContext *context) {
   consume(parser, TOKEN_RBRACE,
           "Expected closing brace '}' to terminate block.");
 
-  change_active_state(context, parser->lexer);
   return block;
 }
 

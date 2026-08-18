@@ -29,8 +29,13 @@ Symbol *register_variable(CodegenContext *context, const char *name,
 
   sym->t_type = VAR;
   sym->scope_level = level;
+  sym->name_length = NAME_LENGTH;
   sym->fxn = fxn;
   sym->is_active = true;
+
+  if (context && context->t) {
+    symbol_table_insert(context->t, sym, context->a);
+  }
 
   return sym;
 }
@@ -86,22 +91,23 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
 
   sym->type = return_type;
   sym->str_const_id = 0;
+  sym->name_length = NAME_LENGTH;
   sym->t_type = FUNC;
   sym->scope_level = level;
   sym->fxn = fxn;
   sym->is_active = true;
+
+  if (context && context->t) {
+    symbol_table_insert(context->t, sym, context->a);
+  }
+
   return sym;
 }
 
 Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn,
                      int level) {
-
-  for (int i = context->symbol_count - 1; i >= 0; i--) {
-    if (memcmp(context->symbols[i].name, name, strlen(name)) != 0)
-      continue;
-    if (context->symbols[i].is_active) {
-      return &context->symbols[i];
-    }
+  if (context && context->t) {
+    return symbol_table_lookup(context->t, name, strlen(name));
   }
   return NULL;
 }
@@ -173,7 +179,7 @@ __attribute__((always_inline)) uint32_t hash_string(const char *key,
   return hash;
 }
 
-void symbol_table_inset(SymbolTable *table, Symbol *sym, Arena *a) {
+void symbol_table_insert(SymbolTable *table, Symbol *sym, Arena *a) {
   symbol_table_resize(table, a);
   uint32_t len = sym->name_length;
   uint32_t hash = hash_string(sym->name, len);
@@ -190,16 +196,24 @@ void symbol_table_inset(SymbolTable *table, Symbol *sym, Arena *a) {
 }
 
 Symbol *symbol_table_lookup(SymbolTable *table, const char *name, uint32_t name_length) {
+    if (!table || !table->buckets || table->capacity == 0) return NULL;
+
     uint32_t hash = hash_string(name, name_length);
     uint32_t index = hash & (table->capacity - 1);
+    
     SymbolEntry *entry = table->buckets[index];
     while (entry != NULL) {
-                if (entry->sym->name_length == name_length) {
-            if (memcmp(entry->sym->name, name, name_length) == 0) {
-                return entry->sym;
+        Symbol *sym = entry->sym;
+        
+        if (sym && sym->is_active) {
+            if (sym->name_length == name_length) {
+                if (memcmp(sym->name, name, name_length) == 0) {
+                    return sym; 
+                }
             }
         }
         entry = entry->next;
     }
     return NULL;
 }
+

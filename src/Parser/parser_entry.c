@@ -12,7 +12,7 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
                               .parent_fxn = NULL,
                               .ret_nodes = 0,
                               .block_nodes = 0};
-  ASTNode *program_block = create_block_node(context->a);
+  ASTNode *program_block = create_block_node(parser->lexer->fxn->level, context->a);
 
   // Checking global variables
   while (parser->current.type == TOKEN_VAR) {
