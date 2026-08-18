@@ -116,27 +116,38 @@ void _apl_gen_function_start(LLVMComponents *components,
     LLVMPositionBuilderAtEnd(components->builder, entry);
 
     components->current_fxn = main_fxn;
+    components->current_fxn_ast = &block_node->function.fxn;
+    components->current_frame_alloc = LLVMBuildAlloca(
+        components->builder,
+        LLVMArrayType(LLVMPointerType(I8(components->ctx), 0), 128), "frame_env");
     return;
   }
 
   else {
-    uint32_t p_number =
+    components->current_fxn_ast = &block_node->function.fxn;
+    bool is_nested = (block_node->function.fxn.parent_fxn != NULL);
+
+    uint32_t user_params =
         (block_node->function.fxn.params)
             ? _apl_get_n_params(components, block_node->function.fxn.params)
             : 0;
-    LLVMTypeRef param_types[p_number];
+    uint32_t total_params = is_nested ? user_params + 1 : user_params;
+    LLVMTypeRef param_types[total_params > 0 ? total_params : 1];
 
     Params *p = block_node->function.fxn.params;
 
-    for (uint32_t i = 0; i < p_number; i++) {
+    for (uint32_t i = 0; i < user_params; i++) {
       param_types[i] = _apl_get_llvm_type(components, p->param->var_decl.value_type);
-
       p = p->next;
     }
 
+    if (is_nested) {
+      param_types[user_params] = LLVMPointerType(I8(components->ctx), 0);
+    }
+
     LLVMTypeRef fxn_type = LLVMFunctionType(
-        _apl_get_llvm_type(components,block_node->function.fxn.return_type),
-        (p_number == 0) ? NULL : param_types, p_number, false);
+        _apl_get_llvm_type(components, block_node->function.fxn.return_type),
+        (total_params == 0) ? NULL : param_types, total_params, false);
     LLVMValueRef fxn = LLVMAddFunction(components->module,
                                        block_node->function.name, fxn_type);
     LLVMBasicBlockRef entry =
@@ -146,9 +157,16 @@ void _apl_gen_function_start(LLVMComponents *components,
     block_node->function.resolved_symbol->fxn_meta_data.fxn_type = fxn_type;
     block_node->function.resolved_symbol->fxn_meta_data.the_fxn = fxn;
     components->current_fxn = fxn;
+    components->current_frame_alloc = LLVMBuildAlloca(
+        components->builder,
+        LLVMArrayType(LLVMPointerType(I8(components->ctx), 0), 128), "frame_env");
+
+    if (is_nested) {
+      components->current_parent_frame = LLVMGetParam(fxn, user_params);
+    }
 
     p = block_node->function.fxn.params;
-    for (uint32_t i = 0; i < p_number; i++) {
+    for (uint32_t i = 0; i < user_params; i++) {
       if (p && p->param && p->param->var_decl.resolved_symbol) {
         Symbol *sym = p->param->var_decl.resolved_symbol;
         char p_name[p->param->var_decl.name_length + 1];

@@ -123,10 +123,11 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
       LLVMValueRef result;
       FxnCallMetaData meta_data = node->call_fxn.resolved_symbol->fxn_meta_data;
       uint32_t a_numbers = (node->call_fxn.args) ? _apl_get_n_args(components, node->call_fxn.args): 0;
-      LLVMValueRef args[a_numbers];
+      bool is_nested = (node->call_fxn.fxn.parent_fxn != NULL || (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->fxn && node->call_fxn.resolved_symbol->fxn->parent_fxn != NULL));
+      uint32_t total_args = is_nested ? a_numbers + 1 : a_numbers;
+      LLVMValueRef args[total_args > 0 ? total_args : 1];
 
       Args *a = node->call_fxn.args;
-      
 
       for(int i = 0; i < a_numbers; i++){
         switch(a->datatype){
@@ -144,12 +145,34 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
             args[i] = load_variable(components, a->arg);
             break;
           }
+          default:
+            args[i] = load_variable(components, a->arg);
+            break;
         }
-          a = a->next;
+        a = a->next;
       }
 
+      if (is_nested) {
+        LLVMValueRef frame_ptr = NULL;
+        Fxn *target_parent = (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->fxn) 
+            ? node->call_fxn.resolved_symbol->fxn->parent_fxn 
+            : node->call_fxn.fxn.parent_fxn;
 
-      result = LLVMBuildCall2(components->builder,meta_data.fxn_type, meta_data.the_fxn, args, a_numbers, "");
+        if (target_parent && components->current_fxn_ast && target_parent == components->current_fxn_ast) {
+          frame_ptr = components->current_frame_alloc;
+        } else {
+          frame_ptr = components->current_parent_frame ? components->current_parent_frame : components->current_frame_alloc;
+        }
+
+        if (!frame_ptr) {
+          frame_ptr = LLVMConstNull(LLVMPointerType(I8(components->ctx), 0));
+        } else {
+          frame_ptr = LLVMBuildBitCast(components->builder, frame_ptr, LLVMPointerType(I8(components->ctx), 0), "");
+        }
+        args[a_numbers] = frame_ptr;
+      }
+
+      result = LLVMBuildCall2(components->builder, meta_data.fxn_type, meta_data.the_fxn, args, total_args, "");
      
       return result;
 }

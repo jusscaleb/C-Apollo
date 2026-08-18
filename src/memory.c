@@ -20,6 +20,10 @@ void grow_symbols_if_needed(CodegenContext *context) {
 
     Symbol *new_symbols = arena_alloc(context->a, new_capacity * sizeof(Symbol));
 
+    if (context->symbols && context->symbol_count > 0) {
+      memcpy(new_symbols, context->symbols, context->symbol_count * sizeof(Symbol));
+    }
+
     for (int i = context->symbol_capacity; i < new_capacity; i++) {
       new_symbols[i].name = NULL;
       new_symbols[i].llvm_name = NULL;

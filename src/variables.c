@@ -32,6 +32,7 @@ Symbol *register_variable(CodegenContext *context, const char *name,
   sym->name_length = NAME_LENGTH;
   sym->fxn = fxn;
   sym->is_active = true;
+  sym->frame_index = context->symbol_count - 1;
 
   if (context && context->t) {
     symbol_table_insert(context->t, sym, context->a);

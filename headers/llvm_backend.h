@@ -46,6 +46,8 @@ typedef struct LLVMComponents {
   LLVMValueRef current_fxn;
   LLVMTypeRef current_frame_type;
   LLVMValueRef current_frame_alloc;
+  LLVMValueRef current_parent_frame;
+  Fxn *current_fxn_ast;
 } LLVMComponents;
 
 

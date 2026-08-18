@@ -73,6 +73,7 @@ typedef struct Symbol {
   LLVMValueRef llvm_val_ref;
   FxnCallMetaData fxn_meta_data;
   int param_idx;
+  int frame_index;
 } Symbol;
 
 typedef struct SymbolEntry {
