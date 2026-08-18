@@ -39,7 +39,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     } else {
       node->function.resolved_symbol = register_fxn(
           context->codegen, node->function.name, node->function.fxn.return_type,
-          node->function.level, &node->function.fxn);
+          node->function.level, &node->function.fxn, node->function.name_length);
     }
 
     // Analyze Parameters.
@@ -94,13 +94,13 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
       node->var_decl.resolved_symbol =
           register_variable(context->codegen, name, inferred,
-                            &node->var_decl.fxn, node->var_decl.level);
+                            &node->var_decl.fxn, node->var_decl.level, NAME_LENGTH);
 
     } else {
       node->var_decl.value_type = TYPE_NULL;
       node->var_decl.resolved_symbol =
           register_variable(context->codegen, name, TYPE_NULL,
-                            &node->var_decl.fxn, node->var_decl.level);
+                            &node->var_decl.fxn, node->var_decl.level, NAME_LENGTH);
     }
     break;
   }

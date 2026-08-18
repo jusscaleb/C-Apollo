@@ -340,7 +340,7 @@ Token next_token(Lexer *lexer) {
 }
 
 __attribute__((always_inline))Token check_number(Lexer *lexer, const char* start){
-      set is_float = false;
+      bool is_float = false;
     while (_IS_DIGIT_((unsigned char)*lexer->current)) {
       lexer->current++;
       lexer->column++;

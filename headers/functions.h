@@ -40,6 +40,6 @@ typedef struct Fxn {
  * @param fxn The function structure containing metadata and parent links.
  */
 Symbol *register_fxn(CodegenContext *context, const char *name,
-                     DataType return_type, int level, Fxn *fxn);
+                     DataType return_type, int level, Fxn *fxn, int len);
 
 #endif

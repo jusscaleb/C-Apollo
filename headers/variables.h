@@ -13,25 +13,23 @@
 #ifndef VARIABLES
 #define VARIABLES
 
-
-#include  <llvm-c/Core.h>
+#include <llvm-c/Core.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
-
+typedef struct Arena Arena;
+typedef struct CodegenContext CodegenContext;
 
 typedef struct CodegenContext CodegenContext;
-//typedef struct  FxnCallMetaData FxnCallMetaData;
+// typedef struct  FxnCallMetaData FxnCallMetaData;
 typedef struct Fxn Fxn;
 
-
-typedef struct FxnCallMetaData{
+typedef struct FxnCallMetaData {
   LLVMTypeRef fxn_type;
   LLVMValueRef the_fxn;
 
-}FxnCallMetaData;
-
+} FxnCallMetaData;
 
 typedef enum {
   TYPE_STRING,
@@ -42,10 +40,9 @@ typedef enum {
   TYPE_NULL,
 } DataType;
 
-
 extern const char *dt_names[];
 
-//char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
+// char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
 
 typedef struct {
   DataType type;     // Token type
@@ -65,7 +62,8 @@ typedef enum {
 
 typedef struct Symbol {
   int scope_level;
-  int str_length;
+  int str_const_id;
+  uint32_t name_length;
   DataType type;
   token_type t_type;
   char *name;
@@ -75,8 +73,21 @@ typedef struct Symbol {
   LLVMValueRef llvm_val_ref;
   FxnCallMetaData fxn_meta_data;
   int param_idx;
-
 } Symbol;
+
+typedef struct SymbolEntry {
+  Symbol *sym;
+  uint32_t hash;
+  struct SymbolEntry *next;
+} SymbolEntry;
+
+typedef struct SymbolTable {
+
+  SymbolEntry **buckets;
+  uint32_t capacity;
+  uint32_t count;
+
+} SymbolTable;
 
 /**
  * Registers a new variable in the symbol table.
@@ -87,7 +98,7 @@ typedef struct Symbol {
  * @param level The nesting scope level of the variable.
  */
 Symbol *register_variable(CodegenContext *context, const char *name,
-                          DataType variable_type, Fxn *fxn, int level);
+                          DataType variable_type, Fxn *fxn, int level, int len);
 
 /**
  * Looks up a token (variable or function) in the symbol table by searching
@@ -100,5 +111,14 @@ Symbol *register_variable(CodegenContext *context, const char *name,
  */
 Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn,
                      int level);
+
+SymbolTable *symbol_table_init(Arena *a, uint32_t initial_capacity);
+
+void symbol_table_resize(SymbolTable *table, Arena *a);
+
+void symbol_table_inset(SymbolTable *table, Symbol *sym, Arena *a);
+
+uint32_t hash_string(const char *key, uint32_t length);
+Symbol *symbol_table_lookup(SymbolTable *table, const char *name, uint32_t name_length);
 
 #endif

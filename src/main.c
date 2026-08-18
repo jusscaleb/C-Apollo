@@ -108,6 +108,8 @@ int main(int argc, char **argv) {
 
   Arena arena;
 
+  SymbolTable table;
+
   arena_init(1024*1024, &arena);
   ErrorStack err_stack;
 
@@ -134,6 +136,8 @@ int main(int argc, char **argv) {
 
   compiler_context.a = &arena;
 
+
+  compiler_context.t = symbol_table_init(compiler_context.a, 32);
   {
     char cwd[512];
     if (_getcwd(cwd, sizeof(cwd)) == NULL) {

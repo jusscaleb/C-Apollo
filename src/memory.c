@@ -31,15 +31,10 @@ void grow_symbols_if_needed(CodegenContext *context) {
 }
 
 void codegen_init(CodegenContext *context, const char *output_filename) {
-  context->file = NULL;
   context->string_constant_count = 0;
-  context->temp_count = 0;
   context->symbol_count = 0;
   context->symbol_capacity = 0;
   context->symbols = NULL;
-  context->deferred_functions = NULL;
-  context->deferred_count = 0;
-  context->deferred_capacity = 0;
 }
 
 void realloc_errorStack(ErrorStack *s) {

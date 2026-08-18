@@ -39,16 +39,12 @@ typedef bool set;
 
 // generator
 typedef struct CodegenContext {
-  FILE *file;
   int symbol_count;
   int symbol_capacity;
   int string_constant_count;
   Symbol *symbols;
-  int temp_count;
-  ASTNode **deferred_functions;
-  int deferred_count;
-  int deferred_capacity;
   Arena *a;
+  SymbolTable *t;
 } CodegenContext;
 
 
