@@ -224,10 +224,24 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
 
       break;
     case AST_FUNCTION: {
+      LLVMValueRef parent_fxn = components->current_fxn;
+      LLVMBasicBlockRef parent_block = (components->builder) ? LLVMGetInsertBlock(components->builder) : NULL;
+      LLVMTypeRef parent_frame_type = components->current_frame_type;
+      LLVMValueRef parent_frame_alloc = components->current_frame_alloc;
+
       _apl_gen_function_start(components, stmt);
       _apl_gen_block_from_ast(components, stmt->function.body);
 
-      if(stmt->function.fxn.return_type == TYPE_NULL) _apl_gen_function_end(components, stmt);
+      if (stmt->function.fxn.return_type == TYPE_NULL) {
+        _apl_gen_function_end(components, stmt);
+      }
+
+      components->current_fxn = parent_fxn;
+      components->current_frame_type = parent_frame_type;
+      components->current_frame_alloc = parent_frame_alloc;
+      if (parent_block != NULL) {
+        LLVMPositionBuilderAtEnd(components->builder, parent_block);
+      }
 
       break;
     }

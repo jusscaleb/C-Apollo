@@ -260,6 +260,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
           report_semantic_error(context, "Argument type mismatch in function call.");
           break;
         }
+        analyze_node(context, expected_param->param);
         expected_param = expected_param->next;
       }
 
@@ -284,6 +285,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       break;
 
   case AST_VAR_REF: {
+    printf("AST VAR REF\n");
     const int NAME_LENGTH = node->var_ref.name_length;
     char name[NAME_LENGTH + 1];
     memcpy(name, node->var_ref.name, NAME_LENGTH);

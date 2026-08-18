@@ -166,6 +166,10 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
     break;
   }
   case TYPE_STRING: {
+    if (!var_sym->llvm_val_ref) {
+      llvm_var = LLVMBuildGlobalStringPtr(components->builder, var_sym->name ? var_sym->name : "", "str_val");
+      break;
+    }
     LLVMTypeRef str_members[] = {
         LLVMPointerType(I8(components->ctx), 0),
         I32(components->ctx)};
