@@ -28,6 +28,8 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       return TYPE_STRING;
     if(expr->literal_expr.token.type == TOKEN_INT)
       return TYPE_INT;
+    if(expr->literal_expr.token.type == TOKEN_CHAR)
+      return TYPE_CHAR;
     return TYPE_NULL;
   }
 
@@ -45,8 +47,10 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       default:{
         DataType left_type = infer_expr_type(context, expr->binary_expr.left);
         DataType right_type = infer_expr_type(context, expr->binary_expr.right);
-        return (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) ? TYPE_FLOAT
-                                                                    : TYPE_INT;
+        if (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) return TYPE_FLOAT;
+        if (left_type == TYPE_CHAR || right_type == TYPE_CHAR) return TYPE_CHAR;
+        
+        return TYPE_INT;
       }
 
 

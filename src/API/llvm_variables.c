@@ -1,4 +1,7 @@
 #include "../../headers/llvm_backend.h"
+#include "llvm-c/Core.h"
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 void _apl_create_local_variable(LLVMComponents *components,
@@ -14,18 +17,19 @@ void _apl_create_local_variable(LLVMComponents *components,
   LLVMValueRef var_ptr;
   LLVMValueRef assign_val;
   LLVMValueRef var_val;
+  LLVMValueRef val;
 
   switch (VAR_TYPE) {
   case TYPE_BOOL: {
-    LLVMValueRef val;
+    var_ptr =
+          LLVMBuildAlloca(components->builder,
+                          I1(components->ctx), var_name);
+
 
     if (expr->Type == AST_LITERAL_EXPR) {
       const int LENGTH = expr->literal_expr.token.length;
       int b_val = (LENGTH == 5) ? 0 : 1;
-      var_ptr =
-          LLVMBuildAlloca(components->builder,
-                          I1(components->ctx), var_name);
-      val = LLVMConstInt(I1(components->ctx), b_val, 0);
+            val = LLVMConstInt(I1(components->ctx), b_val, 0);
     } else{
       val = arihmetics(components, expr, "");
     }
@@ -35,7 +39,7 @@ void _apl_create_local_variable(LLVMComponents *components,
     break;
   }
   case TYPE_FLOAT: {
-    LLVMValueRef val;
+   
 
     if (expr->Type == AST_LITERAL_EXPR) {
       float f_val = return_eval_int(expr);
@@ -51,12 +55,18 @@ void _apl_create_local_variable(LLVMComponents *components,
     break;
   }
   case TYPE_INT: {
-    LLVMValueRef val;
+
+    
     if (expr->Type == AST_LITERAL_EXPR) {
       int i_val = (int)return_eval_int(expr);
       val = LLVMConstInt(I32(components->ctx), i_val, 0);
     } else {
       val = arihmetics(components, expr, "");
+
+      if(LLVMTypeOf(val) != I32(components->ctx)){
+       val = LLVMBuildTrunc(components->builder, val, I32(components->ctx), "");
+      }
+
     }
 
     var_ptr = LLVMBuildAlloca(
@@ -78,7 +88,20 @@ void _apl_create_local_variable(LLVMComponents *components,
     _apl_build_string_reassign(components,var_ptr, str ,string_struct_type);
 
     break;
+  } case TYPE_CHAR: {
+
+    if(expr->Type == AST_BINARY_EXPR){
+      val = arihmetics(components, expr, "");
+    }else{
+      uint8_t c = parse_char_literal(expr->literal_expr.token);
+      val = LLVMConstInt(I8(components->ctx), c, false);
+    }
+    var_ptr = LLVMBuildAlloca(components->builder, I8(components->ctx), var_name);
+    LLVMBuildStore(components->builder, val , var_ptr);
+    break;
+
   }
+
   default:
     break;
   }
@@ -106,7 +129,11 @@ void _apl_reassign_variable(LLVMComponents *components,
 
   LLVMValueRef var_target_ptr = var_sym ? var_sym->llvm_val_ref : NULL;
 
-  if (var_sym && components->current_fxn_ast && var_sym->fxn != components->current_fxn_ast && components->current_parent_frame != NULL) {
+  bool is_parent_env = (var_sym && var_sym->fxn && components->current_fxn_ast &&
+                        var_sym->fxn->name[0] != '\0' && components->current_fxn_ast->name[0] != '\0' &&
+                        strcmp(var_sym->fxn->name, components->current_fxn_ast->name) != 0 &&
+                        components->current_parent_frame != NULL);
+  if (is_parent_env) {
     int idx = var_sym->frame_index;
     LLVMValueRef indices[] = {
         LLVMConstInt(I32(components->ctx), 0, false),
@@ -124,6 +151,7 @@ void _apl_reassign_variable(LLVMComponents *components,
     }
     var_target_ptr = LLVMBuildBitCast(components->builder, raw_ptr, LLVMPointerType(actual_type, 0), "");
   }
+
 
   switch (var_Type) {
   case TYPE_INT: {
@@ -171,6 +199,17 @@ void _apl_reassign_variable(LLVMComponents *components,
     return;
 
   }
+  case TYPE_CHAR: {
+    if (value_node->Type == AST_LITERAL_EXPR) {
+      uint8_t c = parse_char_literal(value_node->literal_expr.token);
+      new_val = LLVMConstInt(I8(components->ctx), c, false);
+    } else if (value_node->Type == AST_VAR_REF) {
+      new_val = load_variable(components, value_node);
+    } else if (value_node->Type == AST_CALL_FXN) {
+      new_val = _apl_eval_function_call(components, value_node);
+    }
+    break;
+  }
   default:
     break;
   }
@@ -183,7 +222,11 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
   Symbol *var_sym = var_ref_node->var_ref.resolved_symbol;
   LLVMValueRef target_ptr = var_sym ? var_sym->llvm_val_ref : NULL;
 
-  if (var_sym && components->current_fxn_ast && var_sym->fxn != components->current_fxn_ast && components->current_parent_frame != NULL) {
+  bool is_parent_env = (var_sym && var_sym->fxn && components->current_fxn_ast &&
+                        var_sym->fxn->name[0] != '\0' && components->current_fxn_ast->name[0] != '\0' &&
+                        strcmp(var_sym->fxn->name, components->current_fxn_ast->name) != 0 &&
+                        components->current_parent_frame != NULL);
+  if (is_parent_env) {
     int idx = var_sym->frame_index;
     LLVMValueRef indices[] = {
         LLVMConstInt(I32(components->ctx), 0, false),
@@ -204,7 +247,7 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
 
   LLVMValueRef llvm_var = NULL;
 
-  switch (var_sym->type) {
+  switch (var_sym->type) {                                        
   case TYPE_INT: {
     if (!target_ptr) {
       LLVMValueRef alloc = LLVMBuildAlloca(components->builder, I32(components->ctx), "");
@@ -239,15 +282,40 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
   }
 
   case TYPE_FLOAT: {
+    if (!target_ptr) {
+      LLVMValueRef alloc = LLVMBuildAlloca(components->builder, F32(components->ctx), "");
+      LLVMValueRef p_val = LLVMGetParam(components->current_fxn, var_sym->param_idx);
+      LLVMBuildStore(components->builder, p_val, alloc);
+      target_ptr = alloc;
+      var_sym->llvm_val_ref = alloc;
+    }
     llvm_var = LLVMBuildLoad2(components->builder,
                               F32(components->ctx),
                               target_ptr, var_sym->name);
     break;
   }
   case TYPE_BOOL: {
+    if (!target_ptr) {
+      LLVMValueRef alloc = LLVMBuildAlloca(components->builder, I1(components->ctx), "");
+      LLVMValueRef p_val = LLVMGetParam(components->current_fxn, var_sym->param_idx);
+      LLVMBuildStore(components->builder, p_val, alloc);
+      target_ptr = alloc;
+      var_sym->llvm_val_ref = alloc;
+    }
     llvm_var = LLVMBuildLoad2(components->builder,
                               I1(components->ctx),
                               target_ptr, var_sym->name);
+    break;
+  }
+  case TYPE_CHAR: {
+    if (!target_ptr) {
+      LLVMValueRef alloc = LLVMBuildAlloca(components->builder, I8(components->ctx), "");
+      LLVMValueRef p_val = LLVMGetParam(components->current_fxn, var_sym->param_idx);
+      LLVMBuildStore(components->builder, p_val, alloc);
+      target_ptr = alloc;
+      var_sym->llvm_val_ref = alloc;
+    }
+    llvm_var = LLVMBuildLoad2(components->builder, I8(components->ctx), target_ptr, var_sym->name);
     break;
   }
   default:

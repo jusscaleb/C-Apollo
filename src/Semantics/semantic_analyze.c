@@ -86,7 +86,9 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         DataType expected_type = node->var_decl.value_type;
         inferred = infer_expr_type(context, node->var_decl.value);
 
-        if (inferred != expected_type) {
+        bool is_compatible = ((inferred == expected_type) || (inferred == TYPE_INT && expected_type == TYPE_CHAR) || (inferred == TYPE_CHAR && expected_type == TYPE_INT));
+
+        if (!is_compatible) {
           report_semantic_error(context, "Datatype Mismatch.");
           break;
         }
@@ -199,12 +201,21 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
 
   case AST_RET_NODE:
+
+
+    DataType fxn_ret_type = node->ret_node.fxn.return_type;
+    DataType ret_type = infer_expr_type(context, node->ret_node.value);
+    
+    bool is_compatible = (ret_type == fxn_ret_type) ||
+                           (ret_type == TYPE_CHAR && fxn_ret_type == TYPE_INT) ||
+                           (ret_type == TYPE_INT && fxn_ret_type == TYPE_CHAR);
+
     if (node->ret_node.value) {
-      if(node->ret_node.fxn.return_type == TYPE_NULL){
+      if(fxn_ret_type == TYPE_NULL){
         report_semantic_error(context, "Fxn of return type \"null\" cannot return value.");
         break;
       }
-      if(infer_expr_type(context, node->ret_node.value) != node->ret_node.fxn.return_type){
+      if(!is_compatible){
         report_semantic_error(context, "Return value for function doesn't match.");
         break;
       }

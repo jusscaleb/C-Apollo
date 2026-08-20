@@ -78,6 +78,9 @@ Params *get_params(CodegenContext *context, Parser *parser) {
   case DECLARE_BOOL: {
     p->param = var(parser, context, TYPE_BOOL);
     break;
+  }case DECLARE_CHAR: {
+    p->param = var(parser,context, TYPE_CHAR);
+    break;
   }
 
   default: {

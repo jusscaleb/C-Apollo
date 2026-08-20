@@ -7,6 +7,7 @@
       "cStandard": "c17",
       "cppStandard": "${default}",
       "intelliSenseMode": "windows-gcc-x64",
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
       "compilerArgs": [
         "-IC:/msys64/mingw64/include",
         "-D_FILE_OFFSET_BITS=64",

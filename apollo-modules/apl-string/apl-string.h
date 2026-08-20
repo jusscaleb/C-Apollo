@@ -27,8 +27,8 @@
 #define _DEBUG(prompt) do{ if(_DB) printf("%s\n", prompt); }while(0);
 
 #define _BUFFER_SIZE 65536
-static char str_arena[_BUFFER_SIZE];
-static int arena_offset = 0;
+char str_arena[_BUFFER_SIZE];
+int arena_offset = 0;
 
 typedef struct String{
     const char* _str_;

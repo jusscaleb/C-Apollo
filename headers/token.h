@@ -90,6 +90,7 @@ typedef enum {
   DECLARE_STR,
   DECLARE_BOOL,
   DECLARE_FLOAT,
+  DECLARE_CHAR,
   TOKEN_COMMA,
   TOKEN_RETURN,
   TOKEN_CHAR,
@@ -139,5 +140,6 @@ typedef struct {
 } Parser;
 
 Token check_number(Lexer *lexer, const char* start);
+Token check_string_or_char(Lexer *lexer, const char* start, bool is_str);
 
 #endif

@@ -1,22 +1,30 @@
 #include "apl-io.h"
+#include <stdio.h>
 
-__attribute__((always_inline)) static void _apl_flush() {
+
+char out_buf[_BUFFER_SIZE];
+int buf_idx = 0;
+char str_arena[_BUFFER_SIZE];
+int arena_offset = 0;
+
+void _apl_flush() {
   _DEBUG("API_FLUSH WORKS");
   if (buf_idx > 0) {
-    write(1, out_buf, buf_idx);
+    fwrite( out_buf, 1, buf_idx, stdout);
+    fflush(stdout);
   }
 
   _apl_clear_();
 }
 
-__attribute__((always_inline)) static void _apl_print_char(char c) {
+void _apl_print_char(char c) {
   if (buf_idx >= _BUFFER_SIZE) {
     _apl_flush();
   }
   out_buf[buf_idx++] = c;
 }
 
-__attribute__((always_inline)) static void _apl_clear_() { buf_idx = 0; }
+void _apl_clear_() { buf_idx = 0; }
 
 void _apl_print_string(const char *str) {
   if (!str)
@@ -26,7 +34,7 @@ void _apl_print_string(const char *str) {
   }
 }
 
-__attribute__((always_inline)) void _apl_print_bool(int val) {
+void _apl_print_bool(int val) {
   if (val) {
     _apl_print_string("true");
   } else {
@@ -36,12 +44,12 @@ __attribute__((always_inline)) void _apl_print_bool(int val) {
   _apl_flush();
 }
 
-__attribute__((always_inline)) void _apl_print_newline() {
+void _apl_print_newline() {
   _apl_print_char('\n');
   _apl_flush();
 }
 
-__attribute__((always_inline)) void _apl_print_int(int val) {
+void _apl_print_int(int val) {
   _DEBUG("INT PRINT WORKS.")
 
   if (val == 0) {
@@ -66,7 +74,7 @@ __attribute__((always_inline)) void _apl_print_int(int val) {
   }
 }
 
-__attribute__((always_inline)) void _apl_print_float(float val) {
+void _apl_print_float(float val) {
   if (val < 0) {
     _apl_print_char('-');
     val = -val;

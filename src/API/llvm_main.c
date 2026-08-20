@@ -7,7 +7,6 @@
 #include "llvm-c/Types.h"
 
 
-
 static FILE *trace_file = NULL;
 
 static void trace(const char *message) {

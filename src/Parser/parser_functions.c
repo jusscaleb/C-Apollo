@@ -33,6 +33,9 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
       case TOKEN_VOID:
         parser->lexer->fxn->return_type = TYPE_NULL;
         break;
+      case DECLARE_CHAR:
+        parser->lexer->fxn->return_type = TYPE_CHAR;
+        break;
       default:
         error(parser, "Invalid return type", SYNTAXERROR);
       }

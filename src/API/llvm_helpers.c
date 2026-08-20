@@ -1,16 +1,35 @@
 #include "../../headers/llvm_backend.h"
+#include "llvm-c/Core.h"
+#include "llvm-c/Types.h"
 #include <stdint.h>
 
 
 
 
-__attribute__((always_inline)) void slice_string(Token string, char *clean_str) {
-  const char *sliced_start = string.start + 1;
+void slice_string(Token string, char *clean_str) {
+  const char *src = string.start + 1;
+  const char *end = string.start + string.length;
+  char *dst = clean_str;
 
-  int sliced_length = string.length - 1;
-  memcpy(clean_str, sliced_start, sliced_length);
-
-  clean_str[sliced_length] = '\0';
+  while (src < end) {
+    if (*src == '\\' && (src + 1) < end) {
+      src++;
+      switch (*src) {
+        case 'n':  *dst++ = '\n'; break;
+        case 't':  *dst++ = '\t'; break;
+        case 'r':  *dst++ = '\r'; break;
+        case '0':  *dst++ = '\0'; break;
+        case '\\': *dst++ = '\\'; break;
+        case '"':  *dst++ = '"';  break;
+        case '\'': *dst++ = '\''; break;
+        default:   *dst++ = *src;  break;
+      }
+    } else {
+      *dst++ = *src;
+    }
+    src++;
+  }
+  *dst = '\0';
 }
 
 __attribute__((always_inline)) float str_to_int_k(const char *s, int k) {
@@ -40,12 +59,34 @@ __attribute__((always_inline)) float str_to_int_k(const char *s, int k) {
   return (negative) ? final * -1 : final;
 }
 
+uint8_t parse_char_literal(Token token) {
+  const char *s = token.start;
+  if (s[1] == '\\') {
+    switch (s[2]) {
+      case 'n':  return '\n';
+      case 't':  return '\t';
+      case 'r':  return '\r';
+      case '0':  return '\0';
+      case '\\': return '\\';
+      case '\'': return '\'';
+      case '"':  return '"';
+      default:   return (uint8_t)s[2];
+    }
+  }
+  return (uint8_t)s[1];
+}
+
 LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
                         char *result_name) {
   if (!node)
     return NULL;
 
   if (node->Type == AST_LITERAL_EXPR) {
+    if (node->literal_expr.token.type == TOKEN_CHAR) {
+      uint8_t c = parse_char_literal(node->literal_expr.token);
+      return LLVMConstInt(I8(components->ctx), c, 0);
+    }
+
     int val = (int)str_to_int_k(node->literal_expr.token.start,
                                 node->literal_expr.token.length);
     return LLVMConstInt(I32(components->ctx), val, 0);
@@ -64,7 +105,24 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
     LLVMValueRef right =
         arihmetics(components, node->binary_expr.right, "right_tmp");
 
+    LLVMTypeRef left_type = LLVMTypeOf(left);
+    LLVMTypeRef right_type = LLVMTypeOf(right);
+
+    if (left_type != right_type) {
+      if (LLVMGetTypeKind(left_type) == LLVMIntegerTypeKind &&
+          LLVMGetTypeKind(right_type) == LLVMIntegerTypeKind) {
+        uint32_t left_bw = LLVMGetIntTypeWidth(left_type);
+        uint32_t right_bw = LLVMGetIntTypeWidth(right_type);
+        if (left_bw < right_bw) {
+          left = LLVMBuildZExt(components->builder, left, right_type, "");
+        } else if (right_bw < left_bw) {
+          right = LLVMBuildZExt(components->builder, right, left_type, "");
+        }
+      }
+    }
     switch (node->binary_expr.operator_type) {
+
+    //Arithmetics
     case TOKEN_ADD:
       return LLVMBuildAdd(components->builder, left, right, result_name);
     case TOKEN_SUB:
@@ -145,6 +203,19 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
             args[i] = load_variable(components, a->arg);
             break;
           }
+          case TYPE_CHAR:{
+            if(a->arg->Type == AST_LITERAL_EXPR){
+               uint8_t c = parse_char_literal(a->arg->literal_expr.token);
+               args[i] = LLVMConstInt(I8(components->ctx), c, 0);
+               break;
+            }
+            if(a->arg->Type == AST_BINARY_EXPR){
+               args[i] = arihmetics(components, a->arg, "");
+               break;
+            }
+            args[i] = load_variable(components, a->arg);
+            break;
+          }
           default:
             args[i] = load_variable(components, a->arg);
             break;
@@ -202,6 +273,7 @@ __attribute__((always_inline)) LLVMTypeRef _apl_get_llvm_type(LLVMComponents*com
     case TYPE_FLOAT: return F32(components->ctx);
     case TYPE_BOOL: return I1(components->ctx);
     case TYPE_NULL: return VOID(components->ctx);
+    case TYPE_CHAR: return I8(components->ctx);
     default: return LLVMPointerType(I8(components->ctx), 0);
   }
 }

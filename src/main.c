@@ -72,8 +72,11 @@ void llvm_compilation() {
   memcpy(exe_path, cwd, cwd_len);
   memcpy(exe_path + cwd_len, "\\temp\\program.exe", sizeof("\\temp\\program.exe"));
 
-  // Execute Clang process directly without spawning intermediate cmd.exe / powershell shell
-  int result = _spawnlp(_P_WAIT, "clang", "clang", "-O3", bc_path, "-o", exe_path, NULL);
+  const char *clang_bin = "C:\\msys64\\clang64\\bin\\clang.exe";
+  int result = _spawnl(_P_WAIT, clang_bin, "clang", "--target=x86_64-w64-windows-gnu", "-O3", bc_path, "-o", exe_path, NULL);
+  if (result != 0) {
+    result = _spawnlp(_P_WAIT, "clang", "clang", "--target=x86_64-w64-windows-gnu", "-O3", bc_path, "-o", exe_path, NULL);
+  }
 
   if (result == 0) {
     printf("=== Running Apollo Program Output ===\n");

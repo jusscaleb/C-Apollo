@@ -31,10 +31,10 @@
 
 #define _BUFFER_SIZE 4096
 #define _TEMP_BUFFER_SIZE 16
-static char out_buf[_BUFFER_SIZE];
-static int buf_idx = 0;
-static char str_arena[_BUFFER_SIZE];
-static int arena_offset = 0;
+extern char out_buf[_BUFFER_SIZE];
+extern int buf_idx;
+extern char str_arena[_BUFFER_SIZE];
+extern int arena_offset;
 
 #define TYPEOF(x)                                                              \
   _Generic((x),                                                                \
@@ -50,9 +50,9 @@ typedef struct String {
   int _length_;
 } String;
 
-__attribute__((always_inline)) static void _apl_flush();
+void _apl_flush();
 
-__attribute__((always_inline)) static void _apl_print_char(char c);
+void _apl_print_char(char c);
 
 void _apl_print_string(const char *str);
 
@@ -64,7 +64,7 @@ void _apl_print_newline();
 
 void _apl_print_float(float val);
 
-__attribute__((always_inline)) static void _apl_clear_();
+void _apl_clear_();
 
 void __apl_input__(const char *__prompt__, String *__input__);
 

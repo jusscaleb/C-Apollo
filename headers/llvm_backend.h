@@ -87,6 +87,7 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
 void _apl_gen_println_ir(LLVMComponents *components, 
                          Args *args);
 void slice_string(Token string, char *clean_str);
+uint8_t parse_char_literal(Token token);
 
 LLVMValueRef
 load_variable(LLVMComponents *components, ASTNode *var_ref_node);

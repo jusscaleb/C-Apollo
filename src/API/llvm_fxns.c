@@ -1,4 +1,5 @@
 #include "../../headers/llvm_backend.h"
+#include "llvm-c/Core.h"
 #include <stdint.h>
 #include <string.h>
 
@@ -14,6 +15,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
     LLVMValueRef println_fxn = NULL, println_args = NULL;
     LLVMTypeRef func_type;
 
+    printf("datatype: %s\n", dt_names[arg_type]);
     switch (arg_type) {
     case TYPE_INT:
     case TYPE_FLOAT: {
@@ -57,8 +59,33 @@ void _apl_gen_println_ir(LLVMComponents *components,
       println_args = LLVMConstInt(param_types[0], b, 0);
       break;
 
-    case TYPE_CHAR:
+    case TYPE_CHAR: {
+      param_types[0] = I8(components->ctx);
+
+      println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_char");
+
+      if (expr->Type == AST_VAR_REF) {
+        println_args = load_variable(components, expr);
+        break;
+      
+      
+      }if(expr->Type == AST_BINARY_EXPR){
+        println_args = arihmetics(components, expr, "");
+        break;
+      }
+
+
+      if (expr->Type == AST_CALL_FXN) {
+        println_args = _apl_eval_function_call(components, expr);
+        break;
+      }
+
+      uint8_t c = parse_char_literal(expr->literal_expr.token);
+      println_args = LLVMConstInt(param_types[0], c, 0);
       break;
+    }
+
+
     case TYPE_STRING: {
       param_types[0] = LLVMPointerType(I8(components->ctx), 0);
       println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_string");
@@ -205,6 +232,9 @@ void _apl_gen_return(LLVMComponents *components,
   case TYPE_INT: {
     if (node->ret_node.value->Type == AST_BINARY_EXPR) {
       ret_val = arihmetics(components, node->ret_node.value, "");
+      if(LLVMTypeOf(ret_val) != I32(components->ctx)){
+        ret_val = LLVMBuildTrunc(components->builder, ret_val, I32(components->ctx), "");
+      }
       break;
     }
     if (node->ret_node.value->Type == AST_VAR_REF) {
@@ -235,6 +265,27 @@ void _apl_gen_return(LLVMComponents *components,
   case TYPE_FLOAT: {
     float number = return_eval_int(node->ret_node.value);
     ret_val = LLVMConstReal(F32(components->ctx), number);
+    break;
+  }
+  case TYPE_CHAR: {
+    if (node->ret_node.value->Type == AST_BINARY_EXPR) {
+      ret_val = arihmetics(components, node->ret_node.value, "");
+      if(LLVMTypeOf(ret_val) != I8(components->ctx)){
+        ret_val = LLVMBuildTrunc(components->builder, ret_val, I8(components->ctx), "");
+      }
+      break;
+    }
+    if (node->ret_node.value->Type == AST_VAR_REF) {
+      ret_val = load_variable(components, node->ret_node.value);
+      break;
+    }
+    if (node->ret_node.value->Type == AST_CALL_FXN) {
+      ret_val = _apl_eval_function_call(components, node->ret_node.value);
+      break;
+    }
+    uint8_t c = parse_char_literal(node->ret_node.value->literal_expr.token);
+    ret_val = LLVMConstInt(I8(components->ctx), c, false);
+    break;
   }
   }
 

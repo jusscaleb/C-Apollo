@@ -4,28 +4,29 @@
 ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
   Token token = parser->current;
 
-  if (token.type == TOKEN_INT) {
+  switch(token.type){
+  case TOKEN_INT: {
     consume(parser, TOKEN_INT, "Expected integer literal.");
     return create_literal_node(token, context->a);
   }
-
-  if (token.type == TOKEN_STRING) {
+  case TOKEN_STRING: {
     consume(parser, TOKEN_STRING, "Expected string literal.");
     return create_literal_node(token, context->a);
   }
-  if (token.type == TOKEN_BOOL || token.type == TOKEN_NULL) {
+  case TOKEN_BOOL:
+  case TOKEN_NULL:{
     (token.type == TOKEN_BOOL)
         ? consume(parser, TOKEN_BOOL, "Expected boolean literal.")
         : consume(parser, TOKEN_NULL, "Expected null value literal.");
     return create_literal_node(token, context->a);
   }
 
-  if (token.type == TOKEN_FLOAT) {
+  case TOKEN_FLOAT: {
     consume(parser, TOKEN_FLOAT, "Expected float literal.");
     return create_literal_node(token, context->a);
   }
 
-  if (token.type == TOKEN_IDENTIFIER) {
+  case TOKEN_IDENTIFIER : {
     advance(parser);
     if (parser->current.type == TOKEN_LPARETH) {
       char *potential_name = (char *)arena_alloc(context->a, token.length+1);
@@ -36,13 +37,16 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
     }
     return create_var_ref_node(token.start, token.length, *parser->lexer->fxn,
                                parser->lexer->scope_level, context->a);
-  }
-
-  if (token.type == TOKEN_COMMA) {
+  }case TOKEN_COMMA: {
     advance(parser);
     return parse_primary(parser, context);
   }
+  case TOKEN_CHAR: {
+    consume(parser, TOKEN_CHAR , "Expected Character Literal");
+    return create_literal_node(token, context->a);
+  }
 
+}
   if (!(parser->current.type == TOKEN_EOF && parser->lexer->errors->size > 0)) {
     error(parser, "Expected expression value.", SYNTAXERROR);
   }

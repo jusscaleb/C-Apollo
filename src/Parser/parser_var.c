@@ -206,6 +206,7 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   case DECLARE_STR:
   case DECLARE_FLOAT:
   case DECLARE_BOOL:
+  case DECLARE_CHAR:
     DataType dt = TYPE_NULL;
 
     switch (parser->current.type) {
@@ -221,6 +222,10 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     case DECLARE_INT:
       dt = TYPE_INT;
       break;
+
+    case DECLARE_CHAR:
+        dt = TYPE_CHAR;
+        break;
     default:
       break;
     }

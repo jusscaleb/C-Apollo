@@ -29,7 +29,8 @@ static inline const struct KeywordEntry *in_word_set(const char *str, unsigned i
     {"str", DECLARE_STR},
     {"bool", DECLARE_BOOL},
     {"float", DECLARE_FLOAT},
-    {"return", TOKEN_RETURN}
+    {"return", TOKEN_RETURN},
+    {"char", DECLARE_CHAR}
   };
 
   static const int count = sizeof(wordlist) / sizeof(wordlist[0]);
