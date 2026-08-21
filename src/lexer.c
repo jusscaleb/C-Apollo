@@ -2,7 +2,6 @@
 #include "../headers/keywords_hash.h"
 #include "../headers/token.h"
 
-
 const char *TokenNames[] = {
     "Fxn",   "EOF",   "run",  "void", "IDENTIFIER", "->",   "STRING",
     "(",     ")",     "{",    "}",    ";",          "INT",  "DOUBLE",
@@ -332,11 +331,12 @@ __attribute__((always_inline)) Token check_number(Lexer *lexer,
 }
 
 __attribute__((always_inline)) Token check_string_or_char(Lexer *lexer,
-                                                          const char *start, bool is_str) {
-  
-  
+                                                          const char *start,
+                                                          bool is_str) {
+
   const char TERMINATING_STRING = is_str ? '"' : '\'';
-  const char* err_msg = is_str ? "Unterminated String Literal" : "Unterminated Character Literal";
+  const char *err_msg =
+      is_str ? "Unterminated String Literal" : "Unterminated Character Literal";
   TokenType t = is_str ? TOKEN_STRING : TOKEN_CHAR;
 
   while (*lexer->current != '\0') {
@@ -372,7 +372,7 @@ __attribute__((always_inline)) Token check_string_or_char(Lexer *lexer,
     lexer->column++;
   }
 
-    if (*lexer->current == '\0') {
+  if (*lexer->current == '\0') {
     int len = (int)(lexer->current - start);
     char temp[len + 1];
     memcpy(temp, start, len);
@@ -384,15 +384,15 @@ __attribute__((always_inline)) Token check_string_or_char(Lexer *lexer,
 
   int length = (int)(lexer->current - start);
 
-  if(!is_str){
-    if(length + 1 < 3 || length + 1 > 4){
-      lex_error(lexer, "Character literal must contain exactly one character", start);
+  if (!is_str) {
+    if (length + 1 < 3 || length + 1 > 4) {
+      lex_error(lexer, "Character literal must contain exactly one character",
+                start);
     }
   }
 
   lexer->current++;
   lexer->column++;
-
 
   Token token = {t, start, length, lexer->line};
   return token;
