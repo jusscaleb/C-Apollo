@@ -296,7 +296,6 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       break;
 
   case AST_VAR_REF: {
-    printf("AST VAR REF\n");
     const int NAME_LENGTH = node->var_ref.name_length;
     char name[NAME_LENGTH + 1];
     memcpy(name, node->var_ref.name, NAME_LENGTH);
@@ -313,6 +312,15 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     }
     break;
   }
+  case AST_URINARY_EXPR: {
+    printf("urinary\n");
+    
+
+    break;
+
+
+  }
+
   default:
     break;
   }

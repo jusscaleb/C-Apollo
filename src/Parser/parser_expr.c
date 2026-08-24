@@ -62,9 +62,39 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
   return NULL;
 }
 
+ASTNode *parse_urinary(Parser *parser, CodegenContext *context){ 
+
+  printf("%s\n", TokenNames[parser->current.type]);
+  TokenType op;
+  switch (parser->current.type) {
+      case TOKEN_REF: {
+        op = TOKEN_REF;
+        break;
+      }
+        case TOKEN_SUB: {
+        op = TOKEN_SUB;
+        break;
+    } case TOKEN_PTR:{
+      op = TOKEN_PTR;
+      break;
+    }default:{
+      return parse_primary(parser, context);
+    }
+  
+  }
+  advance(parser);
+  ASTNode *operand = parse_urinary(parser, context);
+  return create_urinary_node(op, operand, context->a);
+
+
+
+}
+
+
+
 // Second Priority
 ASTNode *parse_factor(Parser *parser, CodegenContext *context) {
-  ASTNode *left = parse_primary(parser, context);
+  ASTNode *left = parse_urinary(parser, context);
 
   while (parser->current.type == TOKEN_MUL ||
          parser->current.type == TOKEN_DIV ||
@@ -72,7 +102,7 @@ ASTNode *parse_factor(Parser *parser, CodegenContext *context) {
     TokenType operator_type = parser->current.type;
     advance(parser);
 
-    ASTNode *right = parse_primary(parser, context);
+    ASTNode *right = parse_urinary(parser, context);
     left = create_binary_node(left, operator_type, right, context->a);
   }
 

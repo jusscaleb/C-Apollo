@@ -64,5 +64,9 @@ void grow_symbols_if_needed(CodegenContext *context);
 void codegen_init(CodegenContext *context, const char *output_filename);
 
 
+/**
+ * Traces and prints execution debug messages if debugging mode is active.
+ * @param message The debug message to trace.
+ */
 static void trace(const char *message);
 #endif

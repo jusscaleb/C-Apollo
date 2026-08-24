@@ -9,6 +9,12 @@ struct KeywordEntry {
   TokenType type;
 };
 
+/**
+ * Looks up a string identifier in the reserved keyword table.
+ * @param str Pointer to the start of the identifier string.
+ * @param len Length of the string.
+ * @return Pointer to KeywordEntry if matched, NULL otherwise.
+ */
 static inline const struct KeywordEntry *in_word_set(const char *str, unsigned int len) {
   static const struct KeywordEntry wordlist[] = {
     {"fxn", TOKEN_FXN},

@@ -3,14 +3,19 @@
 #include "../headers/token.h"
 
 const char *TokenNames[] = {
-    "Fxn",   "EOF",   "run",  "void", "IDENTIFIER", "->",   "STRING",
-    "(",     ")",     "{",    "}",    ";",          "INT",  "DOUBLE",
-    "FLOAT", "+",     "*",    "-",    "/",          "%",    "++",
-    "--",    "+=",    "-=",   "*=",   "/=",         "%=",   "println",
-    "var",   "=",     "bool", "null", "==",         "!=",   ">",
-    "<",     ">=",    "<=",   "and",  "or",         "if",   "elif",
-    "else",  "while", "for",  "int",  "str",        "bool", "float",
-    ","};
+    "Fxn",        "EOF",        "run",       "void",       "IDENTIFIER",
+    "->",         "STRING",     "(",         ")",          "{",
+    "}",          ";",          "INT",       "DOUBLE",     "FLOAT",
+    "+",          "*",          "-",         "/",          "%",
+    "++",         "--",         "+=",        "-=",         "*=",
+    "/=",         "%=",         "var",       "=",          "bool",
+    "null",       "==",         "!=",        ">",          "<",
+    ">=",         "<=",         "and",       "or",         "if",
+    "elif",       "else",       "while",     "for",        "int",
+    "str",        "bool",       "float",     "char",       "int*",
+    "char*",      "bool*",      "float*",    "str*",       ",",
+    "return",     "char_lit",   "&","*","..."
+};
 
 // FOR ERROR HANDLING
 __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
@@ -233,8 +238,8 @@ Token next_token(Lexer *lexer) {
       return token;
     }
 
-    lex_error(lexer, "Could not recognize token. Did you mean '&&' ?", "&");
-    Token token = {TOKEN_EOF, start, 1, lexer->line};
+    //lex_error(lexer, "Could not recognize token. Did you mean '&&' ?", "&");
+    Token token = {TOKEN_REF, start, 1, lexer->line};
     return token;
   }
 
@@ -254,6 +259,21 @@ Token next_token(Lexer *lexer) {
     Token token = {TOKEN_COMMA, start, 1, lexer->line};
     return token;
   }
+  case '.': {
+    if (*lexer->current == '.' && *(lexer->current + 1) == '.') {
+      lexer->current += 2;
+      lexer->column += 2;
+      Token token = {TOKEN_VARARGS, start, 3, lexer->line};
+      return token;
+    }
+
+    lex_error(lexer, "Could not recognize token. Did you mean '...'?", ".");
+    Token token = {TOKEN_EOF, start, 1, lexer->line};
+    return token;
+  }
+
+
+
   }
 
   // HANDLE STRINGS

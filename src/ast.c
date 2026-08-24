@@ -155,3 +155,11 @@ ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value, Arena
   node->ret_node.value = value;
   return node;
 }
+
+ASTNode *create_urinary_node(TokenType operator_type, ASTNode *value, Arena *a){
+  ASTNode *node = allocate_node(AST_URINARY_EXPR, a);
+  node->urinary_expr.operator_type = operator_type;
+  node->urinary_expr.value = value;
+  return node;
+
+}

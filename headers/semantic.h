@@ -39,11 +39,35 @@ typedef struct {
  */
 void analyze_semantics(SemanticContext *context, ASTNode *node);
 
+/**
+ * Infers the DataType of an AST expression node.
+ * @param context Pointer to the semantic context.
+ * @param expr AST expression node to analyze.
+ * @return Inferred DataType of the expression.
+ */
 DataType infer_expr_type(SemanticContext *context, ASTNode *expr);
+
+/**
+ * Pushes a semantic error message onto the error stack.
+ * @param context Pointer to the semantic context.
+ * @param msg Error description string.
+ */
 void report_semantic_error(SemanticContext *context, const char *msg);
 
 // Forward declarations for internal tree-walking functions
+
+/**
+ * Analyzes semantics of an individual AST node.
+ * @param context Pointer to the semantic context.
+ * @param node AST node to analyze.
+ */
 static void analyze_node(SemanticContext *context, ASTNode *node);
+
+/**
+ * Analyzes semantics of an AST statement block node.
+ * @param context Pointer to the semantic context.
+ * @param block_node AST block node to analyze.
+ */
 static void analyze_block(SemanticContext *context, ASTNode *block_node);
 
 

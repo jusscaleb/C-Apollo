@@ -40,7 +40,7 @@ int __apl_sys_mkdir__   (const char* __path__);
 
 int __apl_sys_delete__  (const char* __path__);
 
-int __apl__sys_rmdir__  (const char* __path__);
+int __apl_sys_rmdir__   (const char* __path__);
 
 int __apl_sys_rename__  (const char* _old_path_, const char* _new_path_);
 
@@ -50,10 +50,12 @@ int __apl_sys_chdir__   (const char* __path__);
 
 int __apl_sys_getcwd__  (char* __buf__, int size);
 
-int __apl_sys_open__    (const char* __path__, int flags, int mode);
+intptr_t __apl_sys_open__(const char* __path__, int flags, int mode);
 
-int __apl_sys_read__    (int fd, void* __buf__, int size);
+int __apl_sys_read__    (intptr_t fd, void* __buf__, int size);
 
-int __apl_sys_write__   (int fd, const void* __buf__, uint32_t size);
+int __apl_sys_write__   (intptr_t fd, const void* __buf__, uint32_t size);
+
+int __apl_sys_close__   (intptr_t fd);
 
 #endif

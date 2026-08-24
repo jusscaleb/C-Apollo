@@ -107,9 +107,17 @@ typedef enum {
   DECLARE_BOOL,
   DECLARE_FLOAT,
   DECLARE_CHAR,
+  DECLARE_INT_PTR,
+  DECLARE_CHAR_PTR,
+  DECLARE_BOOL_PTR,
+  DECLARE_FLOAT_PTR,
+  DECLARE_STR_PTR,
   TOKEN_COMMA,
   TOKEN_RETURN,
   TOKEN_CHAR,
+  TOKEN_REF,
+  TOKEN_PTR,
+  TOKEN_VARARGS
 } TokenType;
 
 /*-------------DEFINING THE TOKEN-------------*/
@@ -139,6 +147,12 @@ typedef struct {
  */
 Token next_token(Lexer *lexer);
 
+/**
+ * Formats and records a lexical error into the lexer error stack.
+ * @param lexer Pointer to the lexer context.
+ * @param message Description of lexical error.
+ * @param got Character/string text received when error occurred.
+ */
 __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
                                               const char *got);
 
@@ -150,7 +164,21 @@ typedef struct {
   ErrorStack *error;
 } Parser;
 
+/**
+ * Scans numerical literals (integers, floats, doubles) from the source stream.
+ * @param lexer Pointer to the lexer context.
+ * @param start Pointer to start of numerical character sequence.
+ * @return Constructed Token for numerical literal.
+ */
 Token check_number(Lexer *lexer, const char *start);
+
+/**
+ * Scans string or character literals from the source stream.
+ * @param lexer Pointer to the lexer context.
+ * @param start Pointer to start of literal character sequence.
+ * @param is_str True if string literal, false if character literal.
+ * @return Constructed Token for string/character literal.
+ */
 Token check_string_or_char(Lexer *lexer, const char *start, bool is_str);
 
 #endif

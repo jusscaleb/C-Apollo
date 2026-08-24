@@ -14,8 +14,6 @@ void _apl_gen_println_ir(LLVMComponents *components,
     LLVMTypeRef param_types[1];
     LLVMValueRef println_fxn = NULL, println_args = NULL;
     LLVMTypeRef func_type;
-
-    printf("datatype: %s\n", dt_names[arg_type]);
     switch (arg_type) {
     case TYPE_INT:
     case TYPE_FLOAT: {

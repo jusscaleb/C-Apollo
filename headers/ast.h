@@ -28,6 +28,7 @@ typedef enum {
   AST_VAR_DECL,
   AST_LITERAL_EXPR,
   AST_BINARY_EXPR,
+  AST_URINARY_EXPR,
 
   AST_VAR_REF,
 
@@ -100,6 +101,11 @@ struct ASTNode {
       TokenType operator_type;
       ASTNode *right;
     } binary_expr;
+
+    struct {
+      TokenType operator_type;
+      ASTNode *value;
+    }urinary_expr;
 
     struct {
       const char *name;
@@ -269,6 +275,14 @@ ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
  */
 ASTNode *create_program_node(ASTNode *block, Arena *a);
 
+/**
+ * Creates an AST node representing a return statement.
+ * @param context Pointer to the codegen context.
+ * @param fxn Function scope containing the return statement.
+ * @param value AST node representing the expression to return.
+ * @param a Arena allocator for node allocation.
+ * @return Pointer to the created AST return node.
+ */
 ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value, Arena *a);
 
 /**
@@ -277,4 +291,14 @@ ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value, Arena
  * @param statement The type of statement the block falls under.
  */
 void block_add_statement(ASTNode *block, ASTNode *statement, Arena *a);
+
+/**
+ * Creates an AST node representing a unary operation.
+ * @param operator_type The unary operator token type.
+ * @param value AST node representing the target expression.
+ * @param a Arena allocator for node allocation.
+ * @return Pointer to the created AST unary node.
+ */
+ASTNode *create_urinary_node(TokenType operator_type, ASTNode *value, Arena *a);
+
 #endif

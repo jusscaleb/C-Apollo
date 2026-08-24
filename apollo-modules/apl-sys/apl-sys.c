@@ -1,11 +1,6 @@
 #include "apl-sys.h"
 
 
-
-
-
-
-
 //++++++++++++++++++++++++++++++++++++++++++++ FILE SYSTEM +++++++++++++++++++++++++++++++++++++++++++++
 __attribute__((always_inline)) int __apl_sys_mkdir__(const char* __path__){
     if(CreateDirectoryA(__path__, NULL)){
@@ -15,8 +10,8 @@ __attribute__((always_inline)) int __apl_sys_mkdir__(const char* __path__){
     return 1;
 }
 
-__attribute__((always_inline)) int __apl__sys_rmdir__(const char *__path__){
-    return RemoveDirectoryA(__path__) ? 0:-1;
+__attribute__((always_inline)) int __apl_sys_rmdir__(const char *__path__){
+    return RemoveDirectoryA(__path__) ? 0 : -1;
 }
 
 __attribute__((always_inline)) int __apl_sys_delete__(const char *__path__){
@@ -25,7 +20,7 @@ __attribute__((always_inline)) int __apl_sys_delete__(const char *__path__){
 
 
 __attribute__((always_inline)) int __apl_sys_rename__(const char *_old_path_, const char *_new_path_){
-    return (rename(_old_path_, _new_path_)) ? 0 : -1;
+    return (rename(_old_path_, _new_path_) == 0) ? 0 : -1;
 }
 
 
@@ -47,27 +42,41 @@ __attribute__((always_inline)) int __apl_sys_getcwd__(char *__buf__, int size){
 
 
 //++++++++++++++++++++++++++++++++++++++++++++ File I/O +++++++++++++++++++++++++++++++++++++++++++++
-__attribute__((always_inline)) int __apl_sys_open__(const char *__path__, int flags, int mode){
+__attribute__((always_inline)) intptr_t __apl_sys_open__(const char *__path__, int flags, int mode){
    uint32_t access = 0;
    uint32_t creation = OPEN_EXISTING;
    uint32_t attrs = FILE_ATTRIBUTE_NORMAL;
 
+   if ((flags & O_RDWR) == O_RDWR) {
+       access |= GENERIC_READ | GENERIC_WRITE;
+   } else if (flags & O_WRONLY) {
+       access |= GENERIC_WRITE;
+   } else {
+       access |= GENERIC_READ;
+   }
 
-   if(flags & O_RDONLY) access |= GENERIC_READ;
-   if(flags & O_WRONLY) access |= GENERIC_WRITE;
-   if(flags & O_RDWR  ) access |= GENERIC_READ | GENERIC_WRITE;
-   if(flags & O_CREAT ) access |= OPEN_ALWAYS;
-   if(flags & O_TRUNC ) access |= CREATE_ALWAYS;
-   if(flags & O_APPEND) access |= FILE_APPEND_DATA;
+   if (flags & O_APPEND) {
+       access |= FILE_APPEND_DATA;
+   }
 
-   HANDLE h = CreateFileA(__path__, access, FILE_SHARE_READ, NULL, creation, attrs, NULL);
+   if ((flags & O_CREAT) && (flags & O_TRUNC)) {
+       creation = CREATE_ALWAYS;
+   } else if (flags & O_CREAT) {
+       creation = OPEN_ALWAYS;
+   } else if (flags & O_TRUNC) {
+       creation = TRUNCATE_EXISTING;
+   } else {
+       creation = OPEN_EXISTING;
+   }
 
-   return (h == INVALID_HANDLE_VALUE) ? -1 : (int)(intptr_t) h;
+   HANDLE h = CreateFileA(__path__, access, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, creation, attrs, NULL);
+
+   return (h == INVALID_HANDLE_VALUE) ? -1 : (intptr_t)h;
 }
 
 
-__attribute__((always_inline)) int __apl_sys_read__(int fd, void *__buf__, int size){
-    HANDLE h = (HANDLE)(int)fd;
+__attribute__((always_inline)) int __apl_sys_read__(intptr_t fd, void *__buf__, int size){
+    HANDLE h = (HANDLE)fd;
     DWORD read_bytes = 0;
 
     if(!ReadFile(h, __buf__, size, &read_bytes, NULL)) return -1;
@@ -75,12 +84,17 @@ __attribute__((always_inline)) int __apl_sys_read__(int fd, void *__buf__, int s
     return (int)read_bytes; //0 ==> EOF.
 }
 
-__attribute__((always_inline)) int __apl_sys_write__(int fd, const void *__buf__, uint32_t size){
-    HANDLE h = (HANDLE)(int)fd;
+__attribute__((always_inline)) int __apl_sys_write__(intptr_t fd, const void *__buf__, uint32_t size){
+    HANDLE h = (HANDLE)fd;
 
     DWORD bytes_written = 0;
 
     if(!WriteFile(h, __buf__, size, &bytes_written, NULL)) return -1;
 
     return (int)bytes_written;
+}
+
+__attribute__((always_inline)) int __apl_sys_close__(intptr_t fd){
+    HANDLE h = (HANDLE)fd;
+    return CloseHandle(h) ? 0 : -1;
 }

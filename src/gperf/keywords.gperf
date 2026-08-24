@@ -29,4 +29,9 @@ bool,   DECLARE_BOOL
 float,  DECLARE_FLOAT
 return, TOKEN_RETURN
 char,   DECLARE_CHAR
+int*,   DECLARE_INT_PTR
+char*,  DECLARE_CHAR_PTR
+bool*,  DECLARE_BOOL_PTR
+float*,  DECLARE_FLOAT_PTR
+str*,    DECLARE_STR_PTR
 %%

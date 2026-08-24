@@ -39,12 +39,31 @@ char *alloc_space(int num_elements, int element_size);
 
 
 
+/**
+ * Initializes an arena allocator memory block.
+ * @param capacity Maximum capacity in bytes for the arena.
+ * @param a Pointer to the arena struct to initialize.
+ */
 void arena_init(size_t capacity, Arena *a);
 
+/**
+ * Allocates a contiguous block of memory from the arena.
+ * @param a Pointer to the arena allocator.
+ * @param size Number of bytes to allocate.
+ * @return Pointer to the allocated memory block.
+ */
 void *arena_alloc(Arena *a, size_t size);
 
+/**
+ * Resets the arena allocation offset back to zero without freeing memory block.
+ * @param a Pointer to the arena allocator.
+ */
 void arena_reset(Arena *a);
 
+/**
+ * Frees all memory regions owned by the arena allocator.
+ * @param a Pointer to the arena allocator.
+ */
 void arena_free(Arena *a);
 
 #endif

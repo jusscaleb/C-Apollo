@@ -28,8 +28,7 @@ typedef struct Fxn Fxn;
 typedef struct FxnCallMetaData {
   LLVMTypeRef fxn_type;
   LLVMValueRef the_fxn;
-
-} FxnCallMetaData;
+}FxnCallMetaData;
 
 typedef enum {
   TYPE_STRING,
@@ -38,6 +37,10 @@ typedef enum {
   TYPE_FLOAT,
   TYPE_BOOL,
   TYPE_NULL,
+  TYPE_INT_PTR,
+  TYPE_FLOAT_PTR,
+  TYPE_BOOL_PTR,
+  TYPE_CHAR_PTR,
 } DataType;
 
 extern const char *dt_names[];
@@ -45,8 +48,8 @@ extern const char *dt_names[];
 // char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
 
 typedef struct {
-  DataType type;     // Token type
-  const char *start; // RAM Address of Token
+  DataType type; 
+  const char *start; 
   int length;
   int line;
 } Variable;
@@ -113,14 +116,51 @@ Symbol *register_variable(CodegenContext *context, const char *name,
 Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn,
                      int level);
 
+/**
+ * Initializes a new SymbolTable using the provided arena allocator.
+ * @param a Pointer to arena allocator.
+ * @param initial_capacity Initial number of hash table buckets.
+ * @return Pointer to initialized SymbolTable structure.
+ */
 SymbolTable *symbol_table_init(Arena *a, uint32_t initial_capacity);
 
+/**
+ * Resizes symbol table buckets array to accommodate growing symbol count.
+ * @param table Pointer to SymbolTable structure.
+ * @param a Pointer to arena allocator.
+ */
 void symbol_table_resize(SymbolTable *table, Arena *a);
 
+/**
+ * Inserts a Symbol entry into the hash table.
+ * @param table Pointer to SymbolTable structure.
+ * @param sym Pointer to Symbol to insert.
+ * @param a Pointer to arena allocator.
+ */
 void symbol_table_insert(SymbolTable *table, Symbol *sym, Arena *a);
 
+/**
+ * Calculates FNV-1a hash value for a given character sequence.
+ * @param key Character sequence to hash.
+ * @param length Length of character sequence.
+ * @return 32-bit hash value.
+ */
 uint32_t hash_string(const char *key, uint32_t length);
+
+/**
+ * Looks up an active symbol in the symbol table by string key.
+ * @param table Pointer to SymbolTable structure.
+ * @param name Symbol name string to query.
+ * @param name_length Length of symbol name string.
+ * @return Pointer to Symbol if found and active, NULL otherwise.
+ */
 Symbol *symbol_table_lookup(SymbolTable *table, const char *name, uint32_t name_length);
+
+/**
+ * Deactivates all symbols declared within a specified scope level.
+ * @param table Pointer to SymbolTable structure.
+ * @param scope_level Scope level exiting.
+ */
 void symbol_table_exit_scope(SymbolTable *table, int scope_level);
 
 #endif
