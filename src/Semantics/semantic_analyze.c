@@ -40,14 +40,18 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       node->function.resolved_symbol = register_fxn(
           context->codegen, node->function.name, node->function.fxn.return_type,
           node->function.level, &node->function.fxn, node->function.name_length);
+      node->function.resolved_symbol->pointer_level = node->function.pointer_level;
     }
+
 
     // Analyze Parameters.
     Params *param = node->function.fxn.params;
     int p_idx = 0;
     while (param) {
       analyze_node(context, param->param);
-      param->param->var_decl.resolved_symbol->param_idx = p_idx;
+      if (param->param->var_decl.resolved_symbol) {
+        param->param->var_decl.resolved_symbol->param_idx = p_idx;
+      }
       p_idx++;
       param = param->next;
     }
@@ -85,8 +89,13 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       } else {
         DataType expected_type = node->var_decl.value_type;
         inferred = infer_expr_type(context, node->var_decl.value);
+        int inferred_ptr_level = infer_expr_pointer_level(context, node->var_decl.value);
 
-        bool is_compatible = ((inferred == expected_type) || (inferred == TYPE_INT && expected_type == TYPE_CHAR) || (inferred == TYPE_CHAR && expected_type == TYPE_INT));
+        bool is_ptr_compatible = (inferred_ptr_level == node->var_decl.pointer_level) ||
+                                 (node->var_decl.value->Type == AST_LITERAL_EXPR && node->var_decl.pointer_level > 0);
+
+        bool is_compatible = ((inferred == expected_type) || (inferred == TYPE_INT && expected_type == TYPE_CHAR) || (inferred == TYPE_CHAR && expected_type == TYPE_INT)) &&
+                             is_ptr_compatible;
 
         if (!is_compatible) {
           report_semantic_error(context, "Datatype Mismatch.");
@@ -97,6 +106,8 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       node->var_decl.resolved_symbol =
           register_variable(context->codegen, name, inferred,
                             &node->var_decl.fxn, node->var_decl.level, NAME_LENGTH);
+      
+      node->var_decl.resolved_symbol->pointer_level = node->var_decl.pointer_level;
 
     } else {
       node->var_decl.value_type = TYPE_NULL;
@@ -123,13 +134,21 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       if (node->var_assign.value) {
         analyze_node(context, node->var_assign.value);
         DataType inferred = infer_expr_type(context, node->var_assign.value);
+        int inferred_ptr_level = infer_expr_pointer_level(context, node->var_assign.value);
+        int target_ptr_level = sym->pointer_level - node->var_assign.deref_level;
+
+        if (target_ptr_level < 0) {
+          report_semantic_error(context, "Cannot dereference non-pointer variable.");
+          break;
+        }
 
         if (sym->type != TYPE_NULL && inferred != TYPE_NULL &&
-            sym->type != inferred) {
+            (sym->type != inferred || target_ptr_level != inferred_ptr_level)) {
           report_semantic_error(context, "Incompatible assignment type.");
           break;
         } else if (sym->type == TYPE_NULL && inferred != TYPE_NULL) {
           sym->type = inferred; 
+          sym->pointer_level = target_ptr_level;
         }
       }
     }
@@ -267,15 +286,16 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       passed_arg->datatype = infer_expr_type(context, passed_arg->arg);
 
       if (expected_param != NULL) {
-        if (passed_arg->datatype != expected_param->param->var_decl.value_type) {
+        int passed_ptr_level = infer_expr_pointer_level(context, passed_arg->arg);
+        if (passed_arg->datatype != expected_param->param->var_decl.value_type ||
+            passed_ptr_level != expected_param->param->var_decl.pointer_level) {
           report_semantic_error(context, "Argument type mismatch in function call.");
           break;
         }
-        analyze_node(context, expected_param->param);
         expected_param = expected_param->next;
       }
 
-      passed_arg = passed_arg->next;
+       passed_arg = passed_arg->next;
 
       if(is_println)continue;
       if(passed_arg == NULL && expected_param != NULL ){
@@ -313,18 +333,35 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
   }
   case AST_URINARY_EXPR: {
-    printf("urinary\n");
-    
+      TokenType op_type = node->urinary_expr.operator_type;
+      
+      switch(op_type){
+        case TOKEN_REF:{
+          analyze_node(context, node->urinary_expr.value);
 
-    break;
-
-
-  }
-
-  default:
-    break;
+          if(node->urinary_expr.value->Type == AST_VAR_REF){
+            node->urinary_expr.eval_type = infer_expr_type(context, node);
+          }
+          else{
+            report_semantic_error(context, "Cannot reference a non-variable literal.");
+            break;
+          }
+          break;
+        }
+        case TOKEN_MUL:
+        case TOKEN_SUB: {
+          analyze_node(context, node->urinary_expr.value);
+          node->urinary_expr.eval_type = infer_expr_type(context, node);
+          break;
+        }
+        default:
+          break;
+      }
+      break;
   }
 }
+}
+
 
 static void analyze_block(SemanticContext *context, ASTNode *block_node) {
   if (!block_node || block_node->Type != AST_BLOCK)

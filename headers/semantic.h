@@ -48,6 +48,14 @@ void analyze_semantics(SemanticContext *context, ASTNode *node);
 DataType infer_expr_type(SemanticContext *context, ASTNode *expr);
 
 /**
+ * Infers the pointer indirection level (0 = non-pointer, 1 = ptr, 2 = ptr-to-ptr) of an AST expression node.
+ * @param context Pointer to the semantic context.
+ * @param expr AST expression node to analyze.
+ * @return Inferred pointer level of the expression.
+ */
+int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr);
+
+/**
  * Pushes a semantic error message onto the error stack.
  * @param context Pointer to the semantic context.
  * @param msg Error description string.

@@ -152,6 +152,35 @@ Token next_token(Lexer *lexer) {
   }
 
   case '/': {
+    if (*lexer->current == '/') {
+      while (*lexer->current != '\0' && *lexer->current != '\n') {
+        lexer->current++;
+        lexer->column++;
+      }
+      return next_token(lexer);
+    }
+    if (*lexer->current == '*') {
+      lexer->current++;
+      lexer->column++;
+
+      while (*lexer->current != '\0') {
+        if (*lexer->current == '*' && *(lexer->current + 1) == '/') {
+          lexer->current += 2;
+          lexer->column += 2;
+          return next_token(lexer);
+        }
+
+        if (*lexer->current == '\n') {
+          lexer->line++;
+          lexer->column = 1;
+        } else {
+          lexer->column++;
+        }
+        lexer->current++;
+      }
+      lex_error(lexer, "Unterminated block comment.", "");
+      return next_token(lexer);
+    }
     if (*lexer->current == '=') {
       lexer->current++;
       lexer->column++;
@@ -174,10 +203,7 @@ Token next_token(Lexer *lexer) {
     return token;
   }
   case '#': {
-    while (*lexer->current != '\0' && *lexer->current != '\n') {
-      lexer->current++;
-      lexer->column++;
-    }
+   
 
     return next_token(lexer);
   }

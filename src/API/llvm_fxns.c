@@ -14,102 +14,134 @@ void _apl_gen_println_ir(LLVMComponents *components,
     LLVMTypeRef param_types[1];
     LLVMValueRef println_fxn = NULL, println_args = NULL;
     LLVMTypeRef func_type;
-    switch (arg_type) {
-    case TYPE_INT:
-    case TYPE_FLOAT: {
-      param_types[0] = _apl_get_llvm_type(components, arg_type);
-      println_fxn = LLVMGetNamedFunction(
-          components->module,
-          (arg_type == TYPE_INT) ? "_apl_print_int" : "_apl_print_float");
 
-      if (expr->Type == AST_VAR_REF) {
-        println_args = load_variable(components, expr);
-        break;
-      }
-      if (expr->Type == AST_BINARY_EXPR) {
-        println_args = arihmetics(components, expr, "");
-        break;
-      }
-      if (expr->Type == AST_CALL_FXN) {
-        println_args = _apl_eval_function_call(components, expr);
-        break;
-      }
-      println_args =
-          (arg_type == TYPE_INT)
-              ? LLVMConstInt(param_types[0], (int)return_eval_int(expr), 0)
-              : LLVMConstReal(param_types[0], return_eval_int(expr));
-      break;
-    }
-
-    case TYPE_BOOL:
-      param_types[0] = I1(components->ctx);
-      println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
-
-      if (expr->Type == AST_VAR_REF) {
-        println_args = load_variable(components, expr);
-        break;
-      }
-
-      int b;
-      const int LENGTH = expr->literal_expr.token.length;
-
-      b = (LENGTH == 5) ? 0 : 1;
-      println_args = LLVMConstInt(param_types[0], b, 0);
-      break;
-
-    case TYPE_CHAR: {
-      param_types[0] = I8(components->ctx);
-
-      println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_char");
-
-      if (expr->Type == AST_VAR_REF) {
-        println_args = load_variable(components, expr);
-        break;
-      
-      
-      }if(expr->Type == AST_BINARY_EXPR){
-        println_args = arihmetics(components, expr, "");
-        break;
-      }
+    //printf("POINTER LEVEL LLVM: %d\n", expr->call_fxn.resolved_symbol->pointer_level);
+    bool is_ptr = (expr && expr->Type == AST_URINARY_EXPR && expr->urinary_expr.operator_type == TOKEN_REF) ||
+                  (expr && expr->Type == AST_VAR_REF && expr->var_ref.resolved_symbol && expr->var_ref.resolved_symbol->pointer_level > 0) ||
+                  (expr && expr->Type == AST_CALL_FXN && expr->call_fxn.resolved_symbol && expr->call_fxn.resolved_symbol->pointer_level > 0);
 
 
-      if (expr->Type == AST_CALL_FXN) {
-        println_args = _apl_eval_function_call(components, expr);
-        break;
-      }
-
-      uint8_t c = parse_char_literal(expr->literal_expr.token);
-      println_args = LLVMConstInt(param_types[0], c, 0);
-      break;
-    }
-
-
-    case TYPE_STRING: {
+    if (is_ptr) {
       param_types[0] = LLVMPointerType(I8(components->ctx), 0);
-      println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_string");
+      println_fxn = LLVMGetNamedFunction(components->module, "__apl_print_ptr");
 
-      if (expr->Type == AST_VAR_REF) {
+      if (expr->Type == AST_URINARY_EXPR && expr->urinary_expr.operator_type == TOKEN_REF) {
+        ASTNode *var_node = expr->urinary_expr.value;
+        if (var_node && var_node->Type == AST_VAR_REF && var_node->var_ref.resolved_symbol) {
+          Symbol *var_sym = var_node->var_ref.resolved_symbol;
+          if (var_sym && var_sym->llvm_val_ref) {
+            println_args = LLVMBuildBitCast(
+                components->builder,
+                var_sym->llvm_val_ref,
+                param_types[0],
+                ""
+            );
+          }
+        }
+      } else if (expr->Type == AST_VAR_REF) {
         println_args = load_variable(components, expr);
-        break;
-      }
-      if (expr->Type == AST_CALL_FXN) {
+      } else if (expr->Type == AST_CALL_FXN) {
         println_args = _apl_eval_function_call(components, expr);
+      }
+    } else {
+      switch (arg_type) {
+      case TYPE_INT:
+      case TYPE_FLOAT: {
+        param_types[0] = _apl_get_llvm_type(components, arg_type);
+        println_fxn = LLVMGetNamedFunction(
+            components->module,
+            (arg_type == TYPE_INT) ? "_apl_print_int" : "_apl_print_float");
+
+        if (expr->Type == AST_VAR_REF) {
+          println_args = load_variable(components, expr);
+          break;
+        }
+        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR) {
+          println_args = arihmetics(components, expr, "");
+          break;
+        }
+        if (expr->Type == AST_CALL_FXN) {
+          println_args = _apl_eval_function_call(components, expr);
+          break;
+        }
+        println_args =
+            (arg_type == TYPE_INT)
+                ? LLVMConstInt(param_types[0], (int)return_eval_int(expr), 0)
+                : LLVMConstReal(param_types[0], return_eval_int(expr));
         break;
       }
 
-      char str[expr->literal_expr.token.length + 1];
+      case TYPE_BOOL:
+        param_types[0] = I1(components->ctx);
+        println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_bool");
 
-      slice_string(expr->literal_expr.token, str);
-      println_args =
-          LLVMBuildGlobalStringPtr(components->builder, str, "println_str");
+        if (expr->Type == AST_VAR_REF) {
+          println_args = load_variable(components, expr);
+          break;
+        }
 
-      break;
-    }
-    case TYPE_NULL:
-      break;
+        int b;
+        const int LENGTH = expr->literal_expr.token.length;
 
-    default:
-      break;
+        b = (LENGTH == 5) ? 0 : 1;
+        println_args = LLVMConstInt(param_types[0], b, 0);
+        break;
+
+      case TYPE_CHAR: {
+        param_types[0] = I8(components->ctx);
+
+        println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_char");
+
+        if (expr->Type == AST_VAR_REF) {
+          println_args = load_variable(components, expr);
+          break;
+        
+        
+        }if(expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR){
+          println_args = arihmetics(components, expr, "");
+          break;
+        }
+
+
+        if (expr->Type == AST_CALL_FXN) {
+          println_args = _apl_eval_function_call(components, expr);
+          break;
+        }
+
+        uint8_t c = parse_char_literal(expr->literal_expr.token);
+        println_args = LLVMConstInt(param_types[0], c, 0);
+        break;
+      }
+
+
+      case TYPE_STRING: {
+        param_types[0] = LLVMPointerType(I8(components->ctx), 0);
+        println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_string");
+
+        if (expr->Type == AST_VAR_REF) {
+          println_args = load_variable(components, expr);
+          break;
+        }
+        if (expr->Type == AST_CALL_FXN) {
+          println_args = _apl_eval_function_call(components, expr);
+          break;
+        }
+
+        char str[expr->literal_expr.token.length + 1];
+
+        slice_string(expr->literal_expr.token, str);
+        println_args =
+            LLVMBuildGlobalStringPtr(components->builder, str, "println_str");
+
+        break;
+      }
+
+      case TYPE_NULL:
+        break;
+
+      default:
+        break;
+      }
     }
 
     if (println_fxn && println_args) {
@@ -162,7 +194,11 @@ void _apl_gen_function_start(LLVMComponents *components,
     Params *p = block_node->function.fxn.params;
 
     for (uint32_t i = 0; i < user_params; i++) {
-      param_types[i] = _apl_get_llvm_type(components, p->param->var_decl.value_type);
+      if (p && p->param && p->param->var_decl.pointer_level > 0) {
+        param_types[i] = LLVMPointerType(I8(components->ctx), 0);
+      } else {
+        param_types[i] = _apl_get_llvm_type(components, p->param->var_decl.value_type);
+      }
       p = p->next;
     }
 
@@ -170,8 +206,15 @@ void _apl_gen_function_start(LLVMComponents *components,
       param_types[user_params] = LLVMPointerType(I8(components->ctx), 0);
     }
 
+    LLVMTypeRef ret_type;
+    if (block_node->function.pointer_level > 0) {
+      ret_type = LLVMPointerType(I8(components->ctx), 0);
+    } else {
+      ret_type = _apl_get_llvm_type(components, block_node->function.fxn.return_type);
+    }
+
     LLVMTypeRef fxn_type = LLVMFunctionType(
-        _apl_get_llvm_type(components, block_node->function.fxn.return_type),
+        ret_type,
         (total_params == 0) ? NULL : param_types, total_params, false);
     LLVMValueRef fxn = LLVMAddFunction(components->module,
                                        block_node->function.name, fxn_type);
@@ -225,69 +268,56 @@ void _apl_gen_function_end(LLVMComponents *components,
 
 void _apl_gen_return(LLVMComponents *components, 
                      ASTNode *node) {
-  LLVMValueRef ret_val;
-  switch (node->ret_node.fxn.return_type) {
-  case TYPE_INT: {
-    if (node->ret_node.value->Type == AST_BINARY_EXPR) {
-      ret_val = arihmetics(components, node->ret_node.value, "");
-      if(LLVMTypeOf(ret_val) != I32(components->ctx)){
-        ret_val = LLVMBuildTrunc(components->builder, ret_val, I32(components->ctx), "");
+  LLVMValueRef ret_val = NULL;
+  ASTNode *val_node = node->ret_node.value;
+
+  if (val_node) {
+    if (val_node->Type == AST_VAR_REF) {
+      ret_val = load_variable(components, val_node);
+    } else if (val_node->Type == AST_CALL_FXN) {
+      ret_val = _apl_eval_function_call(components, val_node);
+    } else if (val_node->Type == AST_BINARY_EXPR || val_node->Type == AST_URINARY_EXPR) {
+      ret_val = arihmetics(components, val_node, "");
+    } else {
+      switch (node->ret_node.fxn.return_type) {
+      case TYPE_INT: {
+        uint32_t number = (int)return_eval_int(val_node);
+        ret_val = LLVMConstInt(I32(components->ctx), number, false);
+        break;
       }
-      break;
-    }
-    if (node->ret_node.value->Type == AST_VAR_REF) {
-      ret_val = load_variable(components, node->ret_node.value);
-      break;
-    }
-    if (node->ret_node.value->Type == AST_CALL_FXN) {
-      ret_val = _apl_eval_function_call(components, node->ret_node.value);
-      break;
-    }
-    uint32_t number = (int)return_eval_int(node->ret_node.value);
-    ret_val =
-        LLVMConstInt(I32(components->ctx), number, false);
-    break;
-  }
-  case TYPE_BOOL: {
-    uint8_t b = (node->ret_node.value->literal_expr.token.length >= 4) ? 1 : 0;
-    ret_val = LLVMConstInt(I1(components->ctx), b, false);
-    break;
-  }
-  case TYPE_STRING: {
-    const uint32_t LENGTH = node->ret_node.value->literal_expr.token.length;
-    char str[LENGTH + 1];
-    slice_string(node->ret_node.value->literal_expr.token, str);
-    ret_val = LLVMBuildGlobalStringPtr(components->builder, str, "");
-    break;
-  }
-  case TYPE_FLOAT: {
-    float number = return_eval_int(node->ret_node.value);
-    ret_val = LLVMConstReal(F32(components->ctx), number);
-    break;
-  }
-  case TYPE_CHAR: {
-    if (node->ret_node.value->Type == AST_BINARY_EXPR) {
-      ret_val = arihmetics(components, node->ret_node.value, "");
-      if(LLVMTypeOf(ret_val) != I8(components->ctx)){
-        ret_val = LLVMBuildTrunc(components->builder, ret_val, I8(components->ctx), "");
+      case TYPE_BOOL: {
+        uint8_t b = (val_node->literal_expr.token.length >= 4) ? 1 : 0;
+        ret_val = LLVMConstInt(I1(components->ctx), b, false);
+        break;
       }
-      break;
+      case TYPE_STRING: {
+        const uint32_t LENGTH = val_node->literal_expr.token.length;
+        char str[LENGTH + 1];
+        slice_string(val_node->literal_expr.token, str);
+        ret_val = LLVMBuildGlobalStringPtr(components->builder, str, "");
+        break;
+      }
+      case TYPE_FLOAT: {
+        float number = return_eval_int(val_node);
+        ret_val = LLVMConstReal(F32(components->ctx), number);
+        break;
+      }
+      case TYPE_CHAR: {
+        uint8_t c = parse_char_literal(val_node->literal_expr.token);
+        ret_val = LLVMConstInt(I8(components->ctx), c, false);
+        break;
+      }
+      default:
+        break;
+      }
     }
-    if (node->ret_node.value->Type == AST_VAR_REF) {
-      ret_val = load_variable(components, node->ret_node.value);
-      break;
-    }
-    if (node->ret_node.value->Type == AST_CALL_FXN) {
-      ret_val = _apl_eval_function_call(components, node->ret_node.value);
-      break;
-    }
-    uint8_t c = parse_char_literal(node->ret_node.value->literal_expr.token);
-    ret_val = LLVMConstInt(I8(components->ctx), c, false);
-    break;
-  }
   }
 
-  LLVMBuildRet(components->builder, ret_val);
+  if (ret_val) {
+    LLVMBuildRet(components->builder, ret_val);
+  } else {
+    LLVMBuildRetVoid(components->builder);
+  }
 }
 
 /*==================================================FXN CALLS=====================================================*/

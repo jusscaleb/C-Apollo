@@ -2,8 +2,43 @@
 
 ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   advance(parser);
+  int pointer_level = 0;
   DataType dt = var_type;
 
+
+  /*if(parser->current.type == TOKEN_MUL){
+    switch(dt){
+      case TYPE_INT: 
+        dt = TYPE_INT_PTR;
+        break;
+      
+      case TYPE_CHAR:
+        dt = TYPE_CHAR_PTR;
+        break;
+      
+      case TYPE_BOOL:
+        dt = TYPE_BOOL_PTR;
+        break;
+      
+      case TYPE_FLOAT:
+        dt = TYPE_FLOAT_PTR;
+        break;
+      
+      default:{
+        error(parser, "", SYNTAXERROR);
+      }
+    }
+
+    advance(parser);
+  }*/
+
+
+  while (parser->current.type == TOKEN_MUL){
+    pointer_level++;
+    advance(parser);
+  }
+
+  
   bool declaring = false, decl_param = false;
 
   Token name_token = parser->current;
@@ -13,6 +48,8 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
   name[NAME_LENGTH] = '\0';
 
   ASTNode *value;
+
+
 
   consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
   if (parser->current.type == TOKEN_SEMICOLON) {
@@ -36,7 +73,7 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
 
   ASTNode *var_node =
       create_var_decl_node(name_token.start, name_token.length, dt, value,
-                           *parser->lexer->fxn, parser->lexer->scope_level, context->a);
+                           *parser->lexer->fxn, parser->lexer->scope_level, context->a, pointer_level);
 
   return var_node;
 }
@@ -112,7 +149,7 @@ ASTNode *parse_assignment_or_increment(Parser *parser,
 
   return create_var_assign_node(potential_var_name, NAME_LENGTH, value,
                                 *parser->lexer->fxn,
-                                parser->lexer->scope_level, context->a);
+                                parser->lexer->scope_level, context->a, 0);
 }
 
 
@@ -231,9 +268,31 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     }
 
     ASTNode *var_node = var(parser, context, dt);
-    consume(parser, TOKEN_SEMICOLON, "Expected After Variable declaration.");
+    consume(parser, TOKEN_SEMICOLON, "E");
     return var_node;
 
+  case TOKEN_MUL: {
+    int deref_level = 0;
+    while (parser->current.type == TOKEN_MUL) {
+      deref_level++;
+      advance(parser);
+    }
+    Token var_token = parser->current;
+    consume(parser, TOKEN_IDENTIFIER, "Expected identifier after '*'.");
+
+    const int NAME_LENGTH = var_token.length;
+    char *potential_var_name = (char *)arena_alloc(context->a, NAME_LENGTH + 1);
+    memcpy(potential_var_name, var_token.start, NAME_LENGTH);
+    potential_var_name[NAME_LENGTH] = '\0';
+
+    consume(parser, TOKEN_ASSIGN, "Expected '=' after dereferenced variable.");
+    ASTNode *value = parse_logical_or(parser, context);
+    consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' after assignment.");
+
+    return create_var_assign_node(potential_var_name, NAME_LENGTH, value,
+                                  *parser->lexer->fxn,
+                                  parser->lexer->scope_level, context->a, deref_level);
+  }
   case TOKEN_NULL:
   case TOKEN_IDENTIFIER:
     return identifier(parser, context);

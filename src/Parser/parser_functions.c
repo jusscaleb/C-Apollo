@@ -5,6 +5,7 @@
 
 ASTNode *function(Parser *parser, CodegenContext *context) {
   advance(parser);
+  int pointer_level = 0;
   consume(parser, TOKEN_LPARETH,
           "Expected parameter list wrapper starting with '('.");
 
@@ -40,6 +41,14 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
         error(parser, "Invalid return type", SYNTAXERROR);
       }
       advance(parser);
+      while(parser->current.type == TOKEN_MUL){
+        pointer_level++;
+        advance(parser);
+      }
+
+
+      //if(pointer_level > 0) advance(parser);
+
     }
   }
 
@@ -47,7 +56,7 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
 
   int name_length = strlen(parser->lexer->fxn->name);
   return create_function_node(parser->lexer->fxn->name, name_length, body,
-                              *parser->lexer->fxn, parser->lexer->scope_level, context->a);
+                              *parser->lexer->fxn, parser->lexer->scope_level, context->a, pointer_level);
 }
 
 

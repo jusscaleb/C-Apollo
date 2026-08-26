@@ -64,7 +64,6 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
     uint32_t n_digits = 0;
     while (s_count != 0) {
       n_digits++;
-      s_count %= 10;
       s_count /= 10;
     }
 

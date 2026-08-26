@@ -73,6 +73,7 @@ struct ASTNode {
       int level;
       Fxn fxn;
       Symbol *resolved_symbol;
+      int pointer_level;
     } function;
 
     struct {
@@ -89,6 +90,7 @@ struct ASTNode {
       ASTNode *value;
       Fxn fxn;
       int level;
+      int pointer_level;
       struct Symbol *resolved_symbol;
     } var_decl;
 
@@ -105,6 +107,7 @@ struct ASTNode {
     struct {
       TokenType operator_type;
       ASTNode *value;
+      DataType eval_type;
     }urinary_expr;
 
     struct {
@@ -122,6 +125,7 @@ struct ASTNode {
       Fxn fxn;
       int level;
       struct Symbol *resolved_symbol;
+      int deref_level;
     } var_assign;
 
     struct {
@@ -192,7 +196,7 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
  */
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level, Arena *a);
+                              int level, Arena *a, int pointer_level);
 /**
  * Creates an empty AST block container to hold statements.
  */
@@ -217,7 +221,7 @@ ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
  * @param level scope level of the variable.
  */
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, Fxn fxn, int level, Arena *a);
+                                ASTNode *value, Fxn fxn, int level, Arena *a, int deref_level);
 
 /**
  * Creates an AST node representing conditional branching (if/elif/else).
@@ -267,7 +271,7 @@ ASTNode *create_fxn_call_node(char *name, int name_length, Fxn fxn, int level,
  * @param body The AST block node representing the function body.
  */
 ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
-                              Fxn fxn, int level, Arena *a);
+                              Fxn fxn, int level, Arena *a, int pointer_level);
 
 /**
  * Creates an AST node representing the entire program.

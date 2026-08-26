@@ -1,13 +1,14 @@
 #include "apl-io.h"
+#include <stdint.h>
 #include <stdio.h>
 
 
 char out_buf[_BUFFER_SIZE];
 int buf_idx = 0;
-char str_arena[_BUFFER_SIZE];
-int arena_offset = 0;
+static char str_arena[_BUFFER_SIZE];
+static int arena_offset = 0;
 
-void _apl_flush() {
+__attribute__((always_inline)) void _apl_flush() {
   _DEBUG("API_FLUSH WORKS");
   if (buf_idx > 0) {
     fwrite( out_buf, 1, buf_idx, stdout);
@@ -17,16 +18,16 @@ void _apl_flush() {
   _apl_clear_();
 }
 
-void _apl_print_char(char c) {
+__attribute__((always_inline))void _apl_print_char(char c) {
   if (buf_idx >= _BUFFER_SIZE) {
     _apl_flush();
   }
   out_buf[buf_idx++] = c;
 }
 
-void _apl_clear_() { buf_idx = 0; }
+__attribute__((always_inline))void _apl_clear_() { buf_idx = 0; }
 
-void _apl_print_string(const char *str) {
+__attribute__((always_inline))void _apl_print_string(const char *str) {
   if (!str)
     return;
   while (*str) {
@@ -34,7 +35,7 @@ void _apl_print_string(const char *str) {
   }
 }
 
-void _apl_print_bool(int val) {
+__attribute__((always_inline))void _apl_print_bool(int val) {
   if (val) {
     _apl_print_string("true");
   } else {
@@ -44,12 +45,12 @@ void _apl_print_bool(int val) {
   _apl_flush();
 }
 
-void _apl_print_newline() {
+__attribute__((always_inline))void _apl_print_newline() {
   _apl_print_char('\n');
   _apl_flush();
 }
 
-void _apl_print_int(int val) {
+__attribute__((always_inline))void _apl_print_int(int val) {
   _DEBUG("INT PRINT WORKS.")
 
   if (val == 0) {
@@ -74,7 +75,7 @@ void _apl_print_int(int val) {
   }
 }
 
-void _apl_print_float(float val) {
+__attribute__((always_inline))void _apl_print_float(float val) {
   if (val < 0) {
     _apl_print_char('-');
     val = -val;
@@ -116,6 +117,34 @@ void _apl_print_float(float val) {
 
   _apl_flush();
 }
+
+__attribute__((always_inline))
+void __apl_print_ptr(const void *ptr){
+  if(!ptr) {
+    _apl_print_string("null.");
+    return;
+  }
+
+  _apl_print_string("0x");
+
+  uintptr_t val = (uintptr_t)ptr;
+  static const char hex_digits[] = "0123456789abcdef";
+  char temp[sizeof(uintptr_t) * 2];
+  int idx = 0;
+
+
+  while(val > 0){
+    temp[idx++] = hex_digits[val & 0xF];
+    val>>=4;
+  }
+
+  while(idx>0){
+    _apl_print_char(temp[--idx]);
+  }
+
+}
+
+
 
 void __apl_input__(const char *__prompt__, String *__input__) {
 

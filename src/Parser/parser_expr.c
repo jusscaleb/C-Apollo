@@ -63,8 +63,6 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *parse_urinary(Parser *parser, CodegenContext *context){ 
-
-  printf("%s\n", TokenNames[parser->current.type]);
   TokenType op;
   switch (parser->current.type) {
       case TOKEN_REF: {
@@ -74,8 +72,8 @@ ASTNode *parse_urinary(Parser *parser, CodegenContext *context){
         case TOKEN_SUB: {
         op = TOKEN_SUB;
         break;
-    } case TOKEN_PTR:{
-      op = TOKEN_PTR;
+    } case TOKEN_MUL:{
+      op = TOKEN_MUL;
       break;
     }default:{
       return parse_primary(parser, context);

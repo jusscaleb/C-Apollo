@@ -77,6 +77,8 @@ typedef struct Symbol {
   FxnCallMetaData fxn_meta_data;
   int param_idx;
   int frame_index;
+  int pointer_level;
+  
 } Symbol;
 
 typedef struct SymbolEntry {

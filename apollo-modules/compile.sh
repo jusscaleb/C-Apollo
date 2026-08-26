@@ -8,5 +8,5 @@ if [ "$#" -lt 1 ]; then
 fi
 
 
-clang -emit-llvm -O3 -flto  -ffunction-sections -fdata-sections -DNDEBUG -c "$(pwd)"/"$1"/"$1".c -o "$(pwd)"/"$1"/"$1".bc
+clang --target=x86_64-w64-windows-gnu -emit-llvm -O3 -flto  -ffunction-sections -fdata-sections -DNDEBUG -c "$(pwd)"/"$1"/"$1".c -o "$(pwd)"/"$1"/"$1".bc
 

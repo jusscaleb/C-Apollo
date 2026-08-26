@@ -33,8 +33,8 @@
 #define _TEMP_BUFFER_SIZE 16
 extern char out_buf[_BUFFER_SIZE];
 extern int buf_idx;
-extern char str_arena[_BUFFER_SIZE];
-extern int arena_offset;
+//extern char str_arena[_BUFFER_SIZE];
+//extern int arena_offset;
 
 #define TYPEOF(x)                                                              \
   _Generic((x),                                                                \
@@ -67,5 +67,8 @@ void _apl_print_float(float val);
 void _apl_clear_();
 
 void __apl_input__(const char *__prompt__, String *__input__);
+
+void __apl_print_ptr(const void *ptr);
+
 
 #endif

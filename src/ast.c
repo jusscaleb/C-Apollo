@@ -35,7 +35,7 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
 
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level, Arena *a) {
+                              int level, Arena *a, int pointer_level) {
   ASTNode *node = allocate_node(AST_VAR_DECL, a);
 
   node->var_decl.name = name;
@@ -43,6 +43,7 @@ ASTNode *create_var_decl_node(const char *name, int name_length,
   node->var_decl.value_type = value_type;
   node->var_decl.value = value;
   node->var_decl.fxn = fxn;
+  node->var_decl.pointer_level = pointer_level;
   node->var_decl.level = level;
 
   return node;
@@ -60,13 +61,14 @@ ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
 }
 
 ASTNode *create_var_assign_node(const char *name, int name_length,
-                                ASTNode *value, Fxn fxn, int level, Arena *a) {
+                                ASTNode *value, Fxn fxn, int level, Arena *a, int deref_level) {
   ASTNode *node = allocate_node(AST_VAR_ASS, a);
   node->var_assign.name = name;
   node->var_assign.name_length = name_length;
   node->var_assign.value = value;
   node->var_assign.fxn = fxn;
   node->var_assign.level = level;
+  node->var_assign.deref_level = deref_level;
   return node;
 }
 
@@ -132,13 +134,14 @@ ASTNode *create_fxn_call_node(char *name, int name_length,
 }
 
 ASTNode *create_function_node(const char *name, int name_length, ASTNode *body,
-                              Fxn fxn, int level, Arena *a) {
+                              Fxn fxn, int level, Arena *a, int pointer_level) {
   ASTNode *node = allocate_node(AST_FUNCTION, a);
   node->function.name = name;
   node->function.name_length = name_length;
   node->function.body = body;
   node->function.fxn = fxn;
   node->function.level = level;
+  node->function.pointer_level = pointer_level;
   return node;
 }
 

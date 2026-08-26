@@ -16,6 +16,10 @@ apollo-modules/
 │   ├── apl-io.c        # I/O implementation (console output, formatting)
 │   ├── apl-io.h        # I/O function prototypes and declarations
 │   └── apl-io.bc       # Compiled LLVM Bitcode linked during code generation
+├── apl-mem/            # Memory management module (3+1 Bucket Engine)
+│   ├── apl-mem.c       # Scoped region arenas and ARC heap implementation
+│   ├── apl-mem.h       # Memory module function declarations & inline hot-paths
+│   └── apl-mem.bc      # Compiled LLVM Bitcode linked during code generation
 ├── apl-string/         # String manipulation module
 │   ├── apl-string.c    # String allocation, concatenation, length & slice functions
 │   ├── apl-string.h    # String module function declarations
@@ -40,14 +44,21 @@ apollo-modules/
   - `print_str(const char *str)`: Outputs null-terminated string slices.
   - `print_newline()`: Emits a newline (`\n`).
 
-### 2. `apl-string` (String Operations)
+### 2. `apl-mem` (3+1 Bucket Memory Engine)
+- **Files**: `apl-mem/apl-mem.c`, `apl-mem/apl-mem.h`, `apl-mem/apl-mem.bc`
+- **Purpose**: Low-level runtime memory management support for Scoped Region Arenas and ARC Heap allocations.
+- **Core Functions**:
+  - **Bucket 2 (Scoped Arena)**: `apl_arena_create`, `apl_arena_alloc`, `apl_arena_get_mark`, `apl_arena_set_mark`, `apl_arena_reset`, `apl_arena_destroy`
+  - **Bucket 3 (Heap ARC)**: `apl_heap_alloc_arc`, `apl_arc_retain`, `apl_arc_release`, `apl_arc_ref_count`
+
+### 3. `apl-string` (String Operations)
 - **Files**: `apl-string/apl-string.c`, `apl-string/apl-string.h`, `apl-string/apl-string.bc`
 - **Purpose**: Low-level string memory management and manipulation functions.
 - **Core Functions**:
   - String concatenation and slice allocation.
   - String comparison and length calculations.
 
-### 3. `apl-sys` (System & OS Interop)
+### 4. `apl-sys` (System & OS Interop)
 - **Files**: `apl-sys/apl-sys.c`, `apl-sys/apl-sys.h`, `apl-sys/apl-sys.bc`
 - **Purpose**: System-level utilities, heap memory allocation wrappers, and OS process helpers.
 
@@ -55,7 +66,7 @@ apollo-modules/
 
 ## Re-Compiling Runtime Bitcode Modules
 
-If you modify any `.c` source files inside `apl-io/`, `apl-string/`, or `apl-sys/`, you must re-compile them to LLVM bitcode (`.bc`) so the Apollo compiler backend can link the updated implementations.
+If you modify any `.c` source files inside `apl-io/`, `apl-mem/`, `apl-string/`, or `apl-sys/`, you must re-compile them to LLVM bitcode (`.bc`) so the Apollo compiler backend can link the updated implementations.
 
 Use the `compile.sh` helper script:
 
@@ -65,6 +76,7 @@ cd apollo-modules
 
 # Compile individual modules to bitcode (.bc)
 ./compile.sh apl-io
+./compile.sh apl-mem
 ./compile.sh apl-string
 ./compile.sh apl-sys
 ```
@@ -74,7 +86,7 @@ cd apollo-modules
 Under the hood, `compile.sh` invokes Clang to compile C files to LLVM IR bitcode:
 
 ```bash
-clang -emit-llvm -O3 -flto -ffunction-sections -fdata-sections -DNDEBUG -c apl-io/apl-io.c -o apl-io/apl-io.bc
+clang --target=x86_64-w64-windows-gnu -emit-llvm -O3 -flto -ffunction-sections -fdata-sections -DNDEBUG -c apl-mem/apl-mem.c -o apl-mem/apl-mem.bc
 ```
 
 ---
@@ -86,6 +98,7 @@ In `src/API/llvm_main.c`, runtime modules are imported automatically when the co
 ```c
 void _apl_load_runtime_libraries(LLVMComponents *components) {
     _apl_import_runtime(components->module, "apollo-modules/apl-io/apl-io.bc");
+    _apl_import_runtime(components->module, "apollo-modules/apl-mem/apl-mem.bc");
     _apl_import_runtime(components->module, "apollo-modules/apl-string/apl-string.bc");
     _apl_import_runtime(components->module, "apollo-modules/apl-sys/apl-sys.bc");
 }
