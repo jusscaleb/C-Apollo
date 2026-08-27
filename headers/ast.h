@@ -92,6 +92,7 @@ struct ASTNode {
       int level;
       int pointer_level;
       struct Symbol *resolved_symbol;
+      MemoryBucket bucket;
     } var_decl;
 
     struct {
@@ -196,7 +197,7 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
  */
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level, Arena *a, int pointer_level);
+                              int level, Arena *a, int pointer_level, MemoryBucket bucket);
 /**
  * Creates an empty AST block container to hold statements.
  */

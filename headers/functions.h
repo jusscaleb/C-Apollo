@@ -29,6 +29,7 @@ typedef struct Fxn {
   Params *params;
   int ret_nodes;
   int block_nodes;
+  MemoryBucket bucket;
 } Fxn;
 
 /**

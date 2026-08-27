@@ -79,4 +79,6 @@ static void analyze_node(SemanticContext *context, ASTNode *node);
 static void analyze_block(SemanticContext *context, ASTNode *block_node);
 
 
+MemoryBucket infer_bucket_type(SemanticContext *context, ASTNode *expr);
+
 #endif

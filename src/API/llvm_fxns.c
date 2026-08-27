@@ -177,18 +177,21 @@ void _apl_gen_function_start(LLVMComponents *components,
     components->current_frame_alloc = LLVMBuildAlloca(
         components->builder,
         LLVMArrayType(LLVMPointerType(I8(components->ctx), 0), 128), "frame_env");
+    components->current_arena_ptr = _apl_emit_arena_create(components, 0);
+    components->target_return_arena = NULL;
     return;
   }
 
   else {
     components->current_fxn_ast = &block_node->function.fxn;
     bool is_nested = (block_node->function.fxn.parent_fxn != NULL);
+    bool is_b2_ret = (block_node->function.resolved_symbol && block_node->function.resolved_symbol->bucket == BUCKET_TWO);
 
     uint32_t user_params =
         (block_node->function.fxn.params)
             ? _apl_get_n_params(components, block_node->function.fxn.params)
             : 0;
-    uint32_t total_params = is_nested ? user_params + 1 : user_params;
+    uint32_t total_params = user_params + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);
     LLVMTypeRef param_types[total_params > 0 ? total_params : 1];
 
     Params *p = block_node->function.fxn.params;
@@ -202,8 +205,12 @@ void _apl_gen_function_start(LLVMComponents *components,
       p = p->next;
     }
 
+    uint32_t curr_idx = user_params;
     if (is_nested) {
-      param_types[user_params] = LLVMPointerType(I8(components->ctx), 0);
+      param_types[curr_idx++] = LLVMPointerType(I8(components->ctx), 0);
+    }
+    if (is_b2_ret) {
+      param_types[curr_idx++] = LLVMPointerType(I8(components->ctx), 0);
     }
 
     LLVMTypeRef ret_type;
@@ -228,9 +235,16 @@ void _apl_gen_function_start(LLVMComponents *components,
     components->current_frame_alloc = LLVMBuildAlloca(
         components->builder,
         LLVMArrayType(LLVMPointerType(I8(components->ctx), 0), 128), "frame_env");
+    components->current_arena_ptr = _apl_emit_arena_create(components, 0);
 
+    curr_idx = user_params;
     if (is_nested) {
-      components->current_parent_frame = LLVMGetParam(fxn, user_params);
+      components->current_parent_frame = LLVMGetParam(fxn, curr_idx++);
+    }
+    if (is_b2_ret) {
+      components->target_return_arena = LLVMGetParam(fxn, curr_idx++);
+    } else {
+      components->target_return_arena = NULL;
     }
 
     p = block_node->function.fxn.params;
@@ -257,6 +271,11 @@ void _apl_gen_function_end(LLVMComponents *components,
   LLVMBasicBlockRef current_block = LLVMGetInsertBlock(components->builder);
 
   if (LLVMGetBasicBlockTerminator(current_block)) return;
+
+  if (components->current_arena_ptr) {
+    _apl_emit_arena_destroy(components, components->current_arena_ptr);
+  }
+
   if (memcmp(block_node->function.name, "run", 3) == 0) {
     LLVMBuildRet(
         components->builder,
@@ -313,7 +332,19 @@ void _apl_gen_return(LLVMComponents *components,
     }
   }
 
+  if (components->current_arena_ptr) {
+    _apl_emit_arena_destroy(components, components->current_arena_ptr);
+  }
+
   if (ret_val) {
+    if (val_node && val_node->Type == AST_VAR_REF && 
+        val_node->var_ref.resolved_symbol && 
+        val_node->var_ref.resolved_symbol->bucket == BUCKET_THREE &&
+        val_node->var_ref.resolved_symbol->pointer_level > 0) {
+        
+        LLVMValueRef ptr_val = LLVMBuildBitCast(components->builder, ret_val, LLVMPointerType(I8(components->ctx), 0), "");
+        _apl_emit_arc_retain(components, ptr_val);
+    }
     LLVMBuildRet(components->builder, ret_val);
   } else {
     LLVMBuildRetVoid(components->builder);

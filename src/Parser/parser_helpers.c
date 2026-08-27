@@ -58,28 +58,34 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
 
 Params *get_params(CodegenContext *context, Parser *parser) {
   Params *p = (Params *)arena_alloc(context->a, sizeof(Params));
+  MemoryBucket b = 0;
+
+  if(parser->current.type == TOKEN_SIGIL){
+    b = BUCKET_THREE;
+    advance(parser);
+  }
 
   switch (parser->current.type) {
   case DECLARE_INT: {
-    p->param = var(parser, context, TYPE_INT);
+    p->param = var(parser, context, TYPE_INT, b);
     break;
   }
 
   case DECLARE_FLOAT: {
-    p->param = var(parser, context, TYPE_FLOAT);
+    p->param = var(parser, context, TYPE_FLOAT, b);
     break;
   }
 
   case DECLARE_STR: {
-    p->param = var(parser, context, TYPE_STRING);
+    p->param = var(parser, context, TYPE_STRING, b);
     break;
   }
 
   case DECLARE_BOOL: {
-    p->param = var(parser, context, TYPE_BOOL);
+    p->param = var(parser, context, TYPE_BOOL, b);
     break;
   }case DECLARE_CHAR: {
-    p->param = var(parser,context, TYPE_CHAR);
+    p->param = var(parser,context, TYPE_CHAR,b );
     break;
   }
 
@@ -122,5 +128,41 @@ __attribute__((always_inline))Token parser_get_var_token(Parser *parser, DataTyp
     case TYPE_NULL:   return(Token){TOKEN_NULL, "null", 4, parser->current.line};
     case TYPE_CHAR:   return (Token){TOKEN_CHAR, "", 0, parser->current.line};
   }
+}
+
+ASTNode *parse_deref_assignment(Parser *parser, CodegenContext *context) {
+  int deref_level = 0;
+  while (parser->current.type == TOKEN_MUL) {
+    deref_level++;
+    advance(parser);
+  }
+
+  Token var_token = parser->current;
+  consume(parser, TOKEN_IDENTIFIER, "Expected identifier after '*'.");
+
+  const int NAME_LENGTH = var_token.length;
+  char *potential_var_name = (char *)arena_alloc(context->a, NAME_LENGTH + 1);
+  memcpy(potential_var_name, var_token.start, NAME_LENGTH);
+  potential_var_name[NAME_LENGTH] = '\0';
+
+  consume(parser, TOKEN_ASSIGN, "Expected '=' after dereferenced variable.");
+  ASTNode *value = parse_logical_or(parser, context);
+  consume(parser, TOKEN_SEMICOLON,
+          "Expected trailing semicolon ';' after assignment.");
+
+  return create_var_assign_node(
+      potential_var_name, NAME_LENGTH, value, *parser->lexer->fxn,
+      parser->lexer->scope_level, context->a, deref_level);
+}
+
+__attribute__((always_inline)) bool is_all_caps(const char *name, int length) {
+    if (!name || length <= 0) return false;
+    bool has_alpha = false;
+    for (int i = 0; i < length; i++) {
+        unsigned char c = (unsigned char)name[i];
+        if (_IS_LOWER_(c)) return false; 
+        if (_IS_UPPER_(c)) has_alpha = true;
+    }
+    return has_alpha; 
 }
 

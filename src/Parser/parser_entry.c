@@ -16,7 +16,9 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
 
   // Checking global variables
   while (parser->current.type == TOKEN_VAR) {
-    ASTNode *var_node = var(parser, context, TYPE_NULL);
+    MemoryBucket b = (parser->previous.type == TOKEN_SIGIL) ? 3 : 0;
+    
+    ASTNode *var_node = var(parser, context, TYPE_NULL, b);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
     if (var_node) {
       block_add_statement(program_block, var_node, context->a);

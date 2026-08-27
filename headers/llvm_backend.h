@@ -29,7 +29,8 @@
 
 #define RUNTIME_LIBS                                                           \
   {"apollo-modules/apl-io/apl-io.bc",                                          \
-   "apollo-modules/apl-string/apl-string.bc"}
+   "apollo-modules/apl-string/apl-string.bc",                                  \
+  "apollo-modules/apl-mem/apl-mem.bc"}
 
 
 #define VOID(x) (LLVMVoidTypeInContext(x))
@@ -47,6 +48,8 @@ typedef struct LLVMComponents {
   LLVMTypeRef current_frame_type;
   LLVMValueRef current_frame_alloc;
   LLVMValueRef current_parent_frame;
+  LLVMValueRef current_arena_ptr;
+  LLVMValueRef target_return_arena;
   Fxn *current_fxn_ast;
 } LLVMComponents;
 
@@ -276,7 +279,88 @@ void _apl_build_string_reassign(LLVMComponents *components, LLVMValueRef str_str
  */
 void _apl_optimize_module(LLVMComponents *components);
 
+/**
+ * 3+1 Bucket Memory Architecture LLVM CodeGen Prototypes
+ */
 
+/**
+ * Emits an LLVM call to apl_arena_create(capacity).
+ * Initializes a new Scoped Region Arena (Bucket 2) chunk block chain.
+ *
+ * @param components Pointer to LLVMComponents state.
+ * @param capacity Initial arena byte capacity (default 64KB).
+ * @return LLVMValueRef pointer to the created AplArena instance.
+ */
+LLVMValueRef _apl_emit_arena_create(LLVMComponents *components, uint64_t capacity);
 
+/**
+ * Emits an LLVM call to apl_arena_reset(arena_ptr).
+ * Performs an O(1) bulk reset of the Scoped Region Arena on scope/function exit.
+ *
+ * @param components Pointer to LLVMComponents state.
+ * @param arena_ptr Pointer value to the AplArena instance to reset.
+ * @return LLVMValueRef result of call instruction.
+ */
+LLVMValueRef _apl_emit_arena_reset(LLVMComponents *components, LLVMValueRef arena_ptr);
+
+/**
+ * Emits an LLVM call to apl_arena_destroy(arena_ptr).
+ * Destroys the Scoped Region Arena on scope/function exit to prevent memory leaks.
+ *
+ * @param components Pointer to LLVMComponents state.
+ * @param arena_ptr Pointer value to the AplArena instance to destroy.
+ * @return LLVMValueRef result of call instruction.
+ */
+LLVMValueRef _apl_emit_arena_destroy(LLVMComponents *components, LLVMValueRef arena_ptr);
+
+/**
+ * Emits an LLVM call to apl_heap_alloc_arc(size).
+ * Allocates dynamic memory in Bucket 3 (Heap ARC) with a prepended 8-byte metadata header.
+ *
+ * @param components Pointer to LLVMComponents state.
+ * @param size_val LLVMValueRef representing payload byte size to allocate.
+ * @return LLVMValueRef pointer to allocated payload memory.
+ */
+LLVMValueRef _apl_emit_heap_alloc_arc(LLVMComponents *components, LLVMValueRef size_val);
+
+/**
+ * Retains a Bucket 3 Heap ARC object (increments reference count).
+ *
+ * @param components Pointer to LLVMComponents state.
+ * @param heap_ptr Pointer to the payload of the Heap ARC allocation.
+ */
+void _apl_emit_arc_retain(LLVMComponents *components, LLVMValueRef heap_ptr);
+
+/**
+ * Releases a Bucket 3 Heap ARC object (decrements reference count, frees if count == 0).
+ *
+ * @param components Pointer to LLVMComponents state.
+ * @param heap_ptr Pointer to the payload of the Heap ARC allocation.
+ */
+void _apl_emit_arc_release(LLVMComponents *components, LLVMValueRef heap_ptr);
+
+/**
+ * Dispatches allocation of a variable based on its MemoryBucket classification:
+ * - BUCKET_PLUS_ONE (0): CPU Stack Frame (alloca)
+ * - BUCKET_ONE (1): Static Global Data Segment (.rodata / .data)
+ * - BUCKET_TWO (2): Scoped Region Arena Bump Allocator
+ * - BUCKET_THREE (3): Dynamic Heap ARC Allocator
+ *
+ * @param components Pointer to LLVMComponents state.
+ * @param sym Target Symbol containing symbol name and memory bucket classification.
+ * @param var_type Target LLVMTypeRef representation of the variable data type.
+ * @return LLVMValueRef pointer to allocated variable memory location.
+ */
+LLVMValueRef _apl_allocate_variable_by_bucket(LLVMComponents *components, Symbol *sym, LLVMTypeRef var_type);
+
+/**
+ * Emits call to apl_arena_get_mark(arena_ptr) to record current arena offset bookmark.
+ */
+LLVMValueRef _apl_emit_arena_get_mark(LLVMComponents *components, LLVMValueRef arena_ptr);
+
+/**
+ * Emits call to apl_arena_set_mark(arena_ptr, mark) to reset arena offset to bookmark.
+ */
+void _apl_emit_arena_set_mark(LLVMComponents *components, LLVMValueRef arena_ptr, LLVMValueRef mark_val);
 
 #endif

@@ -43,6 +43,15 @@ typedef enum {
   TYPE_CHAR_PTR,
 } DataType;
 
+typedef enum {
+  BUCKET_PLUS_ONE, 
+  BUCKET_ONE, // Constants
+  BUCKET_TWO, // Arena 
+  BUCKET_THREE // Heap
+
+}MemoryBucket;
+
+
 extern const char *dt_names[];
 
 // char *datatypes[] = {"str", "int", "char", "float", "bool", "null"};
@@ -78,7 +87,7 @@ typedef struct Symbol {
   int param_idx;
   int frame_index;
   int pointer_level;
-  
+  MemoryBucket bucket;
 } Symbol;
 
 typedef struct SymbolEntry {

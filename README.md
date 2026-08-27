@@ -15,6 +15,7 @@ Apollo/
 ├── CMakeLists.txt              # Build system configuration (CMake 3.20+, MinGW & LLVM-19)
 ├── Contributions.md            # Guidelines for open-source contributions
 ├── LICENSE                     # MIT Open Source License
+├── MEMORY.md                   # 3+1 Bucket Memory Architecture specification
 ├── PERFORMANCE.md              # Benchmarks and performance analysis
 ├── README.md                   # Project documentation and architectural overview
 ├── Task.md                     # Roadmap and Object-Oriented Programming (OOP) migration plan
@@ -37,6 +38,7 @@ Apollo/
 │   ├── defs.h                  # Global compiler context, AST node types, and data types
 │   ├── error.h                 # Rich error diagnostic stack and reporting structures
 │   ├── functions.h             # Function signature tracking and symbol table entries
+│   ├── keywords_hash.h         # Hash lookup tables for lexer keyword resolution
 │   ├── llvm_backend.h          # LLVM C-API backend prototypes and `LLVMComponents` struct
 │   ├── memory.h                # Arena memory allocator interface
 │   ├── parser.h                # Recursive descent parser state and entry declarations
@@ -50,6 +52,8 @@ Apollo/
 │   ├── lexer.c                 # Tokenizer / Scanner engine
 │   ├── memory.c                # Arena memory manager allocation & reset routines
 │   ├── variables.c             # Variable symbol table allocation and scope management
+│   ├── gperf/                  # Fast keyword lookup hash generator configurations
+│   │   └── keywords.gperf      # GNU gperf hash table specification for language keywords
 │   ├── API/                    # LLVM Code Generation Engine (C-API)
 │   │   ├── llvm_main.c         # LLVM environment setup, module verification, runtime linking, & file output
 │   │   ├── llvm_fxns.c         # Code generation for function declarations and calls
@@ -142,6 +146,16 @@ Open any `.apl` script in VS Code and press `Ctrl + Shift + B` to trigger the pr
 
 ---
 
+### 5. Compiler Diagnostics via `diagnosis.sh`
+
+Run the compiler diagnostic utility to inspect toolchain dependencies, header availability, pre-compiled runtime bitcodes, and build status:
+
+```bash
+./diagnosis.sh
+```
+
+---
+
 ## Compiler Architecture & Pipeline
 
 ```mermaid
@@ -161,6 +175,7 @@ flowchart TD
 
 1. **Lexical Analysis (`src/lexer.c`)**:
    - Converts source text into a stream of typed tokens (`TOKEN_INT`, `TOKEN_IDENTIFIER`, `TOKEN_IF`, `TOKEN_FXN`, etc.).
+   - Employs GNU `gperf` generated hash lookup table (`src/gperf/keywords.gperf` -> `headers/keywords_hash.h`) for $O(1)$ keyword identification.
    - Tracks exact source line numbers and positions for diagnostic reporting.
 2. **Modular Syntactic Parsing (`src/Parser/`)**:
    - Built using a recursive descent architecture split into focused sub-modules (`parser_var.c`, `parser_functions.c`, `parser_expr.c`).
@@ -176,6 +191,28 @@ flowchart TD
    - Writes compiled bitcode to `temp/output.bc`.
 5. **Native Execution**:
    - Calls `clang -O3 temp/output.bc -o temp/program.exe` to emit fully compiled, optimized Windows executable binaries.
+
+---
+
+## 3+1 Bucket Memory Architecture
+
+Apollo utilizes a deterministic **3+1 Bucket Memory Model** that combines hardware call stack allocation (`alloca`), static data segments, scoped region arenas, and Automatic Reference Counting (ARC). This model eliminates Garbage Collector (GC) latency pauses while bypassing 90%+ of ARC overhead. For full technical specifications, see [MEMORY.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/MEMORY.md).
+
+```mermaid
+graph TD
+    A["Apollo Program Allocation"] --> B{"Allocation Type & Scope"}
+    B -->|"Fixed Scalar Primitives"| C["Bucket 0 (+1): CPU Call Stack"]
+    B -->|"Global / Immutable Constants"| D["Bucket 1: Static Bucket"]
+    B -->|"Local Dynamic Data (Stays in Scope)"| E["Bucket 2: Scoped Region Arena"]
+    B -->|"Cross-Scope / Escaping Objects"| F["Bucket 3: Dynamic Heap ARC"]
+```
+
+| Bucket | Memory Region | Target Data Types | Lifespan | Deallocation Cost | ARC Overhead |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Bucket 0 (+1)** | CPU Call Stack (`alloca`) | `int`, `char`, `float`, `bool`, stack `ptr` | Function Frame LIFO | $O(1)$ Hardware Frame Pop | **0%** (Disabled) |
+| **Bucket 1** | Static Data Segment | `static str`, global constants, literals | Process Execution | Process Exit | **0%** (Disabled) |
+| **Bucket 2** | Scoped Region Arena | Local `str`, `array`, `dict`, `struct` | Function / Block Scope | $O(1)$ Bulk Arena Reset | **0%** (Disabled) |
+| **Bucket 3** | Dynamic Heap | Returned structs, escaping objects | Reference-Counted | `retain` / `release` on `count == 0` | Active on escape |
 
 ---
 

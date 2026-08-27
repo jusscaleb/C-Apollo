@@ -6,6 +6,7 @@
 ASTNode *function(Parser *parser, CodegenContext *context) {
   advance(parser);
   int pointer_level = 0;
+  MemoryBucket b = BUCKET_PLUS_ONE;
   consume(parser, TOKEN_LPARETH,
           "Expected parameter list wrapper starting with '('.");
 
@@ -18,6 +19,10 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
   if (parser->current.type == TOKEN_ARROW) {
     advance(parser);
     if (parser->current.type != TOKEN_LBRACE) {
+      if(parser->current.type == TOKEN_SIGIL){
+          parser->lexer->fxn->bucket = BUCKET_THREE;
+        advance(parser);
+      }
       switch (parser->current.type) {
       case DECLARE_INT:
         parser->lexer->fxn->return_type = TYPE_INT;

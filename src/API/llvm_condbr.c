@@ -69,7 +69,9 @@ void _apl_gen_while_loop(LLVMComponents *components,
   LLVMBuildCondBr(components->builder, cond_gen, thenBB, afterBB);
 
   LLVMPositionBuilderAtEnd(components->builder, thenBB);
+  LLVMValueRef mark_val = _apl_emit_arena_get_mark(components, components->current_arena_ptr);
   _apl_gen_block_from_ast(components, then);
+  _apl_emit_arena_set_mark(components, components->current_arena_ptr, mark_val);
   if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
     LLVMBuildBr(components->builder, condBB);
   }
@@ -118,6 +120,7 @@ void _apl_gen_for_loop(LLVMComponents *components,
   LLVMBuildCondBr(components->builder, cond_gen, bodyBB, afterBB);
 
   LLVMPositionBuilderAtEnd(components->builder, bodyBB);
+  LLVMValueRef mark_val = _apl_emit_arena_get_mark(components, components->current_arena_ptr);
   if (body != NULL) {
     if (body->Type == AST_BLOCK) {
       _apl_gen_block_from_ast(components, body);
@@ -129,6 +132,7 @@ void _apl_gen_for_loop(LLVMComponents *components,
       _apl_gen_fxn_call_from_ast(components, body);
     }
   }
+  _apl_emit_arena_set_mark(components, components->current_arena_ptr, mark_val);
   if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
     LLVMBuildBr(components->builder, stepBB);
   }

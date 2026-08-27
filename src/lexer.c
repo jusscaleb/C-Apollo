@@ -14,7 +14,7 @@ const char *TokenNames[] = {
     "elif",       "else",       "while",     "for",        "int",
     "str",        "bool",       "float",     "char",       "int*",
     "char*",      "bool*",      "float*",    "str*",       ",",
-    "return",     "char_lit",   "&","*","..."
+    "return",     "char_lit",   "&","*","...", "@"
 };
 
 // FOR ERROR HANDLING
@@ -295,6 +295,10 @@ Token next_token(Lexer *lexer) {
 
     lex_error(lexer, "Could not recognize token. Did you mean '...'?", ".");
     Token token = {TOKEN_EOF, start, 1, lexer->line};
+    return token;
+  }
+  case '@':{
+    Token token = {TOKEN_SIGIL, start, 1, lexer->line};
     return token;
   }
 

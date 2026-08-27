@@ -1,44 +1,29 @@
 #include "../../headers/parser.h"
 
-ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
-  advance(parser);
-  int pointer_level = 0;
-  DataType dt = var_type;
-
-
-  /*if(parser->current.type == TOKEN_MUL){
-    switch(dt){
-      case TYPE_INT: 
-        dt = TYPE_INT_PTR;
-        break;
-      
-      case TYPE_CHAR:
-        dt = TYPE_CHAR_PTR;
-        break;
-      
-      case TYPE_BOOL:
-        dt = TYPE_BOOL_PTR;
-        break;
-      
-      case TYPE_FLOAT:
-        dt = TYPE_FLOAT_PTR;
-        break;
-      
-      default:{
-        error(parser, "", SYNTAXERROR);
-      }
-    }
+ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type, MemoryBucket bucket) {
 
     advance(parser);
-  }*/
 
+  int pointer_level = 0;
+  DataType dt = var_type;
+  MemoryBucket final_bucket = bucket;
+  
 
-  while (parser->current.type == TOKEN_MUL){
+  while (parser->current.type == TOKEN_MUL) {
     pointer_level++;
     advance(parser);
   }
 
-  
+
+  bool is_constant = is_all_caps(parser->current.start, parser->current.length);
+
+  if(is_constant && final_bucket == BUCKET_THREE)
+      error(parser, "Heap variables (@) cannot be declared as constants", SYNTAXERROR);
+
+  if(is_constant) final_bucket = BUCKET_ONE;
+  if(pointer_level > 0 && is_constant)
+    error(parser,"Cannot assign memory address to constant", SYNTAXERROR);
+
   bool declaring = false, decl_param = false;
 
   Token name_token = parser->current;
@@ -49,13 +34,13 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
 
   ASTNode *value;
 
-
-
   consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
   if (parser->current.type == TOKEN_SEMICOLON) {
+    if(final_bucket == BUCKET_ONE)
+      error(parser, "Assign a value to constant.", SYNTAXERROR);
+
     declaring = true;
     Token var_decl_token = parser_get_var_token(parser, dt);
-
     value = create_literal_node(var_decl_token, context->a);
   }
 
@@ -71,17 +56,16 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type) {
     value = parse_logical_or(parser, context);
   }
 
-  ASTNode *var_node =
-      create_var_decl_node(name_token.start, name_token.length, dt, value,
-                           *parser->lexer->fxn, parser->lexer->scope_level, context->a, pointer_level);
+  ASTNode *var_node = create_var_decl_node(
+      name_token.start, name_token.length, dt, value, *parser->lexer->fxn,
+      parser->lexer->scope_level, context->a, pointer_level, final_bucket);
 
   return var_node;
 }
 
-ASTNode *parse_assignment_or_increment(Parser *parser,
-                                              CodegenContext *context,
-                                              char *potential_var_name,
-                                              int NAME_LENGTH) {
+ASTNode *parse_assignment_or_increment(Parser *parser, CodegenContext *context,
+                                       char *potential_var_name,
+                                       int NAME_LENGTH) {
   ASTNode *value;
   bool incrementation = false;
 
@@ -91,9 +75,9 @@ ASTNode *parse_assignment_or_increment(Parser *parser,
   if (parser->current.type == TOKEN_INC || parser->current.type == TOKEN_DEC) {
     incrementation = true;
     TokenType op = parser->current.type == TOKEN_INC ? TOKEN_ADD : TOKEN_SUB;
-    ASTNode *var_ref =
-        create_var_ref_node(potential_var_name, NAME_LENGTH,
-                            *parser->lexer->fxn, parser->lexer->scope_level, context->a);
+    ASTNode *var_ref = create_var_ref_node(
+        potential_var_name, NAME_LENGTH, *parser->lexer->fxn,
+        parser->lexer->scope_level, context->a);
     Token one_token = {.type = TOKEN_INT,
                        .start = "1",
                        .length = 1,
@@ -129,14 +113,14 @@ ASTNode *parse_assignment_or_increment(Parser *parser,
       break;
     case TOKEN_PEQ:
       op = TOKEN_MOD;
-        break;
+      break;
     default:
       error(parser, "Unrecognized token", SYNTAXERROR);
       break;
     }
-    ASTNode *var_ref =
-        create_var_ref_node(potential_var_name, NAME_LENGTH,
-                            *parser->lexer->fxn, parser->lexer->scope_level, context->a);
+    ASTNode *var_ref = create_var_ref_node(
+        potential_var_name, NAME_LENGTH, *parser->lexer->fxn,
+        parser->lexer->scope_level, context->a);
     advance(parser);
     ASTNode *left = parse_logical_or(parser, context);
     value = create_binary_node(var_ref, op, left, context->a);
@@ -148,14 +132,13 @@ ASTNode *parse_assignment_or_increment(Parser *parser,
   }
 
   return create_var_assign_node(potential_var_name, NAME_LENGTH, value,
-                                *parser->lexer->fxn,
-                                parser->lexer->scope_level, context->a, 0);
+                                *parser->lexer->fxn, parser->lexer->scope_level,
+                                context->a, 0);
 }
-
 
 ASTNode *identifier(Parser *parser, CodegenContext *context) {
   const int NAME_LENGTH = parser->current.length;
-  char *potential_name = (char*)arena_alloc(context->a, NAME_LENGTH+1);
+  char *potential_name = (char *)arena_alloc(context->a, NAME_LENGTH + 1);
   memcpy(potential_name, parser->current.start, NAME_LENGTH);
   potential_name[NAME_LENGTH] = '\0';
 
@@ -180,7 +163,6 @@ ASTNode *identifier(Parser *parser, CodegenContext *context) {
   return assign_var;
 }
 
-
 ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
 
   if (parser->current.type == TOKEN_WHILE) {
@@ -196,14 +178,14 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
   if (parser->current.type == TOKEN_FOR) {
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('");
-    ASTNode *variable = var(parser, context, TYPE_NULL);
+    ASTNode *variable = var(parser, context, TYPE_NULL, 0);
     consume(parser, TOKEN_SEMICOLON,
             "Expected ';' after for-loop variable initialization.");
     ASTNode *condition = parse_logical_or(parser, context);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after for-loop condition.");
 
     const int NAME_LENGTH = parser->current.length;
-    char *loop_var_name = arena_alloc(context->a, NAME_LENGTH+1);
+    char *loop_var_name = arena_alloc(context->a, NAME_LENGTH + 1);
     memcpy(loop_var_name, parser->current.start, NAME_LENGTH);
     loop_var_name[NAME_LENGTH] = '\0';
     advance(parser);
@@ -212,7 +194,8 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_RPARETH, "Expected ')'");
 
     ASTNode *then_block = parse_block(parser, context);
-    return create_for_node(variable, condition, var_operation, then_block, context->a);
+    return create_for_node(variable, condition, var_operation, then_block,
+                           context->a);
   }
   if (parser->current.type == TOKEN_IF || parser->current.type == TOKEN_ELIF) {
     advance(parser);
@@ -243,9 +226,9 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   case DECLARE_STR:
   case DECLARE_FLOAT:
   case DECLARE_BOOL:
-  case DECLARE_CHAR:
+  case DECLARE_CHAR:{
+    MemoryBucket b = (parser->previous.type == TOKEN_SIGIL) ? BUCKET_THREE : BUCKET_PLUS_ONE;
     DataType dt = TYPE_NULL;
-
     switch (parser->current.type) {
     case DECLARE_BOOL:
       dt = TYPE_BOOL;
@@ -261,38 +244,32 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
       break;
 
     case DECLARE_CHAR:
-        dt = TYPE_CHAR;
-        break;
+      dt = TYPE_CHAR;
+      break;
     default:
       break;
     }
 
-    ASTNode *var_node = var(parser, context, dt);
-    consume(parser, TOKEN_SEMICOLON, "E");
+    ASTNode *var_node = var(parser, context, dt, b);
+    consume(parser, TOKEN_SEMICOLON, "Expected semi-colon to end statement.");
     return var_node;
+  }
 
   case TOKEN_MUL: {
-    int deref_level = 0;
-    while (parser->current.type == TOKEN_MUL) {
-      deref_level++;
-      advance(parser);
-    }
-    Token var_token = parser->current;
-    consume(parser, TOKEN_IDENTIFIER, "Expected identifier after '*'.");
-
-    const int NAME_LENGTH = var_token.length;
-    char *potential_var_name = (char *)arena_alloc(context->a, NAME_LENGTH + 1);
-    memcpy(potential_var_name, var_token.start, NAME_LENGTH);
-    potential_var_name[NAME_LENGTH] = '\0';
-
-    consume(parser, TOKEN_ASSIGN, "Expected '=' after dereferenced variable.");
-    ASTNode *value = parse_logical_or(parser, context);
-    consume(parser, TOKEN_SEMICOLON, "Expected trailing semicolon ';' after assignment.");
-
-    return create_var_assign_node(potential_var_name, NAME_LENGTH, value,
-                                  *parser->lexer->fxn,
-                                  parser->lexer->scope_level, context->a, deref_level);
+    return parse_deref_assignment(parser, context);
   }
+
+  case TOKEN_SIGIL:{
+    advance(parser);
+
+    if(parser->current.type != TOKEN_VAR && parser->current.type != DECLARE_BOOL && parser->current.type == DECLARE_FLOAT &&
+      parser->current.type != DECLARE_INT && parser->current.type != DECLARE_STR)
+        error(parser, "Expected variable declaration after '@'.", SYNTAXERROR);
+
+    return parse_body_statement(parser, context);
+    
+  }
+
   case TOKEN_NULL:
   case TOKEN_IDENTIFIER:
     return identifier(parser, context);

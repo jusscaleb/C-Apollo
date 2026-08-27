@@ -34,7 +34,7 @@ Params *get_params(CodegenContext *context, Parser *parser);
 Args *get_args(CodegenContext *context, Parser *parser);
 ASTNode *parse_fxn_call(Parser *parser, CodegenContext *context, char *name,
                         int name_length);
-ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type);
+ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type, MemoryBucket bucket);
 void advance(Parser *parser);
 void synchronize(Parser *parser, TokenType safe_token);
 void synchronize(Parser *parser, TokenType safe_token);
@@ -49,5 +49,7 @@ ASTNode *function(Parser *parser, CodegenContext *context);
 Token parser_get_var_token(Parser *parser, DataType dt);
 
 ASTNode *parse_urinary(Parser *parser, CodegenContext *context);
+ASTNode *parse_deref_assignment(Parser *parser, CodegenContext *context);
 
+bool is_all_caps(const char *name, int length);
 #endif

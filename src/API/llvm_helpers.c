@@ -244,7 +244,8 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
 
       uint32_t a_numbers = (node->call_fxn.args) ? _apl_get_n_args(components, node->call_fxn.args): 0;
       bool is_nested = (node->call_fxn.fxn.parent_fxn != NULL || (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->fxn && node->call_fxn.resolved_symbol->fxn->parent_fxn != NULL));
-      uint32_t total_args = is_nested ? a_numbers + 1 : a_numbers;
+      bool is_b2_ret = (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->bucket == BUCKET_TWO);
+      uint32_t total_args = a_numbers + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);
       LLVMValueRef args[total_args > 0 ? total_args : 1];
 
       Args *a = node->call_fxn.args;
@@ -305,6 +306,7 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
         a = a->next;
       }
 
+      uint32_t arg_idx = a_numbers;
       if (is_nested) {
         LLVMValueRef frame_ptr = NULL;
         Fxn *target_parent = (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->fxn) 
@@ -322,7 +324,11 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
         } else {
           frame_ptr = LLVMBuildBitCast(components->builder, frame_ptr, LLVMPointerType(I8(components->ctx), 0), "");
         }
-        args[a_numbers] = frame_ptr;
+        args[arg_idx++] = frame_ptr;
+      }
+      if (is_b2_ret) {
+        LLVMValueRef active_arena = components->target_return_arena ? components->target_return_arena : components->current_arena_ptr;
+        args[arg_idx++] = active_arena;
       }
 
       result = LLVMBuildCall2(components->builder, meta_data.fxn_type, meta_data.the_fxn, args, total_args, "");

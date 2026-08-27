@@ -10,8 +10,11 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
   memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
   var_name[var_node->var_decl.name_length] = '\0';
 
+
   ASTNode *expr = var_node->var_decl.value;
   const DataType VAR_TYPE = var_node->var_decl.value_type;
+
+  Symbol *sym = var_node->var_decl.resolved_symbol;
 
   LLVMValueRef var_ptr;
   LLVMValueRef assign_val;
@@ -39,17 +42,18 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       val = arihmetics(components, expr, "");
     }
 
-    var_ptr = LLVMBuildAlloca(
-        components->builder, LLVMPointerType(I8(components->ctx), 0), var_name);
+    var_ptr = _apl_allocate_variable_by_bucket(components, sym, LLVMPointerType(I8(components->ctx), 0));
     if (val) {
-      LLVMBuildStore(components->builder, val, var_ptr);
+      if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+        LLVMSetInitializer(var_ptr, val);
+      } else {
+        LLVMBuildStore(components->builder, val, var_ptr);
+      }
     }
   } else {
     switch (VAR_TYPE) {
     case TYPE_BOOL: {
-      var_ptr =
-          LLVMBuildAlloca(components->builder, I1(components->ctx), var_name);
-
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym, I1(components->ctx));
       if (expr->Type == AST_LITERAL_EXPR) {
         const int LENGTH = expr->literal_expr.token.length;
         int b_val = (LENGTH == 5) ? 0 : 1;
@@ -58,7 +62,11 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
         val = arihmetics(components, expr, "");
       }
 
-      LLVMBuildStore(components->builder, val, var_ptr);
+      if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+        LLVMSetInitializer(var_ptr, val);
+      } else {
+        LLVMBuildStore(components->builder, val, var_ptr);
+      }
 
       break;
     }
@@ -70,9 +78,12 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
         val = arihmetics(components, expr, "");
       }
 
-      var_ptr =
-          LLVMBuildAlloca(components->builder, F32(components->ctx), var_name);
-      LLVMBuildStore(components->builder, val, var_ptr);
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym, F32(components->ctx));
+      if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+        LLVMSetInitializer(var_ptr, val);
+      } else {
+        LLVMBuildStore(components->builder, val, var_ptr);
+      }
 
       break;
     }
@@ -89,9 +100,12 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
         }
       }
 
-      var_ptr =
-          LLVMBuildAlloca(components->builder, I32(components->ctx), var_name);
-      LLVMBuildStore(components->builder, val, var_ptr);
+      var_ptr = _apl_allocate_variable_by_bucket(components,sym, I32(components->ctx));
+      if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+        LLVMSetInitializer(var_ptr, val);
+      } else {
+        LLVMBuildStore(components->builder, val, var_ptr);
+      }
       break;
     }
 
@@ -103,8 +117,7 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
                                    I32(components->ctx)};
       LLVMTypeRef string_struct_type =
           LLVMStructTypeInContext(components->ctx, str_members, 2, false);
-      var_ptr =
-          LLVMBuildAlloca(components->builder, string_struct_type, var_name);
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym, string_struct_type);
       _apl_build_string_reassign(components, var_ptr, str, string_struct_type);
 
       break;
@@ -120,9 +133,13 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       } else {
         val = arihmetics(components, expr, "");
       }
-      var_ptr =
-          LLVMBuildAlloca(components->builder, I8(components->ctx), var_name);
-      LLVMBuildStore(components->builder, val, var_ptr);
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym, I8(components->ctx));
+          
+      if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+        LLVMSetInitializer(var_ptr, val);
+      } else {
+        LLVMBuildStore(components->builder, val, var_ptr);
+      }
       break;
     }
     default:
@@ -259,6 +276,20 @@ void _apl_reassign_variable(LLVMComponents *components, ASTNode *node) {
   }
 
   if (var_target_ptr && new_val) {
+    if (var_sym && var_sym->bucket == BUCKET_THREE) {
+      // For ARC variables, we need to release the old pointer before overwriting it.
+      // But only if the variable actually stores a pointer, or if the user's memory model treats the heap block's contents as the ARC target.
+      // Assuming BUCKET_THREE variables are heap pointers:
+      if (var_sym->pointer_level > 0) {
+        LLVMValueRef old_ptr = LLVMBuildLoad2(components->builder, LLVMPointerType(I8(components->ctx), 0), var_target_ptr, "old_ptr_val");
+        _apl_emit_arc_release(components, old_ptr);
+        
+        if (value_node->Type == AST_VAR_REF) {
+          LLVMValueRef new_ptr = LLVMBuildBitCast(components->builder, new_val, LLVMPointerType(I8(components->ctx), 0), "new_ptr_val");
+          _apl_emit_arc_retain(components, new_ptr);
+        }
+      }
+    }
     LLVMBuildStore(components->builder, new_val, var_target_ptr);
   }
 }

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdatomic.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,14 +96,15 @@ APL_INLINE void apl_arena_set_mark(AplArena *arena, size_t mark) {
 APL_INLINE void apl_arc_retain(void *ptr) {
     if (APL_UNLIKELY(!ptr)) return;
     AplArcHeader *header = ((AplArcHeader *)ptr) - 1;
-    header->ref_count++;
+    __atomic_fetch_add(&header->ref_count, 1, __ATOMIC_RELAXED);
 }
 
 // Decrements ARC ref_count (ref_count--). Frees memory instantly when ref_count == 0
 APL_INLINE void apl_arc_release(void *ptr) {
     if (APL_UNLIKELY(!ptr)) return;
     AplArcHeader *header = ((AplArcHeader *)ptr) - 1;
-    if (--header->ref_count <= 0) {
+    if (__atomic_fetch_sub(&header->ref_count, 1, __ATOMIC_RELEASE) == 1) {
+        __atomic_thread_fence(__ATOMIC_ACQUIRE);
         free(header);
     }
 }

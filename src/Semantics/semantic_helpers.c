@@ -49,6 +49,7 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
     default: {
       DataType left_type = infer_expr_type(context, expr->binary_expr.left);
       DataType right_type = infer_expr_type(context, expr->binary_expr.right);
+      
       if (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT)
         return TYPE_FLOAT;
       if (left_type == TYPE_CHAR || right_type == TYPE_CHAR)
@@ -155,4 +156,33 @@ int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr) {
   }
 
   return 0;
+}
+
+
+MemoryBucket infer_bucket_type(SemanticContext *context, ASTNode *expr){
+  if(!expr)
+    return 0;
+  switch(expr->Type){
+    case AST_BINARY_EXPR: {
+      MemoryBucket right_b = infer_bucket_type(context, expr->binary_expr.right);
+      MemoryBucket left_b = infer_bucket_type(context, expr->binary_expr.left);
+
+      if (right_b == BUCKET_ONE) right_b = BUCKET_PLUS_ONE;
+      if (left_b == BUCKET_ONE) left_b = BUCKET_PLUS_ONE;
+
+      if (left_b == BUCKET_THREE || right_b == BUCKET_THREE) return BUCKET_THREE;
+      if (left_b == BUCKET_TWO || right_b == BUCKET_TWO) return BUCKET_TWO;
+      return BUCKET_PLUS_ONE;
+    }
+    case AST_URINARY_EXPR:
+      return infer_bucket_type(context, expr->urinary_expr.value);
+    case AST_CALL_FXN:
+      if (expr->call_fxn.resolved_symbol) return expr->call_fxn.resolved_symbol->bucket;
+      return BUCKET_TWO;
+    case AST_VAR_REF:
+      if (expr->var_ref.resolved_symbol) return expr->var_ref.resolved_symbol->bucket;
+      return BUCKET_PLUS_ONE;
+    default: return BUCKET_PLUS_ONE;
+  }
+  return BUCKET_PLUS_ONE;
 }
