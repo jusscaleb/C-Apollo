@@ -21,6 +21,7 @@
 #include "../headers/token.h"
 #include "../headers/variables.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -50,6 +51,11 @@ Token parser_get_var_token(Parser *parser, DataType dt);
 
 ASTNode *parse_urinary(Parser *parser, CodegenContext *context);
 ASTNode *parse_deref_assignment(Parser *parser, CodegenContext *context);
+ASTNode *parse_array_node(Parser *parser,DataType datatype, CodegenContext *context, uint32_t count);
+ASTNode *parse_index_expr(Parser *parser, CodegenContext *context, ASTNode *target);
 
 bool is_all_caps(const char *name, int length);
+int token_to_int(Token token);
+void token_to_str(Token token, char* str);
+
 #endif

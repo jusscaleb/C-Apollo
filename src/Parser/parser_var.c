@@ -1,42 +1,73 @@
 #include "../../headers/parser.h"
 
-ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type, MemoryBucket bucket) {
-
-    advance(parser);
+ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type,
+             MemoryBucket bucket) {
+  advance(parser);
 
   int pointer_level = 0;
   DataType dt = var_type;
   MemoryBucket final_bucket = bucket;
-  
 
   while (parser->current.type == TOKEN_MUL) {
     pointer_level++;
     advance(parser);
   }
-
-
   bool is_constant = is_all_caps(parser->current.start, parser->current.length);
+  if (is_constant && final_bucket == BUCKET_THREE)
+    error(parser, "Heap variables (@) cannot be declared as constants",
+          SYNTAXERROR);
 
-  if(is_constant && final_bucket == BUCKET_THREE)
-      error(parser, "Heap variables (@) cannot be declared as constants", SYNTAXERROR);
-
-  if(is_constant) final_bucket = BUCKET_ONE;
-  if(pointer_level > 0 && is_constant)
-    error(parser,"Cannot assign memory address to constant", SYNTAXERROR);
-
-  bool declaring = false, decl_param = false;
-
-  Token name_token = parser->current;
-  const int NAME_LENGTH = name_token.length;
-  char name[NAME_LENGTH + 1];
-  memcpy(name, name_token.start, NAME_LENGTH);
-  name[NAME_LENGTH] = '\0';
+  if (is_constant)
+    final_bucket = BUCKET_ONE;
+  if (pointer_level > 0 && is_constant)
+    error(parser, "Cannot assign memory address to constant", SYNTAXERROR);
 
   ASTNode *value;
+  bool declaring = false, decl_param = false;
+  Token name_token;
+  int arr_length = -1;
 
+  if (parser->current.type == TOKEN_LSQUARE_BRACE) {
+    switch (dt) {
+    case TYPE_INT:
+      dt = TYPE_INT_ARRAY;
+      break;
+    case TYPE_FLOAT:
+      dt = TYPE_FLOAT_ARRAY;
+      break;
+    case TYPE_BOOL:
+      dt = TYPE_BOOL_ARRAY;
+      break;
+    case TYPE_CHAR:
+      dt = TYPE_CHAR_ARRAY;
+      break;
+    case TYPE_STRING:
+      dt = TYPE_STR_ARRAY;
+      break;
+    default:
+      break;
+    }
+
+    advance(parser);
+    if (parser->current.type != TOKEN_RSQUARE_BRACE) {
+      final_bucket = (bucket == BUCKET_THREE) ? BUCKET_THREE : BUCKET_PLUS_ONE;
+      if (parser->current.type != TOKEN_INT) {
+        error(parser, "Expected fixed array length or ']'", SYNTAXERROR);
+      }
+
+      arr_length = token_to_int(parser->current);
+      advance(parser);
+    } else {
+      final_bucket = (bucket == BUCKET_THREE) ? BUCKET_THREE : BUCKET_TWO;
+    }
+    consume(parser, TOKEN_RSQUARE_BRACE, "Expected closing ']'");
+  }
+
+  name_token = parser->current;
   consume(parser, TOKEN_IDENTIFIER, "Expected identifier for variable.");
+
   if (parser->current.type == TOKEN_SEMICOLON) {
-    if(final_bucket == BUCKET_ONE)
+    if (final_bucket == BUCKET_ONE)
       error(parser, "Assign a value to constant.", SYNTAXERROR);
 
     declaring = true;
@@ -45,7 +76,8 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type, MemoryB
   }
 
   if (parser->current.type == TOKEN_COMMA ||
-      parser->current.type == TOKEN_RPARETH && dt != TYPE_NULL && !declaring) {
+      (parser->current.type == TOKEN_RPARETH && dt != TYPE_NULL &&
+          !declaring)) {
     decl_param = true;
     Token var_decl_token = parser_get_var_token(parser, dt);
     value = create_literal_node(var_decl_token, context->a);
@@ -53,12 +85,17 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type, MemoryB
 
   if (!declaring && !decl_param) {
     consume(parser, TOKEN_ASSIGN, "Expected '=' after identifier.");
-    value = parse_logical_or(parser, context);
+    if (parser->current.type == TOKEN_LBRACE) {
+      value = parse_array_node(parser, dt, context, arr_length);
+    } else {
+      value = parse_logical_or(parser, context);
+    }
   }
 
   ASTNode *var_node = create_var_decl_node(
       name_token.start, name_token.length, dt, value, *parser->lexer->fxn,
-      parser->lexer->scope_level, context->a, pointer_level, final_bucket);
+      parser->lexer->scope_level, context->a, pointer_level, final_bucket,
+      arr_length);
 
   return var_node;
 }
@@ -143,10 +180,23 @@ ASTNode *identifier(Parser *parser, CodegenContext *context) {
   potential_name[NAME_LENGTH] = '\0';
 
   advance(parser);
-
+  if (parser->current.type == TOKEN_LSQUARE_BRACE) {
+    ASTNode *var_ref =
+        create_var_ref_node(potential_name, NAME_LENGTH, *parser->lexer->fxn,
+                            parser->lexer->scope_level, context->a);
+    ASTNode *expr_index = parse_index_expr(parser, context, var_ref);
+    consume(parser, TOKEN_SEMICOLON,
+            "Expected trailing semicolon ';' after expression statement.");
+    return expr_index;
+  }
   if (parser->current.type == TOKEN_LPARETH) {
     ASTNode *call_node =
         parse_fxn_call(parser, context, potential_name, NAME_LENGTH);
+
+    if (parser->current.type == TOKEN_LSQUARE_BRACE) {
+      call_node = parse_index_expr(parser, context, call_node);
+    }
+
     consume(parser, TOKEN_SEMICOLON,
             "Expected trailing semicolon ';' after function call.");
 
@@ -226,8 +276,9 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   case DECLARE_STR:
   case DECLARE_FLOAT:
   case DECLARE_BOOL:
-  case DECLARE_CHAR:{
-    MemoryBucket b = (parser->previous.type == TOKEN_SIGIL) ? BUCKET_THREE : BUCKET_PLUS_ONE;
+  case DECLARE_CHAR: {
+    MemoryBucket b =
+        (parser->previous.type == TOKEN_SIGIL) ? BUCKET_THREE : BUCKET_PLUS_ONE;
     DataType dt = TYPE_NULL;
     switch (parser->current.type) {
     case DECLARE_BOOL:
@@ -259,15 +310,17 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     return parse_deref_assignment(parser, context);
   }
 
-  case TOKEN_SIGIL:{
+  case TOKEN_SIGIL: {
     advance(parser);
 
-    if(parser->current.type != TOKEN_VAR && parser->current.type != DECLARE_BOOL && parser->current.type == DECLARE_FLOAT &&
-      parser->current.type != DECLARE_INT && parser->current.type != DECLARE_STR)
-        error(parser, "Expected variable declaration after '@'.", SYNTAXERROR);
+    if (parser->current.type != TOKEN_VAR &&
+        parser->current.type != DECLARE_BOOL &&
+        parser->current.type == DECLARE_FLOAT &&
+        parser->current.type != DECLARE_INT &&
+        parser->current.type != DECLARE_STR)
+      error(parser, "Expected variable declaration after '@'.", SYNTAXERROR);
 
     return parse_body_statement(parser, context);
-    
   }
 
   case TOKEN_NULL:
@@ -287,7 +340,13 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     parser->lexer->fxn->ret_nodes++;
     Fxn *fxn = (Fxn *)arena_alloc(context->a, sizeof(Fxn));
     fxn = parser->lexer->fxn;
-    ASTNode *value = parse_logical_or(parser, context);
+    ASTNode *value;
+    if (parser->current.type != TOKEN_LBRACE) {
+      value = parse_logical_or(parser, context);
+    } else {
+      value =
+          parse_array_node(parser, fxn->return_type, context, fxn->array_count);
+    }
     ASTNode *ret_node = create_ret_node(context, *fxn, value, context->a);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
     return ret_node;

@@ -14,6 +14,7 @@
 #define FUNCTIONS
 
 #include "variables.h"
+#include <stdint.h>
 
 typedef struct CodegenContext CodegenContext;
 typedef Fxn Fxn;
@@ -30,6 +31,7 @@ typedef struct Fxn {
   int ret_nodes;
   int block_nodes;
   MemoryBucket bucket;
+  int array_count;
 } Fxn;
 
 /**

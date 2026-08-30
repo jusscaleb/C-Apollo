@@ -120,7 +120,9 @@ typedef enum {
   TOKEN_REF,
   TOKEN_PTR,
   TOKEN_VARARGS,
-  TOKEN_SIGIL
+  TOKEN_SIGIL,
+  TOKEN_LSQUARE_BRACE,
+  TOKEN_RSQUARE_BRACE,
 } TokenType;
 
 /*-------------DEFINING THE TOKEN-------------*/

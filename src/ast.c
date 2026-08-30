@@ -1,4 +1,5 @@
 #include "../headers/ast.h"
+#include <stdint.h>
 
 
 static ASTNode *allocate_node(ASTNodeType type, Arena *a) {
@@ -35,7 +36,8 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
 
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level, Arena *a, int pointer_level, MemoryBucket bucket) {
+                              int level, Arena *a, int pointer_level, MemoryBucket bucket,
+                              int array_count) {
   ASTNode *node = allocate_node(AST_VAR_DECL, a);
 
   node->var_decl.name = name;
@@ -46,6 +48,7 @@ ASTNode *create_var_decl_node(const char *name, int name_length,
   node->var_decl.pointer_level = pointer_level;
   node->var_decl.level = level;
   node->var_decl.bucket = bucket;
+  node->var_decl.array_count = array_count;
 
   return node;
 }
@@ -166,5 +169,24 @@ ASTNode *create_urinary_node(TokenType operator_type, ASTNode *value, Arena *a){
   node->urinary_expr.operator_type = operator_type;
   node->urinary_expr.value = value;
   return node;
-
 }
+
+ASTNode *create_array_node(ASTNode **elements, uint32_t count, uint32_t capacity, bool is_dynamic, DataType element_type,  Arena *a){
+  ASTNode *node = allocate_node(AST_ARRAY_LITERAL, a);
+  node->array_literal.elements = elements;
+  node->array_literal.is_dynamic = is_dynamic;
+  node->array_literal.count = count;
+  node->array_literal.capacity = capacity;
+  node->array_literal.element_type = element_type;
+  return node;
+}
+
+ASTNode *create_index_expr_node(ASTNode *target, ASTNode *index, DataType datatype, Arena *a){
+  ASTNode *node = allocate_node(AST_INDEX_EXPR, a);
+  node->index_expr.target = target;
+  node->index_expr.index = index;
+  node->index_expr.type = datatype;
+  return node;
+}
+
+

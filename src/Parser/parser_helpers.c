@@ -125,8 +125,15 @@ __attribute__((always_inline))Token parser_get_var_token(Parser *parser, DataTyp
     case TYPE_STRING: return (Token){TOKEN_STRING, "", 4, parser->current.line};
     case TYPE_FLOAT:  return (Token){TOKEN_FLOAT, "0.0", 3, parser->current.line};
     case TYPE_BOOL:   return (Token){TOKEN_BOOL, "null", 4, parser->current.line};
-    case TYPE_NULL:   return(Token){TOKEN_NULL, "null", 4, parser->current.line};
+    case TYPE_NULL:   return (Token){TOKEN_NULL, "null", 4, parser->current.line};
     case TYPE_CHAR:   return (Token){TOKEN_CHAR, "", 0, parser->current.line};
+    case TYPE_INT_ARRAY:
+    case TYPE_FLOAT_ARRAY:
+    case TYPE_BOOL_ARRAY:
+    case TYPE_CHAR_ARRAY:
+    case TYPE_STR_ARRAY:
+    default:
+      return (Token){TOKEN_NULL, "null", 4, parser->current.line};
   }
 }
 
@@ -164,5 +171,19 @@ __attribute__((always_inline)) bool is_all_caps(const char *name, int length) {
         if (_IS_UPPER_(c)) has_alpha = true;
     }
     return has_alpha; 
+}
+
+__attribute__((always_inline)) int token_to_int(Token token) {
+  int result = 0;
+  for (int i = 0; i < token.length; i++) {
+    result = result * 10 + (token.start[i] - '0');
+  }
+  return result;
+}
+
+void token_to_str(Token token, char* str) {
+  memcpy(str, token.start, token.length);
+  str[token.length] = '\0';
+  
 }
 

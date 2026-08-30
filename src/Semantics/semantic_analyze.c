@@ -1,4 +1,5 @@
 #include "../../headers/semantic.h"
+#include <stdint.h>
 
 // Main entry point
 void analyze_semantics(SemanticContext *context, ASTNode *node) {
@@ -42,6 +43,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
                        &node->function.fxn, node->function.name_length);
       node->function.resolved_symbol->pointer_level =
           node->function.pointer_level;
+      node->function.resolved_symbol->bucket = node->function.fxn.bucket;
     }
 
     // Analyze Parameters.
@@ -96,16 +98,11 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
             infer_bucket_type(context, node->var_decl.value);
         MemoryBucket decl_bucket = node->var_decl.bucket;
 
-        bool is_ptr_compatible =
-            (inferred_ptr_level == node->var_decl.pointer_level) ||
-            (node->var_decl.value->Type == AST_LITERAL_EXPR &&
-             node->var_decl.pointer_level > 0);
-
-        bool is_compatible =
-            ((inferred == expected_type) ||
-             (inferred == TYPE_INT && expected_type == TYPE_CHAR) ||
-             (inferred == TYPE_CHAR && expected_type == TYPE_INT)) &&
-            is_ptr_compatible;
+        bool is_literal = (node->var_decl.value->Type == AST_LITERAL_EXPR);
+        bool is_default_dummy = is_literal && (node->var_decl.value->literal_expr.token.type == TOKEN_NULL);
+        bool is_compatible = is_default_dummy || is_types_compatible(
+            expected_type, inferred, node->var_decl.pointer_level,
+            inferred_ptr_level, is_literal);
 
         if (!is_compatible) {
           report_semantic_error(context, "Datatype Mismatch.");
@@ -114,12 +111,13 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       }
 
       node->var_decl.resolved_symbol = register_variable(
-          context->codegen, name, inferred, &node->var_decl.fxn,
+          context->codegen, name, node->var_decl.value_type, &node->var_decl.fxn,
           node->var_decl.level, NAME_LENGTH);
 
       node->var_decl.resolved_symbol->pointer_level =
           node->var_decl.pointer_level;
       node->var_decl.resolved_symbol->bucket = node->var_decl.bucket;
+      node->var_decl.resolved_symbol->array_count = node->var_decl.array_count;
 
     } else {
       node->var_decl.value_type = TYPE_NULL;
@@ -143,7 +141,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       break;
     } else {
       node->var_assign.resolved_symbol = sym;
-      if(node->var_assign.resolved_symbol->bucket == BUCKET_ONE){
+      if (node->var_assign.resolved_symbol->bucket == BUCKET_ONE) {
         report_semantic_error(context, "Cannot reassign constant variable.");
         break;
       }
@@ -165,8 +163,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
           break;
         }
 
+        bool is_literal = (node->var_assign.value->Type == AST_LITERAL_EXPR);
         if (sym->type != TYPE_NULL && inferred != TYPE_NULL &&
-            (sym->type != inferred || target_ptr_level != inferred_ptr_level)) {
+            !is_types_compatible(sym->type, inferred, target_ptr_level,
+                                 inferred_ptr_level, is_literal)) {
           report_semantic_error(context, "Incompatible assignment type.");
           break;
         } else if (sym->type == TYPE_NULL && inferred != TYPE_NULL) {
@@ -410,7 +410,12 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     case TOKEN_REF: {
       analyze_node(context, node->urinary_expr.value);
 
-      if (node->urinary_expr.value->Type == AST_VAR_REF) {
+      ASTNode *val_node = node->urinary_expr.value;
+      bool is_valid_lvalue =
+          (val_node->Type == AST_VAR_REF || val_node->Type == AST_INDEX_EXPR ||
+           (val_node->Type == AST_URINARY_EXPR &&
+            val_node->urinary_expr.operator_type == TOKEN_MUL));
+      if (is_valid_lvalue) {
         node->urinary_expr.eval_type = infer_expr_type(context, node);
       } else {
         report_semantic_error(context,
@@ -423,10 +428,67 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     case TOKEN_SUB: {
       analyze_node(context, node->urinary_expr.value);
       node->urinary_expr.eval_type = infer_expr_type(context, node);
+      if(op_type == TOKEN_MUL){
+        uint32_t p_level = infer_expr_pointer_level(context, node->urinary_expr.value);
+        if(p_level == 0){
+          report_semantic_error(context, "Operand must be a pointer.");
+          break;
+        }
+      }
       break;
     }
     default:
       break;
+    }
+    break;
+  }
+  case AST_ARRAY_LITERAL: {
+    ASTNode **elements = node->array_literal.elements;
+
+    if (node->array_literal.element_type == TYPE_NULL && node->array_literal.count > 0 && elements[0]) {
+      node->array_literal.element_type = infer_expr_type(context, elements[0]);
+    }
+
+    if (!node->array_literal.is_dynamic)
+      if (node->array_literal.count != node->array_literal.capacity) {
+        report_semantic_error(
+            context,
+            "The number of elements do not match the declared length.");
+        break;
+      }
+
+    for (uint32_t i = 0; i < node->array_literal.count; i++) {
+      if (!elements[i])
+        continue;
+
+      analyze_node(context, elements[i]);
+
+      DataType elem_type = infer_expr_type(context, elements[i]);
+      int elem_ptr_level = infer_expr_pointer_level(context, elements[i]);
+      bool is_lit = (elements[i]->Type == AST_LITERAL_EXPR);
+
+      if (!is_types_compatible(node->array_literal.element_type, elem_type, 0,
+                               elem_ptr_level, is_lit)) {
+        report_semantic_error(context, "Array element type mismatch.");
+        break;
+      }
+    }
+    break;
+  }
+
+  case AST_INDEX_EXPR: {
+    analyze_node(context, node->index_expr.target);
+    analyze_node(context, node->index_expr.index);
+
+    DataType idx_type = infer_expr_type(context, node->index_expr.index);
+    if (idx_type != TYPE_INT) {
+      report_semantic_error(context,
+                            "Array index must evaluate to an integer.");
+    }
+
+    node->index_expr.type = infer_expr_type(context, node);
+    if (node->index_expr.type == TYPE_NULL) {
+      report_semantic_error(context, "Indexing target must be an array type.");
     }
     break;
   }

@@ -70,5 +70,6 @@ void __apl_input__(const char *__prompt__, String *__input__);
 
 void __apl_print_ptr(const void *ptr);
 
+void _apl_panic_out_of_bounds(int index, int length);
 
 #endif

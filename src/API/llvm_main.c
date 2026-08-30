@@ -6,7 +6,6 @@
 #include "llvm-c/Transforms/PassBuilder.h"
 #include "llvm-c/Types.h"
 
-
 static FILE *trace_file = NULL;
 
 static void trace(const char *message) {
@@ -67,8 +66,7 @@ void _apl_import_runtime(LLVMModuleRef dest_module, const char *filename) {
   }
 }
 
-void _apl_llvm_environment_setup(
-                                 LLVMComponents *components,
+void _apl_llvm_environment_setup(LLVMComponents *components,
                                  ASTNode *block_node) {
   LLVMContextRef ctx = LLVMContextCreate();
   LLVMModuleRef module = LLVMModuleCreateWithNameInContext("apl_module", ctx);
@@ -136,9 +134,9 @@ void _apl_llvm_shutdown(LLVMComponents *components) {
   LLVMContextDispose(components->ctx);
 }
 
-
 void _apl_optimize_module(LLVMComponents *components) {
-  if (!components || !components->module) return;
+  if (!components || !components->module)
+    return;
 
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
@@ -153,7 +151,8 @@ void _apl_optimize_module(LLVMComponents *components) {
   char *err_msg = NULL;
 
   if (LLVMGetTargetFromTriple(target_triple, &target, &err_msg)) {
-    if (err_msg) LLVMDisposeMessage(err_msg);
+    if (err_msg)
+      LLVMDisposeMessage(err_msg);
     LLVMDisposeMessage(target_triple);
     LLVMDisposeMessage(cpu);
     LLVMDisposeMessage(features);
@@ -161,18 +160,13 @@ void _apl_optimize_module(LLVMComponents *components) {
   }
 
   LLVMTargetMachineRef target_machine = LLVMCreateTargetMachine(
-      target,
-      target_triple,
-      cpu,
-      features,
-      LLVMCodeGenLevelAggressive,
-      LLVMRelocDefault,
-      LLVMCodeModelDefault
-  );
+      target, target_triple, cpu, features, LLVMCodeGenLevelAggressive,
+      LLVMRelocDefault, LLVMCodeModelDefault);
 
   LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
 
-  LLVMErrorRef err = LLVMRunPasses(components->module, "default<O3>", target_machine, options);
+  LLVMErrorRef err =
+      LLVMRunPasses(components->module, "default<O3>", target_machine, options);
 
   if (err) {
     LLVMConsumeError(err);
@@ -187,10 +181,7 @@ void _apl_optimize_module(LLVMComponents *components) {
   _apl_save_and_shutdown(components);
 }
 
-
-
-void _apl_gen_block_from_ast(LLVMComponents *components,
-                              ASTNode *block_node) {
+void _apl_gen_block_from_ast(LLVMComponents *components, ASTNode *block_node) {
   if (block_node == NULL || block_node->Type != AST_BLOCK)
     return;
 
@@ -224,7 +215,9 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       break;
     case AST_FUNCTION: {
       LLVMValueRef parent_fxn = components->current_fxn;
-      LLVMBasicBlockRef parent_block = (components->builder) ? LLVMGetInsertBlock(components->builder) : NULL;
+      LLVMBasicBlockRef parent_block =
+          (components->builder) ? LLVMGetInsertBlock(components->builder)
+                                : NULL;
       LLVMTypeRef parent_frame_type = components->current_frame_type;
       LLVMValueRef parent_frame_alloc = components->current_frame_alloc;
       LLVMValueRef parent_parent_frame = components->current_parent_frame;
@@ -249,7 +242,6 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
       break;
     }
 
-
     default:
       fprintf(stderr, "Unsupported statement type in block codegen. %d\n",
               stmt->Type);
@@ -258,5 +250,3 @@ void _apl_gen_block_from_ast(LLVMComponents *components,
     }
   }
 }
-
-

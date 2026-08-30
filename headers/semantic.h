@@ -81,4 +81,6 @@ static void analyze_block(SemanticContext *context, ASTNode *block_node);
 
 MemoryBucket infer_bucket_type(SemanticContext *context, ASTNode *expr);
 
+bool is_types_compatible(DataType expected, DataType inferred, int expected_ptr_level, int inferred_ptr_level, bool is_literal);
+
 #endif

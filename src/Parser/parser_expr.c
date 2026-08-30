@@ -31,20 +31,28 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_RPARETH, "Expected ')' to close grouped expression.");
     return expr;
   }
+  case TOKEN_LBRACE: {
+    return parse_array_node(parser, TYPE_NULL, context, 0);
+  }
 
 
   case TOKEN_IDENTIFIER: {
     advance(parser);
+    ASTNode *node = NULL;
     if (parser->current.type == TOKEN_LPARETH) {
       char *potential_name = (char *)arena_alloc(context->a, token.length + 1);
       memcpy(potential_name, token.start, token.length);
       potential_name[token.length] = '\0';
-      ASTNode *call_node =
-          parse_fxn_call(parser, context, potential_name, token.length);
-      return call_node;
+      node = parse_fxn_call(parser, context, potential_name, token.length);
+    } else {
+      node = create_var_ref_node(token.start, token.length, *parser->lexer->fxn,
+                                 parser->lexer->scope_level, context->a);
     }
-    return create_var_ref_node(token.start, token.length, *parser->lexer->fxn,
-                               parser->lexer->scope_level, context->a);
+
+    if (parser->current.type == TOKEN_LSQUARE_BRACE) {
+      node = parse_index_expr(parser, context, node);
+    }
+    return node;
   }
   case TOKEN_COMMA: {
     advance(parser);

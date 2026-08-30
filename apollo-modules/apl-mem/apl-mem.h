@@ -58,10 +58,10 @@ int64_t apl_arc_ref_count(const void *ptr);
 // =========================================================================
 
 #if defined(__GNUC__) || defined(__clang__)
-#define APL_INLINE static inline __attribute__((always_inline))
+#define APL_INLINE __attribute__((always_inline))
 #define APL_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
-#define APL_INLINE static inline
+#define APL_INLINE inline
 #define APL_UNLIKELY(x) (x)
 #endif
 

@@ -10,7 +10,6 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
   memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
   var_name[var_node->var_decl.name_length] = '\0';
 
-
   ASTNode *expr = var_node->var_decl.value;
   const DataType VAR_TYPE = var_node->var_decl.value_type;
 
@@ -21,14 +20,23 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
   LLVMValueRef var_val;
   LLVMValueRef val;
 
+  if (expr && expr->Type == AST_ARRAY_LITERAL) {
+    val = _apl_gen_array_literal(components, expr);
+    var_ptr = val;
+    if (var_node->var_decl.resolved_symbol) {
+      var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
+      var_node->var_decl.resolved_symbol->array_count =
+          expr->array_literal.is_dynamic ? 0 : expr->array_literal.count;
+    }
+    return;
+  }
+
   if (var_node->var_decl.pointer_level > 0) {
     if (expr->Type == AST_URINARY_EXPR &&
         expr->urinary_expr.operator_type == TOKEN_REF) {
-      ASTNode *ref_var = expr->urinary_expr.value;
-      if (ref_var && ref_var->Type == AST_VAR_REF &&
-          ref_var->var_ref.resolved_symbol) {
-        LLVMValueRef target_addr =
-            ref_var->var_ref.resolved_symbol->llvm_val_ref;
+      LLVMValueRef target_addr =
+          _apl_get_lvalue_address(components, expr->urinary_expr.value);
+      if (target_addr) {
         val = LLVMBuildBitCast(components->builder, target_addr,
                                LLVMPointerType(I8(components->ctx), 0), "");
       } else {
@@ -42,7 +50,8 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       val = arihmetics(components, expr, "");
     }
 
-    var_ptr = _apl_allocate_variable_by_bucket(components, sym, LLVMPointerType(I8(components->ctx), 0));
+    var_ptr = _apl_allocate_variable_by_bucket(
+        components, sym, LLVMPointerType(I8(components->ctx), 0));
     if (val) {
       if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
         LLVMSetInitializer(var_ptr, val);
@@ -53,7 +62,8 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
   } else {
     switch (VAR_TYPE) {
     case TYPE_BOOL: {
-      var_ptr = _apl_allocate_variable_by_bucket(components, sym, I1(components->ctx));
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym,
+                                                 I1(components->ctx));
       if (expr->Type == AST_LITERAL_EXPR) {
         const int LENGTH = expr->literal_expr.token.length;
         int b_val = (LENGTH == 5) ? 0 : 1;
@@ -78,7 +88,8 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
         val = arihmetics(components, expr, "");
       }
 
-      var_ptr = _apl_allocate_variable_by_bucket(components, sym, F32(components->ctx));
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym,
+                                                 F32(components->ctx));
       if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
         LLVMSetInitializer(var_ptr, val);
       } else {
@@ -94,13 +105,14 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       } else {
         val = arihmetics(components, expr, "");
 
-        if (LLVMTypeOf(val) != I32(components->ctx)) {
+        if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMIntegerTypeKind && LLVMTypeOf(val) != I32(components->ctx)) {
           val = LLVMBuildTrunc(components->builder, val, I32(components->ctx),
                                "");
         }
       }
 
-      var_ptr = _apl_allocate_variable_by_bucket(components,sym, I32(components->ctx));
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym,
+                                                 I32(components->ctx));
       if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
         LLVMSetInitializer(var_ptr, val);
       } else {
@@ -117,7 +129,8 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
                                    I32(components->ctx)};
       LLVMTypeRef string_struct_type =
           LLVMStructTypeInContext(components->ctx, str_members, 2, false);
-      var_ptr = _apl_allocate_variable_by_bucket(components, sym, string_struct_type);
+      var_ptr =
+          _apl_allocate_variable_by_bucket(components, sym, string_struct_type);
       _apl_build_string_reassign(components, var_ptr, str, string_struct_type);
 
       break;
@@ -133,8 +146,9 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       } else {
         val = arihmetics(components, expr, "");
       }
-      var_ptr = _apl_allocate_variable_by_bucket(components, sym, I8(components->ctx));
-          
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym,
+                                                 I8(components->ctx));
+
       if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
         LLVMSetInitializer(var_ptr, val);
       } else {
@@ -142,14 +156,47 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       }
       break;
     }
+    case TYPE_INT_ARRAY:
+    case TYPE_FLOAT_ARRAY:
+    case TYPE_BOOL_ARRAY:
+    case TYPE_CHAR_ARRAY:
+    case TYPE_STR_ARRAY: {
+      if (expr) {
+        if (expr->Type == AST_ARRAY_LITERAL) {
+          val = _apl_gen_array_literal(components, expr);
+        } else if (expr->Type == AST_CALL_FXN) {
+          val = _apl_eval_function_call(components, expr);
+        } else if (expr->Type == AST_VAR_REF) {
+          val = load_variable(components, expr);
+        } else {
+          val = arihmetics(components, expr, "");
+        }
+      } else {
+        val = NULL;
+      }
+
+      if (sym && sym->llvm_val_ref && sym->llvm_val_ref != val) {
+        LLVMBuildStore(components->builder, val, sym->llvm_val_ref);
+        var_ptr = sym->llvm_val_ref;
+      } else {
+        var_ptr = val;
+        if (var_node->var_decl.resolved_symbol) {
+          var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
+        }
+      }
+      break;
+    }
     default:
       break;
     }
   }
-  var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
+
+  if (var_node->var_decl.resolved_symbol && var_ptr != NULL) {
+    var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
+  }
 
   if (components->current_frame_alloc != NULL &&
-      var_node->var_decl.resolved_symbol) {
+      var_node->var_decl.resolved_symbol && var_ptr != NULL) {
     int idx = var_node->var_decl.resolved_symbol->frame_index;
     LLVMValueRef indices[] = {LLVMConstInt(I32(components->ctx), 0, false),
                               LLVMConstInt(I32(components->ctx), idx, false)};
@@ -277,15 +324,20 @@ void _apl_reassign_variable(LLVMComponents *components, ASTNode *node) {
 
   if (var_target_ptr && new_val) {
     if (var_sym && var_sym->bucket == BUCKET_THREE) {
-      // For ARC variables, we need to release the old pointer before overwriting it.
-      // But only if the variable actually stores a pointer, or if the user's memory model treats the heap block's contents as the ARC target.
-      // Assuming BUCKET_THREE variables are heap pointers:
+      // For ARC variables, we need to release the old pointer before
+      // overwriting it. But only if the variable actually stores a pointer, or
+      // if the user's memory model treats the heap block's contents as the ARC
+      // target. Assuming BUCKET_THREE variables are heap pointers:
       if (var_sym->pointer_level > 0) {
-        LLVMValueRef old_ptr = LLVMBuildLoad2(components->builder, LLVMPointerType(I8(components->ctx), 0), var_target_ptr, "old_ptr_val");
+        LLVMValueRef old_ptr = LLVMBuildLoad2(
+            components->builder, LLVMPointerType(I8(components->ctx), 0),
+            var_target_ptr, "old_ptr_val");
         _apl_emit_arc_release(components, old_ptr);
-        
+
         if (value_node->Type == AST_VAR_REF) {
-          LLVMValueRef new_ptr = LLVMBuildBitCast(components->builder, new_val, LLVMPointerType(I8(components->ctx), 0), "new_ptr_val");
+          LLVMValueRef new_ptr = LLVMBuildBitCast(
+              components->builder, new_val,
+              LLVMPointerType(I8(components->ctx), 0), "new_ptr_val");
           _apl_emit_arc_retain(components, new_ptr);
         }
       }
@@ -340,6 +392,9 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
   if (var_sym && var_sym->pointer_level > 0) {
     LLVMTypeRef ptr_type = LLVMPointerType(I8(components->ctx), 0);
     if (!target_ptr) {
+      if (!components->current_fxn || var_sym->param_idx >= LLVMCountParams(components->current_fxn)) {
+        return NULL;
+      }
       LLVMValueRef alloc = LLVMBuildAlloca(components->builder, ptr_type, "");
       LLVMValueRef p_val =
           LLVMGetParam(components->current_fxn, var_sym->param_idx);
@@ -353,6 +408,9 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
     switch (var_sym->type) {
     case TYPE_INT: {
       if (!target_ptr) {
+        if (!components->current_fxn || var_sym->param_idx >= LLVMCountParams(components->current_fxn)) {
+          return NULL;
+        }
         LLVMValueRef alloc =
             LLVMBuildAlloca(components->builder, I32(components->ctx), "");
         LLVMValueRef p_val =
@@ -385,6 +443,9 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
 
     case TYPE_FLOAT: {
       if (!target_ptr) {
+        if (!components->current_fxn || var_sym->param_idx >= LLVMCountParams(components->current_fxn)) {
+          return NULL;
+        }
         LLVMValueRef alloc =
             LLVMBuildAlloca(components->builder, F32(components->ctx), "");
         LLVMValueRef p_val =
@@ -399,6 +460,9 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
     }
     case TYPE_BOOL: {
       if (!target_ptr) {
+        if (!components->current_fxn || var_sym->param_idx >= LLVMCountParams(components->current_fxn)) {
+          return NULL;
+        }
         LLVMValueRef alloc =
             LLVMBuildAlloca(components->builder, I1(components->ctx), "");
         LLVMValueRef p_val =
@@ -413,6 +477,9 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
     }
     case TYPE_CHAR: {
       if (!target_ptr) {
+        if (!components->current_fxn || var_sym->param_idx >= LLVMCountParams(components->current_fxn)) {
+          return NULL;
+        }
         LLVMValueRef alloc =
             LLVMBuildAlloca(components->builder, I8(components->ctx), "");
         LLVMValueRef p_val =
@@ -425,11 +492,30 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
                                 target_ptr, var_sym->name);
       break;
     }
-
+    case TYPE_INT_ARRAY:
+    case TYPE_FLOAT_ARRAY:
+    case TYPE_BOOL_ARRAY:
+    case TYPE_CHAR_ARRAY:
+    case TYPE_STR_ARRAY: {
+      if (target_ptr) {
+        if (LLVMIsAAllocaInst(target_ptr) &&
+            LLVMGetTypeKind(LLVMGetAllocatedType(target_ptr)) == LLVMPointerTypeKind) {
+          llvm_var = LLVMBuildLoad2(components->builder,
+                                    LLVMPointerType(I8(components->ctx), 0),
+                                    target_ptr,
+                                    var_sym->name ? var_sym->name : "");
+        } else {
+          llvm_var = LLVMBuildBitCast(components->builder, target_ptr,
+                                      LLVMPointerType(I8(components->ctx), 0),
+                                      var_sym->name ? var_sym->name : "");
+        }
+      }
+      break;
+    }
     default:
       break;
     }
-  }
+    }
 
-  return llvm_var;
-}
+    return llvm_var;
+  }

@@ -95,6 +95,7 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
   sym->t_type = FUNC;
   sym->scope_level = level;
   sym->fxn = fxn;
+  sym->bucket = fxn ? fxn->bucket : BUCKET_PLUS_ONE;
   sym->is_active = true;
 
   if (context && context->t) {

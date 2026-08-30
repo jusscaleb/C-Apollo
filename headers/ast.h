@@ -17,6 +17,7 @@
 #include "../headers/memory.h"
 
 
+
 struct Symbol;
 
 // Kind of nodes to expect
@@ -39,6 +40,8 @@ typedef enum {
   AST_FOR,
   AST_CALL_FXN,
   AST_RET_NODE,
+  AST_ARRAY_LITERAL,
+  AST_INDEX_EXPR,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -93,6 +96,7 @@ struct ASTNode {
       int pointer_level;
       struct Symbol *resolved_symbol;
       MemoryBucket bucket;
+      int array_count;
     } var_decl;
 
     struct {
@@ -162,6 +166,20 @@ struct ASTNode {
       ASTNode *value;
       Fxn fxn;
     } ret_node;
+
+    struct {
+      ASTNode **elements;
+      uint32_t  count;
+      uint32_t capacity;
+      DataType element_type;
+      bool is_dynamic;
+    }array_literal;
+
+    struct {
+      ASTNode *target;
+      ASTNode *index;
+      DataType type;
+    }index_expr;
   };
 };
 
@@ -197,7 +215,8 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
  */
 ASTNode *create_var_decl_node(const char *name, int name_length,
                               DataType value_type, ASTNode *value, Fxn fxn,
-                              int level, Arena *a, int pointer_level, MemoryBucket bucket);
+                              int level, Arena *a, int pointer_level, MemoryBucket bucket,
+                              int array_count);
 /**
  * Creates an empty AST block container to hold statements.
  */
@@ -306,4 +325,8 @@ void block_add_statement(ASTNode *block, ASTNode *statement, Arena *a);
  */
 ASTNode *create_urinary_node(TokenType operator_type, ASTNode *value, Arena *a);
 
+
+ASTNode *create_array_node(ASTNode **elements, uint32_t count, uint32_t capacity, bool is_dynamic, DataType element_type, Arena *a);
+
+ASTNode *create_index_expr_node(ASTNode *target, ASTNode *index, DataType datatype, Arena *a);
 #endif

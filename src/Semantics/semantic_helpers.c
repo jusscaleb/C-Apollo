@@ -63,6 +63,7 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
     switch (expr->urinary_expr.operator_type) {
     case TOKEN_REF:
     case TOKEN_MUL:
+    case TOKEN_PTR:
     case TOKEN_SUB:
       return infer_expr_type(context, expr->urinary_expr.value);
     default:
@@ -97,6 +98,43 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
                                expr->call_fxn.level);
     if (sym) {
       return sym->type;
+    }
+  }
+
+  if(expr->Type == AST_ARRAY_LITERAL){
+    DataType elem_dt = expr->array_literal.element_type;
+    if (elem_dt == TYPE_NULL && expr->array_literal.count > 0 && expr->array_literal.elements[0]) {
+      elem_dt = infer_expr_type(context, expr->array_literal.elements[0]);
+      expr->array_literal.element_type = elem_dt;
+    }
+    switch (elem_dt) {
+      case TYPE_INT: return TYPE_INT_ARRAY;
+      case TYPE_CHAR: return TYPE_CHAR_ARRAY;
+      case TYPE_FLOAT: return TYPE_FLOAT_ARRAY;
+      case TYPE_BOOL: return TYPE_BOOL_ARRAY;
+      case TYPE_STRING: return TYPE_STR_ARRAY;
+      case TYPE_BOOL_ARRAY:
+      case TYPE_INT_ARRAY:
+      case TYPE_FLOAT_ARRAY:
+      case TYPE_STR_ARRAY:
+      case TYPE_CHAR_ARRAY:
+        return elem_dt;
+      default: break;
+    }
+  }
+
+  if (expr->Type == AST_INDEX_EXPR) {
+    if (expr->index_expr.type != TYPE_NULL) {
+      return expr->index_expr.type;
+    }
+    DataType target_type = infer_expr_type(context, expr->index_expr.target);
+    switch (target_type) {
+      case TYPE_INT_ARRAY:   return TYPE_INT;
+      case TYPE_FLOAT_ARRAY: return TYPE_FLOAT;
+      case TYPE_BOOL_ARRAY:  return TYPE_BOOL;
+      case TYPE_CHAR_ARRAY:  return TYPE_CHAR;
+      case TYPE_STR_ARRAY:   return TYPE_STRING;
+      default:               return TYPE_NULL;
     }
   }
 
@@ -155,6 +193,10 @@ int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr) {
     }
   }
 
+  if (expr->Type == AST_INDEX_EXPR) {
+    return infer_expr_pointer_level(context, expr->index_expr.target);
+  }
+
   return 0;
 }
 
@@ -174,6 +216,8 @@ MemoryBucket infer_bucket_type(SemanticContext *context, ASTNode *expr){
       if (left_b == BUCKET_TWO || right_b == BUCKET_TWO) return BUCKET_TWO;
       return BUCKET_PLUS_ONE;
     }
+    case AST_INDEX_EXPR:
+      return infer_bucket_type(context, expr->index_expr.target);
     case AST_URINARY_EXPR:
       return infer_bucket_type(context, expr->urinary_expr.value);
     case AST_CALL_FXN:
@@ -185,4 +229,29 @@ MemoryBucket infer_bucket_type(SemanticContext *context, ASTNode *expr){
     default: return BUCKET_PLUS_ONE;
   }
   return BUCKET_PLUS_ONE;
+}
+
+bool is_types_compatible(DataType expected, DataType inferred, int expected_ptr_level, int inferred_ptr_level, bool is_literal) {
+  bool is_ptr_compatible = (inferred_ptr_level == expected_ptr_level) ||
+                           (is_literal && expected_ptr_level > 0);
+
+  if (!is_ptr_compatible) return false;
+
+  if (expected == inferred) return true;
+  if (expected == TYPE_INT && inferred == TYPE_CHAR) return true;
+  if (expected == TYPE_CHAR && inferred == TYPE_INT) return true;
+
+  // Array type compatibility
+  if ((expected == TYPE_INT_ARRAY || expected == TYPE_INT) &&
+      (inferred == TYPE_INT_ARRAY || inferred == TYPE_INT)) return true;
+  if ((expected == TYPE_FLOAT_ARRAY || expected == TYPE_FLOAT) &&
+      (inferred == TYPE_FLOAT_ARRAY || inferred == TYPE_FLOAT)) return true;
+  if ((expected == TYPE_BOOL_ARRAY || expected == TYPE_BOOL) &&
+      (inferred == TYPE_BOOL_ARRAY || inferred == TYPE_BOOL)) return true;
+  if ((expected == TYPE_STR_ARRAY || expected == TYPE_STRING) &&
+      (inferred == TYPE_STR_ARRAY || inferred == TYPE_STRING)) return true;
+  if ((expected == TYPE_CHAR_ARRAY || expected == TYPE_CHAR) &&
+      (inferred == TYPE_CHAR_ARRAY || inferred == TYPE_CHAR)) return true;
+
+  return false;
 }

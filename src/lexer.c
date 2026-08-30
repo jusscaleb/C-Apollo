@@ -14,7 +14,7 @@ const char *TokenNames[] = {
     "elif",       "else",       "while",     "for",        "int",
     "str",        "bool",       "float",     "char",       "int*",
     "char*",      "bool*",      "float*",    "str*",       ",",
-    "return",     "char_lit",   "&","*","...", "@"
+    "return",     "char_lit",   "&","*","...", "@", "[", "]"
 };
 
 // FOR ERROR HANDLING
@@ -65,10 +65,18 @@ Token next_token(Lexer *lexer) {
 
   // using a switch to check single characters
   switch (c) {
+
+  case '[' :{
+    Token token = {TOKEN_LSQUARE_BRACE, start, 1, lexer->line};
+    return token;
+  }
+  case ']' : {
+    Token token = {TOKEN_RSQUARE_BRACE, start, 1, lexer->line};
+    return token;
+  }
   case '}': {
     Token token = {TOKEN_RBRACE, start, 1, lexer->line};
     lexer->scope_level--;
-    // lexer->fxn = lexer->fxn->parent_fxn;
     return token;
   }
 

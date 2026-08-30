@@ -1,7 +1,6 @@
 #include "../../headers/parser.h"
-
-
-
+#include <stdbool.h>
+#include <stdint.h>
 
 ASTNode *function(Parser *parser, CodegenContext *context) {
   advance(parser);
@@ -23,40 +22,54 @@ ASTNode *function(Parser *parser, CodegenContext *context) {
           parser->lexer->fxn->bucket = BUCKET_THREE;
         advance(parser);
       }
-      switch (parser->current.type) {
-      case DECLARE_INT:
-        parser->lexer->fxn->return_type = TYPE_INT;
-        break;
-      case DECLARE_STR:
-        parser->lexer->fxn->return_type = TYPE_STRING;
-        break;
-      case DECLARE_FLOAT:
-        parser->lexer->fxn->return_type = TYPE_FLOAT;
-        break;
-      case DECLARE_BOOL:
-        parser->lexer->fxn->return_type = TYPE_BOOL;
-        break;
-      case TOKEN_VOID:
-        parser->lexer->fxn->return_type = TYPE_NULL;
-        break;
-      case DECLARE_CHAR:
-        parser->lexer->fxn->return_type = TYPE_CHAR;
-        break;
-      default:
-        error(parser, "Invalid return type", SYNTAXERROR);
-      }
+      TokenType ReturnType = parser->current.type;
+      bool ret_arr = false;
       advance(parser);
       while(parser->current.type == TOKEN_MUL){
         pointer_level++;
         advance(parser);
       }
 
+      if(parser->current.type == TOKEN_LSQUARE_BRACE){
+        ret_arr = true;
+        advance(parser);
+        if(parser->current.type != TOKEN_RSQUARE_BRACE){
+          parser->lexer->fxn->bucket = BUCKET_TWO;
+          uint32_t len = token_to_int(parser->current);
+          parser->lexer->fxn->array_count = len;
+          advance(parser);
+        }
 
-      //if(pointer_level > 0) advance(parser);
+        consume(parser, TOKEN_RSQUARE_BRACE, "Expected ']'");
+      }
+
+      switch (ReturnType) {
+      case DECLARE_INT:
+        parser->lexer->fxn->return_type = (ret_arr) ? TYPE_INT_ARRAY : TYPE_INT;
+        break;
+      case DECLARE_STR:
+        parser->lexer->fxn->return_type = TYPE_STRING;
+        break;
+      case DECLARE_FLOAT:
+        parser->lexer->fxn->return_type = (ret_arr) ? TYPE_FLOAT_ARRAY : TYPE_FLOAT;
+        break;
+      case DECLARE_BOOL:
+        parser->lexer->fxn->return_type = (ret_arr) ? TYPE_BOOL_ARRAY : TYPE_BOOL;
+        break;
+      case TOKEN_VOID:
+        parser->lexer->fxn->return_type = TYPE_NULL;
+        break;
+      case DECLARE_CHAR:
+        parser->lexer->fxn->return_type = (ret_arr) ? TYPE_CHAR_ARRAY : TYPE_CHAR;
+        break;
+      default:
+        error(parser, "Invalid return type", SYNTAXERROR);
+      }
+
 
     }
   }
-
+  //advance(parser);
   ASTNode *body = parse_block(parser, context);
 
   int name_length = strlen(parser->lexer->fxn->name);

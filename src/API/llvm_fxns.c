@@ -26,17 +26,14 @@ void _apl_gen_println_ir(LLVMComponents *components,
       println_fxn = LLVMGetNamedFunction(components->module, "__apl_print_ptr");
 
       if (expr->Type == AST_URINARY_EXPR && expr->urinary_expr.operator_type == TOKEN_REF) {
-        ASTNode *var_node = expr->urinary_expr.value;
-        if (var_node && var_node->Type == AST_VAR_REF && var_node->var_ref.resolved_symbol) {
-          Symbol *var_sym = var_node->var_ref.resolved_symbol;
-          if (var_sym && var_sym->llvm_val_ref) {
-            println_args = LLVMBuildBitCast(
-                components->builder,
-                var_sym->llvm_val_ref,
-                param_types[0],
-                ""
-            );
-          }
+        LLVMValueRef target_addr = _apl_get_lvalue_address(components, expr->urinary_expr.value);
+        if (target_addr) {
+          println_args = LLVMBuildBitCast(
+              components->builder,
+              target_addr,
+              param_types[0],
+              ""
+          );
         }
       } else if (expr->Type == AST_VAR_REF) {
         println_args = load_variable(components, expr);
@@ -56,7 +53,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
           println_args = load_variable(components, expr);
           break;
         }
-        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR) {
+        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR || expr->Type == AST_INDEX_EXPR) {
           println_args = arihmetics(components, expr, "");
           break;
         }
@@ -95,9 +92,10 @@ void _apl_gen_println_ir(LLVMComponents *components,
         if (expr->Type == AST_VAR_REF) {
           println_args = load_variable(components, expr);
           break;
+        }
         
         
-        }if(expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR){
+        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR || expr->Type == AST_INDEX_EXPR) {
           println_args = arihmetics(components, expr, "");
           break;
         }
@@ -185,7 +183,8 @@ void _apl_gen_function_start(LLVMComponents *components,
   else {
     components->current_fxn_ast = &block_node->function.fxn;
     bool is_nested = (block_node->function.fxn.parent_fxn != NULL);
-    bool is_b2_ret = (block_node->function.resolved_symbol && block_node->function.resolved_symbol->bucket == BUCKET_TWO);
+    bool is_b2_ret = (block_node->function.fxn.bucket == BUCKET_TWO) || 
+                     (block_node->function.resolved_symbol && block_node->function.resolved_symbol->bucket == BUCKET_TWO);
 
     uint32_t user_params =
         (block_node->function.fxn.params)
@@ -297,8 +296,28 @@ void _apl_gen_return(LLVMComponents *components,
       ret_val = _apl_eval_function_call(components, val_node);
     } else if (val_node->Type == AST_BINARY_EXPR || val_node->Type == AST_URINARY_EXPR) {
       ret_val = arihmetics(components, val_node, "");
+    } else if (val_node->Type == AST_ARRAY_LITERAL) {
+      ret_val = _apl_gen_array_literal(components, val_node);
+      if (ret_val) {
+        ret_val = LLVMBuildBitCast(components->builder, ret_val, LLVMPointerType(I8(components->ctx), 0), "");
+      }
     } else {
       switch (node->ret_node.fxn.return_type) {
+      case TYPE_INT_ARRAY:
+      case TYPE_FLOAT_ARRAY:
+      case TYPE_BOOL_ARRAY:
+      case TYPE_CHAR_ARRAY:
+      case TYPE_STR_ARRAY: {
+        if (val_node->Type == AST_ARRAY_LITERAL) {
+          ret_val = _apl_gen_array_literal(components, val_node);
+        } else {
+          ret_val = arihmetics(components, val_node, "");
+        }
+        if (ret_val) {
+          ret_val = LLVMBuildBitCast(components->builder, ret_val, LLVMPointerType(I8(components->ctx), 0), "");
+        }
+        break;
+      }
       case TYPE_INT: {
         uint32_t number = (int)return_eval_int(val_node);
         ret_val = LLVMConstInt(I32(components->ctx), number, false);

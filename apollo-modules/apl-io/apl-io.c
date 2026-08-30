@@ -3,10 +3,19 @@
 #include <stdio.h>
 
 
+#include <stdlib.h>
+
 char out_buf[_BUFFER_SIZE];
 int buf_idx = 0;
 static char str_arena[_BUFFER_SIZE];
 static int arena_offset = 0;
+
+__attribute__((always_inline)) void _apl_panic_out_of_bounds(int index, int length) {
+  _apl_flush();
+  fprintf(stderr, "\n[Apollo Runtime Panic]: Index %d out of bounds for array of length %d\n\n", index, length);
+  fflush(stderr);
+  exit(1);
+}
 
 __attribute__((always_inline)) void _apl_flush() {
   _DEBUG("API_FLUSH WORKS");

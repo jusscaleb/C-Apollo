@@ -41,10 +41,15 @@ typedef enum {
   TYPE_FLOAT_PTR,
   TYPE_BOOL_PTR,
   TYPE_CHAR_PTR,
+  TYPE_INT_ARRAY,
+  TYPE_FLOAT_ARRAY,
+  TYPE_BOOL_ARRAY,
+  TYPE_STR_ARRAY,
+  TYPE_CHAR_ARRAY
 } DataType;
 
 typedef enum {
-  BUCKET_PLUS_ONE, 
+  BUCKET_PLUS_ONE,//Short lifespan 
   BUCKET_ONE, // Constants
   BUCKET_TWO, // Arena 
   BUCKET_THREE // Heap
@@ -88,6 +93,7 @@ typedef struct Symbol {
   int frame_index;
   int pointer_level;
   MemoryBucket bucket;
+  int array_count;
 } Symbol;
 
 typedef struct SymbolEntry {

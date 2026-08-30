@@ -179,6 +179,14 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
                         char *result_name);
 
 /**
+ * Resolves the L-value memory address (pointer) of an AST node.
+ * @param components Pointer to LLVMComponents state.
+ * @param node AST node (AST_VAR_REF, AST_INDEX_EXPR, AST_URINARY_EXPR '*').
+ * @return LLVMValueRef memory address pointer.
+ */
+LLVMValueRef _apl_get_lvalue_address(LLVMComponents *components, ASTNode *node);
+
+/**
  * Generates store instruction to update variable value in memory.
  * @param components Pointer to LLVMComponents state.
  * @param node AST variable assignment node.
@@ -363,4 +371,15 @@ LLVMValueRef _apl_emit_arena_get_mark(LLVMComponents *components, LLVMValueRef a
  */
 void _apl_emit_arena_set_mark(LLVMComponents *components, LLVMValueRef arena_ptr, LLVMValueRef mark_val);
 
+/**
+ * Generates LLVM IR code for Array Literals (AST_ARRAY_LITERAL).
+ */
+LLVMValueRef _apl_gen_array_literal(LLVMComponents *components, ASTNode *node);
+
+/**
+ * Generates LLVM IR code for Array Index Expressions (AST_INDEX_EXPR).
+ */
+LLVMValueRef _apl_gen_array_index_expr(LLVMComponents *components, ASTNode *node);
+
 #endif
+
