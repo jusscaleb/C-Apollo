@@ -39,7 +39,9 @@ void errorStack_seek(ErrorStack *s) {
       fprintf(stderr, " (Found: %s)", e->got);
 
     fprintf(stderr, "\n");
+    fflush(stderr);
   }
+  fflush(stderr);
 }
 
 void error(Parser *parser, const char *errorMessage, ErrorType type) {
@@ -49,9 +51,9 @@ void error(Parser *parser, const char *errorMessage, ErrorType type) {
   e->token = parser->current;
   e->line = parser->current.line-1;
 
-  int len = parser->current.length;
+  int len = (parser->current.length > 0) ? parser->current.length : 0;
   e->got = alloc_space(len + 1, sizeof(char));
-  if (parser->current.start != NULL) {
+  if (parser->current.start != NULL && len > 0) {
     memcpy(e->got, parser->current.start, len);
     e->got[len] = '\0';
   } else {

@@ -29,6 +29,21 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
     consume(parser, TOKEN_LPARETH, "");
     ASTNode *expr = parse_logical_or(parser,context);
     consume(parser, TOKEN_RPARETH, "Expected ')' to close grouped expression.");
+    while (parser->current.type == TOKEN_ACCESS ||
+           parser->current.type == TOKEN_LSQUARE_BRACE) {
+      if (parser->current.type == TOKEN_ACCESS) {
+        advance(parser);
+        Token field_token = parser->current;
+        consume(parser, TOKEN_IDENTIFIER, "Expected field identifier after '.'.");
+        ASTNode *target = create_var_ref_node(field_token.start, field_token.length,
+                                             *parser->lexer->fxn,
+                                             parser->lexer->scope_level,
+                                             context->a);
+        expr = create_access_node(expr, target, TYPE_NULL, context->a);
+      } else if (parser->current.type == TOKEN_LSQUARE_BRACE) {
+        expr = parse_index_expr(parser, context, expr);
+      }
+    }
     return expr;
   }
   case TOKEN_LBRACE: {
@@ -36,6 +51,7 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
   }
 
 
+  case TOKEN_SELF:
   case TOKEN_IDENTIFIER: {
     advance(parser);
     ASTNode *node = NULL;
@@ -49,8 +65,38 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
                                  parser->lexer->scope_level, context->a);
     }
 
-    if (parser->current.type == TOKEN_LSQUARE_BRACE) {
-      node = parse_index_expr(parser, context, node);
+    while (parser->current.type == TOKEN_ACCESS ||
+           parser->current.type == TOKEN_LSQUARE_BRACE) {
+      if (parser->current.type == TOKEN_ACCESS) {
+        advance(parser);
+        Token field_token = parser->current;
+        consume(parser, TOKEN_IDENTIFIER, "Expected field identifier after '.'.");
+        if (parser->current.type == TOKEN_LPARETH) {
+          consume(parser, TOKEN_LPARETH, "Expected '(' after method name.");
+          Args *args = NULL;
+          if (parser->current.type != TOKEN_RPARETH) {
+            args = get_args(context, parser);
+          }
+          consume(parser, TOKEN_RPARETH, "Expected ')' after method arguments.");
+
+          const char *rec_name = (node && node->Type == AST_VAR_REF) ? node->var_ref.name : "";
+          int rec_len = (node && node->Type == AST_VAR_REF) ? node->var_ref.name_length : 0;
+          int call_name_len = rec_len + 1 + field_token.length;
+          char *call_name = (char *)arena_alloc(context->a, call_name_len + 1);
+          snprintf(call_name, call_name_len + 1, "%.*s_%.*s", rec_len, rec_name, field_token.length, field_token.start);
+
+          node = create_fxn_call_node(call_name, call_name_len, *parser->lexer->fxn,
+                                      parser->lexer->scope_level, args, context->a);
+        } else {
+          ASTNode *target = create_var_ref_node(field_token.start, field_token.length,
+                                               *parser->lexer->fxn,
+                                               parser->lexer->scope_level,
+                                               context->a);
+          node = create_access_node(node, target, TYPE_NULL, context->a);
+        }
+      } else if (parser->current.type == TOKEN_LSQUARE_BRACE) {
+        node = parse_index_expr(parser, context, node);
+      }
     }
     return node;
   }

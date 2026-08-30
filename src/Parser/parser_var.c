@@ -71,16 +71,14 @@ ASTNode *var(Parser *parser, CodegenContext *context, DataType var_type,
       error(parser, "Assign a value to constant.", SYNTAXERROR);
 
     declaring = true;
-    Token var_decl_token = parser_get_var_token(parser, dt);
-    value = create_literal_node(var_decl_token, context->a);
+    value = NULL;
   }
 
   if (parser->current.type == TOKEN_COMMA ||
       (parser->current.type == TOKEN_RPARETH && dt != TYPE_NULL &&
           !declaring)) {
     decl_param = true;
-    Token var_decl_token = parser_get_var_token(parser, dt);
-    value = create_literal_node(var_decl_token, context->a);
+    value = NULL;
   }
 
   if (!declaring && !decl_param) {
@@ -180,6 +178,117 @@ ASTNode *identifier(Parser *parser, CodegenContext *context) {
   potential_name[NAME_LENGTH] = '\0';
 
   advance(parser);
+
+  if (parser->current.type == TOKEN_IDENTIFIER || parser->current.type == TOKEN_MUL) {
+    int pointer_level = 0;
+    while (parser->current.type == TOKEN_MUL) {
+      pointer_level++;
+      advance(parser);
+    }
+    Token var_name_token = parser->current;
+    consume(parser, TOKEN_IDENTIFIER, "Expected variable identifier.");
+
+    ASTNode *value = NULL;
+    if (parser->current.type == TOKEN_ASSIGN) {
+      advance(parser);
+      if (parser->current.type == TOKEN_LBRACE) {
+        value = parse_array_node(parser, TYPE_STRUCT, context, -1);
+      } else {
+        value = parse_logical_or(parser, context);
+      }
+    }
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' after variable declaration.");
+
+    MemoryBucket b = (parser->previous.type == TOKEN_SIGIL) ? BUCKET_THREE : BUCKET_PLUS_ONE;
+    ASTNode *var_node = create_var_decl_node(var_name_token.start, var_name_token.length, TYPE_STRUCT,
+                                             value, *parser->lexer->fxn, parser->lexer->scope_level,
+                                             context->a, pointer_level, b, -1);
+    var_node->var_decl.struct_type_name = potential_name;
+    var_node->var_decl.struct_type_name_len = NAME_LENGTH;
+    return var_node;
+  }
+
+  if (parser->current.type == TOKEN_ACCESS) {
+    ASTNode *target_node = create_var_ref_node(potential_name, NAME_LENGTH,
+                                              *parser->lexer->fxn,
+                                              parser->lexer->scope_level,
+                                              context->a);
+    while (parser->current.type == TOKEN_ACCESS ||
+           parser->current.type == TOKEN_LSQUARE_BRACE) {
+      if (parser->current.type == TOKEN_ACCESS) {
+        advance(parser);
+        Token field_token = parser->current;
+        consume(parser, TOKEN_IDENTIFIER, "Expected field identifier after '.'.");
+        if (parser->current.type == TOKEN_LPARETH) {
+          consume(parser, TOKEN_LPARETH, "Expected '(' after method name.");
+          Args *args = NULL;
+          if (parser->current.type != TOKEN_RPARETH) {
+            args = get_args(context, parser);
+          }
+          consume(parser, TOKEN_RPARETH, "Expected ')' after method arguments.");
+          consume(parser, TOKEN_SEMICOLON, "Expected ';' after method call.");
+
+          const char *rec_name = (target_node && target_node->Type == AST_VAR_REF) ? target_node->var_ref.name : "";
+          int rec_len = (target_node && target_node->Type == AST_VAR_REF) ? target_node->var_ref.name_length : 0;
+          int call_name_len = rec_len + 1 + field_token.length;
+          char *call_name = (char *)arena_alloc(context->a, call_name_len + 1);
+          snprintf(call_name, call_name_len + 1, "%.*s_%.*s", rec_len, rec_name, field_token.length, field_token.start);
+
+          return create_fxn_call_node(call_name, call_name_len, *parser->lexer->fxn,
+                                      parser->lexer->scope_level, args, context->a);
+        }
+        ASTNode *field_target = create_var_ref_node(field_token.start, field_token.length,
+                                                   *parser->lexer->fxn,
+                                                   parser->lexer->scope_level,
+                                                   context->a);
+        target_node = create_access_node(target_node, field_target, TYPE_NULL, context->a);
+      } else if (parser->current.type == TOKEN_LSQUARE_BRACE) {
+        target_node = parse_index_expr(parser, context, target_node);
+      }
+    }
+
+    ASTNode *value = NULL;
+    bool incrementation = false;
+    TokenType alternatives[] = {TOKEN_AEQ, TOKEN_SEQ, TOKEN_MEQ, TOKEN_DEQ, TOKEN_PEQ};
+
+    if (parser->current.type == TOKEN_INC || parser->current.type == TOKEN_DEC) {
+      TokenType op = (parser->current.type == TOKEN_INC) ? TOKEN_ADD : TOKEN_SUB;
+      Token one_token = {.type = TOKEN_INT, .start = "1", .length = 1, .line = parser->current.line};
+      ASTNode *literal_one = create_literal_node(one_token, context->a);
+      value = create_binary_node(target_node, op, literal_one, context->a);
+      advance(parser);
+      incrementation = true;
+    } else {
+      for (int i = 0; i <= 4; i++) {
+        if (parser->current.type == alternatives[i]) {
+          incrementation = true;
+          TokenType op;
+          switch (parser->current.type) {
+            case TOKEN_AEQ: op = TOKEN_ADD; break;
+            case TOKEN_SEQ: op = TOKEN_SUB; break;
+            case TOKEN_MEQ: op = TOKEN_MUL; break;
+            case TOKEN_DEQ: op = TOKEN_DIV; break;
+            case TOKEN_PEQ: op = TOKEN_MOD; break;
+            default: op = TOKEN_ADD; break;
+          }
+          advance(parser);
+          ASTNode *right = parse_logical_or(parser, context);
+          value = create_binary_node(target_node, op, right, context->a);
+          break;
+        }
+      }
+    }
+
+    if (!incrementation) {
+      consume(parser, TOKEN_ASSIGN, "Expected '=' after member access expression.");
+      value = parse_logical_or(parser, context);
+    }
+    consume(parser, TOKEN_SEMICOLON, "Expected ';' after assignment.");
+
+    return create_target_assign_node(target_node, value, *parser->lexer->fxn,
+                                    parser->lexer->scope_level, context->a);
+  }
+
   if (parser->current.type == TOKEN_LSQUARE_BRACE) {
     ASTNode *var_ref =
         create_var_ref_node(potential_name, NAME_LENGTH, *parser->lexer->fxn,
@@ -317,12 +426,13 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
         parser->current.type != DECLARE_BOOL &&
         parser->current.type == DECLARE_FLOAT &&
         parser->current.type != DECLARE_INT &&
-        parser->current.type != DECLARE_STR)
+        parser->current.type != DECLARE_STR &&
+        parser->current.type != TOKEN_IDENTIFIER)
       error(parser, "Expected variable declaration after '@'.", SYNTAXERROR);
-
     return parse_body_statement(parser, context);
   }
 
+  case TOKEN_SELF:
   case TOKEN_NULL:
   case TOKEN_IDENTIFIER:
     return identifier(parser, context);
@@ -334,6 +444,9 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
 
   case TOKEN_FXN:
     return parse_function(parser, context);
+
+  case DECLARE_STRUCT:
+    return parse_struct_type(parser, context);
 
   case TOKEN_RETURN:
     advance(parser);
@@ -350,6 +463,9 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
     ASTNode *ret_node = create_ret_node(context, *fxn, value, context->a);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
     return ret_node;
+  
+  case TOKEN_FXNS:
+    return parse_fxns_block(parser, context);
 
   default:
     error(parser, "Unrecognized token in body statement.", SYNTAXERROR);
@@ -358,4 +474,3 @@ ASTNode *parse_body_statement(Parser *parser, CodegenContext *context) {
   }
 }
 
-// parse_block() checks the innard of that function.

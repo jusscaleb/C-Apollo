@@ -62,6 +62,11 @@ int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr);
  */
 void report_semantic_error(SemanticContext *context, const char *msg);
 
+/**
+ * Resolves the Struct fields linked with a struct variable expression or access expression.
+ */
+Struct *get_struct_fields_from_expr(SemanticContext *context, ASTNode *expr);
+
 // Forward declarations for internal tree-walking functions
 
 /**

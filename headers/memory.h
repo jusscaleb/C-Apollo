@@ -20,14 +20,12 @@
 
 #define ARENA_ALIGNMENT 8
 
-typedef struct Arena Arena;
-
 typedef struct Arena{
     char *mem;
     size_t capacity;
     size_t offset;
-    Arena *next_arena;
-}Arena;
+    struct Arena *next_arena;
+} Arena;
 
 /**
  * Allocates memory initialized to zero.
@@ -35,7 +33,7 @@ typedef struct Arena{
  * @param element_size Size of each element.
  * @return A pointer to the allocated memory.
  */
-char *alloc_space(int num_elements, int element_size);
+char *alloc_space(size_t num_elements, size_t element_size);
 
 
 

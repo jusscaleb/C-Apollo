@@ -2,7 +2,9 @@
 #include "../headers/error.h"
 
 
-char *alloc_space(int num_elements, int element_size) {
+char *alloc_space(size_t num_elements, size_t element_size) {
+  if (num_elements == 0) num_elements = 1;
+  if (element_size == 0) element_size = 1;
   char *alloc_space = calloc(num_elements, element_size);
 
   if (alloc_space == NULL) {

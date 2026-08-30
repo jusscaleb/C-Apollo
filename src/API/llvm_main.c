@@ -138,6 +138,21 @@ void _apl_optimize_module(LLVMComponents *components) {
   if (!components || !components->module)
     return;
 
+  char *verify_msg = NULL;
+  if (LLVMVerifyModule(components->module, LLVMPrintMessageAction,
+                       &verify_msg) != 0) {
+    fprintf(stderr, "[LLVM Backend Error] Module verification failed before optimization:\n%s\n",
+            verify_msg ? verify_msg : "(no verifier message)");
+    if (verify_msg) {
+      LLVMDisposeMessage(verify_msg);
+    }
+    _apl_save_and_shutdown(components);
+    exit(EXIT_FAILURE);
+  }
+  if (verify_msg) {
+    LLVMDisposeMessage(verify_msg);
+  }
+
   LLVMInitializeNativeTarget();
   LLVMInitializeNativeAsmPrinter();
   LLVMInitializeNativeAsmParser();
@@ -189,6 +204,7 @@ void _apl_gen_block_from_ast(LLVMComponents *components, ASTNode *block_node) {
     ASTNode *stmt = block_node->block.statements[i];
     if (stmt == NULL)
       continue;
+    fflush(stdout);
 
     switch (stmt->Type) {
     case AST_VAR_DECL:
@@ -211,8 +227,44 @@ void _apl_gen_block_from_ast(LLVMComponents *components, ASTNode *block_node) {
       break;
     case AST_RET_NODE:
       _apl_gen_return(components, stmt);
-
       break;
+    case AST_STRUCT_DEFINITION:
+      _apl_gen_struct_definition(components, stmt);
+      break;
+    case AST_FUNCTIONS: {
+      for (int m_idx = 0; m_idx < stmt->functions.count; m_idx++) {
+        if (stmt->functions.methods[m_idx]) {
+          ASTNode *m_node = stmt->functions.methods[m_idx];
+          LLVMValueRef parent_fxn = components->current_fxn;
+          LLVMBasicBlockRef parent_block =
+              (components->builder) ? LLVMGetInsertBlock(components->builder)
+                                    : NULL;
+          LLVMTypeRef parent_frame_type = components->current_frame_type;
+          LLVMValueRef parent_frame_alloc = components->current_frame_alloc;
+          LLVMValueRef parent_parent_frame = components->current_parent_frame;
+          LLVMValueRef parent_arena_ptr = components->current_arena_ptr;
+          LLVMValueRef parent_target_return_arena = components->target_return_arena;
+          Fxn *parent_fxn_ast = components->current_fxn_ast;
+
+          _apl_gen_function_start(components, m_node);
+          _apl_gen_block_from_ast(components, m_node->function.body);
+
+          _apl_gen_function_end(components, m_node);
+
+          components->current_fxn = parent_fxn;
+          components->current_frame_type = parent_frame_type;
+          components->current_frame_alloc = parent_frame_alloc;
+          components->current_parent_frame = parent_parent_frame;
+          components->current_arena_ptr = parent_arena_ptr;
+          components->target_return_arena = parent_target_return_arena;
+          components->current_fxn_ast = parent_fxn_ast;
+          if (parent_block && components->builder) {
+            LLVMPositionBuilderAtEnd(components->builder, parent_block);
+          }
+        }
+      }
+      break;
+    }
     case AST_FUNCTION: {
       LLVMValueRef parent_fxn = components->current_fxn;
       LLVMBasicBlockRef parent_block =
@@ -221,19 +273,21 @@ void _apl_gen_block_from_ast(LLVMComponents *components, ASTNode *block_node) {
       LLVMTypeRef parent_frame_type = components->current_frame_type;
       LLVMValueRef parent_frame_alloc = components->current_frame_alloc;
       LLVMValueRef parent_parent_frame = components->current_parent_frame;
+      LLVMValueRef parent_arena_ptr = components->current_arena_ptr;
+      LLVMValueRef parent_target_return_arena = components->target_return_arena;
       Fxn *parent_fxn_ast = components->current_fxn_ast;
 
       _apl_gen_function_start(components, stmt);
       _apl_gen_block_from_ast(components, stmt->function.body);
 
-      if (stmt->function.fxn.return_type == TYPE_NULL) {
-        _apl_gen_function_end(components, stmt);
-      }
+      _apl_gen_function_end(components, stmt);
 
       components->current_fxn = parent_fxn;
       components->current_frame_type = parent_frame_type;
       components->current_frame_alloc = parent_frame_alloc;
       components->current_parent_frame = parent_parent_frame;
+      components->current_arena_ptr = parent_arena_ptr;
+      components->target_return_arena = parent_target_return_arena;
       components->current_fxn_ast = parent_fxn_ast;
       if (parent_block != NULL) {
         LLVMPositionBuilderAtEnd(components->builder, parent_block);

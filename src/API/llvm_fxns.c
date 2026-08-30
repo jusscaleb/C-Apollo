@@ -53,7 +53,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
           println_args = load_variable(components, expr);
           break;
         }
-        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR || expr->Type == AST_INDEX_EXPR) {
+        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR || expr->Type == AST_INDEX_EXPR || expr->Type == AST_ACCESS) {
           println_args = arihmetics(components, expr, "");
           break;
         }
@@ -76,6 +76,10 @@ void _apl_gen_println_ir(LLVMComponents *components,
           println_args = load_variable(components, expr);
           break;
         }
+        if (expr->Type == AST_ACCESS || expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR) {
+          println_args = arihmetics(components, expr, "");
+          break;
+        }
 
         int b;
         const int LENGTH = expr->literal_expr.token.length;
@@ -94,12 +98,10 @@ void _apl_gen_println_ir(LLVMComponents *components,
           break;
         }
         
-        
-        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR || expr->Type == AST_INDEX_EXPR) {
+        if (expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR || expr->Type == AST_INDEX_EXPR || expr->Type == AST_ACCESS) {
           println_args = arihmetics(components, expr, "");
           break;
         }
-
 
         if (expr->Type == AST_CALL_FXN) {
           println_args = _apl_eval_function_call(components, expr);
@@ -111,13 +113,16 @@ void _apl_gen_println_ir(LLVMComponents *components,
         break;
       }
 
-
       case TYPE_STRING: {
         param_types[0] = LLVMPointerType(I8(components->ctx), 0);
         println_fxn = LLVMGetNamedFunction(components->module, "_apl_print_string");
 
         if (expr->Type == AST_VAR_REF) {
           println_args = load_variable(components, expr);
+          break;
+        }
+        if (expr->Type == AST_ACCESS || expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR) {
+          println_args = arihmetics(components, expr, "");
           break;
         }
         if (expr->Type == AST_CALL_FXN) {
@@ -182,7 +187,9 @@ void _apl_gen_function_start(LLVMComponents *components,
 
   else {
     components->current_fxn_ast = &block_node->function.fxn;
-    bool is_nested = (block_node->function.fxn.parent_fxn != NULL);
+    bool is_nested = (block_node->function.fxn.parent_fxn != NULL &&
+                      block_node->function.fxn.parent_fxn->name != NULL &&
+                      strcmp(block_node->function.fxn.parent_fxn->name, "global") != 0);
     bool is_b2_ret = (block_node->function.fxn.bucket == BUCKET_TWO) || 
                      (block_node->function.resolved_symbol && block_node->function.resolved_symbol->bucket == BUCKET_TWO);
 
@@ -228,8 +235,10 @@ void _apl_gen_function_start(LLVMComponents *components,
         LLVMAppendBasicBlockInContext(components->ctx, fxn, "");
     LLVMPositionBuilderAtEnd(components->builder, entry);
 
-    block_node->function.resolved_symbol->fxn_meta_data.fxn_type = fxn_type;
-    block_node->function.resolved_symbol->fxn_meta_data.the_fxn = fxn;
+    if (block_node->function.resolved_symbol) {
+      block_node->function.resolved_symbol->fxn_meta_data.fxn_type = fxn_type;
+      block_node->function.resolved_symbol->fxn_meta_data.the_fxn = fxn;
+    }
     components->current_fxn = fxn;
     components->current_frame_alloc = LLVMBuildAlloca(
         components->builder,
@@ -267,7 +276,8 @@ void _apl_gen_function_start(LLVMComponents *components,
 void _apl_gen_function_end(LLVMComponents *components, 
                            ASTNode *block_node) {
 
-  LLVMBasicBlockRef current_block = LLVMGetInsertBlock(components->builder);
+  LLVMBasicBlockRef current_block = (components->builder) ? LLVMGetInsertBlock(components->builder) : NULL;
+  if (!current_block) return;
 
   if (LLVMGetBasicBlockTerminator(current_block)) return;
 
@@ -279,8 +289,10 @@ void _apl_gen_function_end(LLVMComponents *components,
     LLVMBuildRet(
         components->builder,
         LLVMConstInt(I32(components->ctx), 0, false));
-  } else {
+  } else if (block_node->function.fxn.return_type == TYPE_NULL) {
     LLVMBuildRetVoid(components->builder);
+  } else {
+    LLVMBuildUnreachable(components->builder);
   }
 } 
 

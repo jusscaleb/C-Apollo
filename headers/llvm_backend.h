@@ -381,5 +381,28 @@ LLVMValueRef _apl_gen_array_literal(LLVMComponents *components, ASTNode *node);
  */
 LLVMValueRef _apl_gen_array_index_expr(LLVMComponents *components, ASTNode *node);
 
+/**
+ * Generates named LLVM struct definition from AST_STRUCT_DEFINITION node.
+ */
+LLVMTypeRef _apl_gen_struct_definition(LLVMComponents *components, ASTNode *struct_node);
+
+/**
+ * Generates GEP pointer to struct member by field index.
+ */
+LLVMValueRef _apl_gen_struct_field_gep(LLVMComponents *components, LLVMValueRef struct_ptr,
+                                       LLVMTypeRef struct_type, int field_index, const char *field_name);
+
+LLVMTypeRef _apl_get_field_llvm_type(LLVMComponents *components, ASTNode *field_decl);
+
+/**
+ * Resolves LLVM GEP pointer to struct member access (AST_ACCESS).
+ */
+LLVMValueRef _apl_get_struct_access_ptr(LLVMComponents *components, ASTNode *access_node);
+
+/**
+ * Generates LLVM load instruction for struct member access (AST_ACCESS).
+ */
+LLVMValueRef _apl_gen_struct_access_load(LLVMComponents *components, ASTNode *access_node);
+
 #endif
 

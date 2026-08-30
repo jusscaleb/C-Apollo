@@ -4,6 +4,86 @@
 #include <stdio.h>
 #include <string.h>
 
+static void _apl_populate_struct_from_literal(LLVMComponents *components,
+                                              LLVMValueRef struct_ptr,
+                                              LLVMTypeRef struct_type,
+                                              ASTNode *expr) {
+  if (!expr || expr->Type != AST_ARRAY_LITERAL || !struct_ptr || !struct_type)
+    return;
+
+  uint32_t count = expr->array_literal.count;
+  ASTNode **elements = expr->array_literal.elements;
+
+  for (uint32_t i = 0; i < count; i++) {
+    if (!elements[i])
+      continue;
+
+    if (elements[i]->Type == AST_ARRAY_LITERAL) {
+      LLVMValueRef field_gep = LLVMBuildStructGEP2(
+          components->builder, struct_type, struct_ptr, i, "nested_struct_gep");
+      LLVMTypeRef field_type = LLVMStructGetTypeAtIndex(struct_type, i);
+      _apl_populate_struct_from_literal(components, field_gep, field_type, elements[i]);
+      continue;
+    }
+
+    if (elements[i]->Type == AST_VAR_REF && elements[i]->var_ref.resolved_symbol && elements[i]->var_ref.resolved_symbol->type == TYPE_STRUCT) {
+      LLVMValueRef src_ptr = load_variable(components, elements[i]);
+      LLVMTypeRef field_type = LLVMStructGetTypeAtIndex(struct_type, i);
+      if (src_ptr && field_type) {
+        LLVMValueRef loaded_struct = LLVMBuildLoad2(components->builder, field_type, src_ptr, "nested_struct_copy");
+        LLVMValueRef field_gep = LLVMBuildStructGEP2(components->builder, struct_type, struct_ptr, i, "field_gep");
+        LLVMBuildStore(components->builder, loaded_struct, field_gep);
+      }
+      continue;
+    }
+
+    LLVMValueRef elem_val = NULL;
+    if (elements[i]->Type == AST_LITERAL_EXPR) {
+      TokenType tt = elements[i]->literal_expr.token.type;
+      if (tt == TOKEN_INT) {
+        elem_val = LLVMConstInt(I32(components->ctx),
+                                (int)return_eval_int(elements[i]), 0);
+      } else if (tt == TOKEN_FLOAT) {
+        elem_val =
+            LLVMConstReal(F32(components->ctx), return_eval_int(elements[i]));
+      } else if (tt == TOKEN_CHAR) {
+        uint8_t c = parse_char_literal(elements[i]->literal_expr.token);
+        elem_val = LLVMConstInt(I8(components->ctx), c, false);
+      } else if (tt == TOKEN_BOOL) {
+        int b = (elements[i]->literal_expr.token.length == 5) ? 0 : 1;
+        elem_val = LLVMConstInt(I1(components->ctx), b, 0);
+      } else if (tt == TOKEN_STRING) {
+        char str[elements[i]->literal_expr.token.length + 1];
+        slice_string(elements[i]->literal_expr.token, str);
+        LLVMTypeRef str_members[] = {LLVMPointerType(I8(components->ctx), 0),
+                                     I32(components->ctx)};
+        LLVMTypeRef string_struct_type =
+            LLVMStructTypeInContext(components->ctx, str_members, 2, false);
+        LLVMValueRef str_alloc =
+            LLVMBuildAlloca(components->builder, string_struct_type, "str_alloc");
+        _apl_build_string_reassign(components, str_alloc, str,
+                                   string_struct_type);
+        elem_val = LLVMBuildLoad2(components->builder, string_struct_type,
+                                  str_alloc, "str_load");
+      } else {
+        elem_val = arihmetics(components, elements[i], "");
+      }
+    } else if (elements[i]->Type == AST_VAR_REF) {
+      elem_val = load_variable(components, elements[i]);
+    } else if (elements[i]->Type == AST_CALL_FXN) {
+      elem_val = _apl_eval_function_call(components, elements[i]);
+    } else {
+      elem_val = arihmetics(components, elements[i], "");
+    }
+
+    if (elem_val) {
+      LLVMValueRef field_gep = LLVMBuildStructGEP2(
+          components->builder, struct_type, struct_ptr, i, "field_gep");
+      LLVMBuildStore(components->builder, elem_val, field_gep);
+    }
+  }
+}
+
 void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
 
   char var_name[var_node->var_decl.name_length + 1];
@@ -20,7 +100,7 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
   LLVMValueRef var_val;
   LLVMValueRef val;
 
-  if (expr && expr->Type == AST_ARRAY_LITERAL) {
+  if (expr && expr->Type == AST_ARRAY_LITERAL && VAR_TYPE != TYPE_STRUCT) {
     val = _apl_gen_array_literal(components, expr);
     var_ptr = val;
     if (var_node->var_decl.resolved_symbol) {
@@ -32,22 +112,26 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
   }
 
   if (var_node->var_decl.pointer_level > 0) {
-    if (expr->Type == AST_URINARY_EXPR &&
-        expr->urinary_expr.operator_type == TOKEN_REF) {
-      LLVMValueRef target_addr =
-          _apl_get_lvalue_address(components, expr->urinary_expr.value);
-      if (target_addr) {
-        val = LLVMBuildBitCast(components->builder, target_addr,
-                               LLVMPointerType(I8(components->ctx), 0), "");
+    if (expr) {
+      if (expr->Type == AST_URINARY_EXPR &&
+          expr->urinary_expr.operator_type == TOKEN_REF) {
+        LLVMValueRef target_addr =
+            _apl_get_lvalue_address(components, expr->urinary_expr.value);
+        if (target_addr) {
+          val = LLVMBuildBitCast(components->builder, target_addr,
+                                 LLVMPointerType(I8(components->ctx), 0), "");
+        } else {
+          val = arihmetics(components, expr, "");
+        }
+      } else if (expr->Type == AST_VAR_REF) {
+        val = load_variable(components, expr);
+      } else if (expr->Type == AST_CALL_FXN) {
+        val = _apl_eval_function_call(components, expr);
       } else {
         val = arihmetics(components, expr, "");
       }
-    } else if (expr->Type == AST_VAR_REF) {
-      val = load_variable(components, expr);
-    } else if (expr->Type == AST_CALL_FXN) {
-      val = _apl_eval_function_call(components, expr);
     } else {
-      val = arihmetics(components, expr, "");
+      val = LLVMConstNull(LLVMPointerType(I8(components->ctx), 0));
     }
 
     var_ptr = _apl_allocate_variable_by_bucket(
@@ -64,12 +148,16 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
     case TYPE_BOOL: {
       var_ptr = _apl_allocate_variable_by_bucket(components, sym,
                                                  I1(components->ctx));
-      if (expr->Type == AST_LITERAL_EXPR) {
-        const int LENGTH = expr->literal_expr.token.length;
-        int b_val = (LENGTH == 5) ? 0 : 1;
-        val = LLVMConstInt(I1(components->ctx), b_val, 0);
+      if (expr) {
+        if (expr->Type == AST_LITERAL_EXPR) {
+          const int LENGTH = expr->literal_expr.token.length;
+          int b_val = (LENGTH == 5) ? 0 : 1;
+          val = LLVMConstInt(I1(components->ctx), b_val, 0);
+        } else {
+          val = arihmetics(components, expr, "");
+        }
       } else {
-        val = arihmetics(components, expr, "");
+        val = LLVMConstInt(I1(components->ctx), 0, 0);
       }
 
       if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
@@ -81,11 +169,15 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       break;
     }
     case TYPE_FLOAT: {
-      if (expr->Type == AST_LITERAL_EXPR) {
-        float f_val = return_eval_int(expr);
-        val = LLVMConstReal(F32(components->ctx), f_val);
+      if (expr) {
+        if (expr->Type == AST_LITERAL_EXPR) {
+          float f_val = return_eval_int(expr);
+          val = LLVMConstReal(F32(components->ctx), f_val);
+        } else {
+          val = arihmetics(components, expr, "");
+        }
       } else {
-        val = arihmetics(components, expr, "");
+        val = LLVMConstReal(F32(components->ctx), 0.0);
       }
 
       var_ptr = _apl_allocate_variable_by_bucket(components, sym,
@@ -99,16 +191,20 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       break;
     }
     case TYPE_INT: {
-      if (expr->Type == AST_LITERAL_EXPR) {
-        int i_val = (int)return_eval_int(expr);
-        val = LLVMConstInt(I32(components->ctx), i_val, 0);
-      } else {
-        val = arihmetics(components, expr, "");
+      if (expr) {
+        if (expr->Type == AST_LITERAL_EXPR) {
+          int i_val = (int)return_eval_int(expr);
+          val = LLVMConstInt(I32(components->ctx), i_val, 0);
+        } else {
+          val = arihmetics(components, expr, "");
 
-        if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMIntegerTypeKind && LLVMTypeOf(val) != I32(components->ctx)) {
-          val = LLVMBuildTrunc(components->builder, val, I32(components->ctx),
-                               "");
+          if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMIntegerTypeKind && LLVMTypeOf(val) != I32(components->ctx)) {
+            val = LLVMBuildTrunc(components->builder, val, I32(components->ctx),
+                                 "");
+          }
         }
+      } else {
+        val = LLVMConstInt(I32(components->ctx), 0, 0);
       }
 
       var_ptr = _apl_allocate_variable_by_bucket(components, sym,
@@ -122,30 +218,44 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
     }
 
     case TYPE_STRING: {
-      char str[expr->literal_expr.token.length + 1];
-
-      slice_string(expr->literal_expr.token, str);
       LLVMTypeRef str_members[] = {LLVMPointerType(I8(components->ctx), 0),
                                    I32(components->ctx)};
       LLVMTypeRef string_struct_type =
           LLVMStructTypeInContext(components->ctx, str_members, 2, false);
       var_ptr =
           _apl_allocate_variable_by_bucket(components, sym, string_struct_type);
-      _apl_build_string_reassign(components, var_ptr, str, string_struct_type);
+
+      if (expr) {
+        char str[expr->literal_expr.token.length + 1];
+        slice_string(expr->literal_expr.token, str);
+        _apl_build_string_reassign(components, var_ptr, str, string_struct_type);
+      } else {
+        val = LLVMConstNull(string_struct_type);
+        if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+          LLVMSetInitializer(var_ptr, val);
+        } else {
+          LLVMBuildStore(components->builder, val, var_ptr);
+        }
+      }
 
       break;
     }
     case TYPE_CHAR: {
-      if (expr->Type == AST_LITERAL_EXPR) {
-        uint8_t c = parse_char_literal(expr->literal_expr.token);
-        val = LLVMConstInt(I8(components->ctx), c, false);
-      } else if (expr->Type == AST_CALL_FXN) {
-        val = _apl_eval_function_call(components, expr);
-      } else if (expr->Type == AST_VAR_REF) {
-        val = load_variable(components, expr);
+      if (expr) {
+        if (expr->Type == AST_LITERAL_EXPR) {
+          uint8_t c = parse_char_literal(expr->literal_expr.token);
+          val = LLVMConstInt(I8(components->ctx), c, false);
+        } else if (expr->Type == AST_CALL_FXN) {
+          val = _apl_eval_function_call(components, expr);
+        } else if (expr->Type == AST_VAR_REF) {
+          val = load_variable(components, expr);
+        } else {
+          val = arihmetics(components, expr, "");
+        }
       } else {
-        val = arihmetics(components, expr, "");
+        val = LLVMConstInt(I8(components->ctx), 0, false);
       }
+
       var_ptr = _apl_allocate_variable_by_bucket(components, sym,
                                                  I8(components->ctx));
 
@@ -171,17 +281,69 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
         } else {
           val = arihmetics(components, expr, "");
         }
+        if (sym && sym->llvm_val_ref && sym->llvm_val_ref != val) {
+          LLVMBuildStore(components->builder, val, sym->llvm_val_ref);
+          var_ptr = sym->llvm_val_ref;
+        } else {
+          var_ptr = val;
+          if (var_node->var_decl.resolved_symbol) {
+            var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
+          }
+        }
       } else {
-        val = NULL;
-      }
+        if (var_node->var_decl.array_count > 0) {
+          DataType elem_dt = TYPE_INT;
+          if (VAR_TYPE == TYPE_FLOAT_ARRAY) elem_dt = TYPE_FLOAT;
+          else if (VAR_TYPE == TYPE_CHAR_ARRAY) elem_dt = TYPE_CHAR;
+          else if (VAR_TYPE == TYPE_BOOL_ARRAY) elem_dt = TYPE_BOOL;
+          else if (VAR_TYPE == TYPE_STR_ARRAY) elem_dt = TYPE_STRING;
 
-      if (sym && sym->llvm_val_ref && sym->llvm_val_ref != val) {
-        LLVMBuildStore(components->builder, val, sym->llvm_val_ref);
-        var_ptr = sym->llvm_val_ref;
-      } else {
-        var_ptr = val;
+          LLVMTypeRef elem_type = _apl_get_llvm_type(components, elem_dt);
+          LLVMTypeRef arr_type = LLVMArrayType(elem_type, var_node->var_decl.array_count);
+          var_ptr = _apl_allocate_variable_by_bucket(components, sym, arr_type);
+        } else {
+          var_ptr = NULL;
+        }
         if (var_node->var_decl.resolved_symbol) {
           var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
+        }
+      }
+      break;
+    }
+    case TYPE_STRUCT: {
+      LLVMTypeRef struct_type = NULL;
+      if (var_node->var_decl.struct_type_name) {
+        struct_type = LLVMGetTypeByName(components->module, var_node->var_decl.struct_type_name);
+      }
+      if (!struct_type && sym && sym->llvm_struct_type) {
+        struct_type = sym->llvm_struct_type;
+      }
+      if (!struct_type && sym && sym->name) {
+        struct_type = LLVMGetTypeByName(components->module, sym->name);
+      }
+      if (!struct_type) {
+        struct_type = LLVMPointerType(I8(components->ctx), 0);
+      }
+      if (sym) {
+        sym->llvm_struct_type = struct_type;
+      }
+
+      var_ptr = _apl_allocate_variable_by_bucket(components, sym, struct_type);
+
+      if (expr == NULL) {
+        LLVMValueRef zero_init = LLVMConstNull(struct_type);
+        if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+          LLVMSetInitializer(var_ptr, zero_init);
+        } else {
+          LLVMBuildStore(components->builder, zero_init, var_ptr);
+        }
+      } else if (expr->Type == AST_ARRAY_LITERAL) {
+        _apl_populate_struct_from_literal(components, var_ptr, struct_type, expr);
+      } else if (expr->Type == AST_VAR_REF) {
+        LLVMValueRef src_ptr = load_variable(components, expr);
+        if (src_ptr && var_ptr) {
+          LLVMValueRef loaded_struct = LLVMBuildLoad2(components->builder, struct_type, src_ptr, "struct_copy");
+          LLVMBuildStore(components->builder, loaded_struct, var_ptr);
         }
       }
       break;
@@ -213,6 +375,17 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
 }
 
 void _apl_reassign_variable(LLVMComponents *components, ASTNode *node) {
+  if (!node) return;
+
+  if (node->var_assign.target_node != NULL) {
+    LLVMValueRef target_addr = _apl_get_lvalue_address(components, node->var_assign.target_node);
+    if (!target_addr) return;
+    LLVMValueRef val = arihmetics(components, node->var_assign.value, "");
+    if (val) {
+      LLVMBuildStore(components->builder, val, target_addr);
+    }
+    return;
+  }
 
   Symbol *var_sym = node->var_assign.resolved_symbol;
   DataType var_Type = var_sym->type;
@@ -313,6 +486,30 @@ void _apl_reassign_variable(LLVMComponents *components, ASTNode *node) {
       new_val = LLVMConstInt(I8(components->ctx), c, false);
     } else if (value_node->Type == AST_VAR_REF) {
       new_val = load_variable(components, value_node);
+    } else if (value_node->Type == AST_CALL_FXN) {
+      new_val = _apl_eval_function_call(components, value_node);
+    }
+    break;
+  }
+  case TYPE_STRUCT: {
+    LLVMTypeRef struct_type = (var_sym) ? var_sym->llvm_struct_type : NULL;
+    if (!struct_type && var_sym) {
+      struct_type = LLVMGetTypeByName(components->module, var_sym->name);
+    }
+    if (!struct_type) {
+      struct_type = LLVMPointerType(I8(components->ctx), 0);
+    }
+
+    if (value_node->Type == AST_ARRAY_LITERAL) {
+      _apl_populate_struct_from_literal(components, var_target_ptr, struct_type, value_node);
+      return;
+    } else if (value_node->Type == AST_VAR_REF) {
+      LLVMValueRef src_ptr = load_variable(components, value_node);
+      if (src_ptr && var_target_ptr) {
+        LLVMValueRef loaded_struct = LLVMBuildLoad2(components->builder, struct_type, src_ptr, "struct_copy");
+        LLVMBuildStore(components->builder, loaded_struct, var_target_ptr);
+      }
+      return;
     } else if (value_node->Type == AST_CALL_FXN) {
       new_val = _apl_eval_function_call(components, value_node);
     }
@@ -497,6 +694,18 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
     case TYPE_BOOL_ARRAY:
     case TYPE_CHAR_ARRAY:
     case TYPE_STR_ARRAY: {
+      if (!target_ptr) {
+        if (!components->current_fxn || var_sym->param_idx >= LLVMCountParams(components->current_fxn)) {
+          return NULL;
+        }
+        LLVMTypeRef ptr_type = LLVMPointerType(I8(components->ctx), 0);
+        LLVMValueRef alloc = LLVMBuildAlloca(components->builder, ptr_type, "");
+        LLVMValueRef p_val =
+            LLVMGetParam(components->current_fxn, var_sym->param_idx);
+        LLVMBuildStore(components->builder, p_val, alloc);
+        target_ptr = alloc;
+        var_sym->llvm_val_ref = alloc;
+      }
       if (target_ptr) {
         if (LLVMIsAAllocaInst(target_ptr) &&
             LLVMGetTypeKind(LLVMGetAllocatedType(target_ptr)) == LLVMPointerTypeKind) {
@@ -509,6 +718,30 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
                                       LLVMPointerType(I8(components->ctx), 0),
                                       var_sym->name ? var_sym->name : "");
         }
+      }
+      break;
+    }
+    case TYPE_STRUCT: {
+      if (!target_ptr) {
+        if (!components->current_fxn || var_sym->param_idx >= LLVMCountParams(components->current_fxn)) {
+          return NULL;
+        }
+        LLVMTypeRef struct_type = var_sym->llvm_struct_type;
+        if (!struct_type && var_sym->name) {
+          struct_type = LLVMGetTypeByName(components->module, var_sym->name);
+        }
+        if (!struct_type) {
+          struct_type = LLVMPointerType(I8(components->ctx), 0);
+        }
+        LLVMValueRef alloc = LLVMBuildAlloca(components->builder, struct_type, "");
+        LLVMValueRef p_val =
+            LLVMGetParam(components->current_fxn, var_sym->param_idx);
+        LLVMBuildStore(components->builder, p_val, alloc);
+        target_ptr = alloc;
+        var_sym->llvm_val_ref = alloc;
+      }
+      if (target_ptr) {
+        llvm_var = target_ptr;
       }
       break;
     }

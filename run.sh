@@ -2,12 +2,15 @@
 
 set -eu
 
+export PATH="/mingw64/bin:/c/msys64/mingw64/bin:/c/msys64/clang64/bin:$PATH"
+
 args="${1:-}"
 
 
 if [ "$args" != 'build' ]; then
-    rm -rf build
-    cmake -B build -G "MinGW Makefiles" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    if [ ! -f "build/Makefile" ]; then
+        cmake -B build -G "MinGW Makefiles" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    fi
 
     cmake --build build 
 

@@ -17,26 +17,29 @@ struct KeywordEntry {
  */
 static inline const struct KeywordEntry *in_word_set(const char *str, unsigned int len) {
   static const struct KeywordEntry wordlist[] = {
-    {"fxn", TOKEN_FXN},
-    {"run", TOKEN_RUN},
-    {"void", TOKEN_VOID},
-    {"var", TOKEN_VAR},
-    {"true", TOKEN_BOOL},
+    {"fxn",   TOKEN_FXN},
+    {"run",   TOKEN_RUN},
+    {"void",  TOKEN_VOID},
+    {"var",   TOKEN_VAR},
+    {"true",  TOKEN_BOOL},
     {"false", TOKEN_BOOL},
-    {"null", TOKEN_NULL},
-    {"and", TOKEN_AND},
-    {"or", TOKEN_OR},
-    {"if", TOKEN_IF},
-    {"elif", TOKEN_ELIF},
-    {"else", TOKEN_ELSE},
+    {"null",  TOKEN_NULL},
+    {"and",   TOKEN_AND},
+    {"or",    TOKEN_OR},
+    {"if",    TOKEN_IF},
+    {"elif",  TOKEN_ELIF},
+    {"else",  TOKEN_ELSE},
     {"while", TOKEN_WHILE},
-    {"for", TOKEN_FOR},
-    {"int", DECLARE_INT},
-    {"str", DECLARE_STR},
-    {"bool", DECLARE_BOOL},
+    {"for",   TOKEN_FOR},
+    {"int",   DECLARE_INT},
+    {"str",   DECLARE_STR},
+    {"bool",  DECLARE_BOOL},
     {"float", DECLARE_FLOAT},
-    {"return", TOKEN_RETURN},
-    {"char", DECLARE_CHAR}
+    {"return",TOKEN_RETURN},
+    {"char",  DECLARE_CHAR},
+    {"struct",DECLARE_STRUCT},
+    {"fxns",  TOKEN_FXNS},
+    {"self",  TOKEN_SELF}
   };
 
   static const int count = sizeof(wordlist) / sizeof(wordlist[0]);

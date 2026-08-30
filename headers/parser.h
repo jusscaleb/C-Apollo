@@ -44,6 +44,7 @@ ASTNode *parse_block(Parser *parser, CodegenContext *context);
 void consume(Parser *parser, TokenType type, const char *errorMessage);
 
 ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context);
+ASTNode *register_and_form_method(Parser *parser, CodegenContext *context, const char *prefix, int prefix_len);
 
 ASTNode *function(Parser *parser, CodegenContext *context);
 
@@ -51,11 +52,17 @@ Token parser_get_var_token(Parser *parser, DataType dt);
 
 ASTNode *parse_urinary(Parser *parser, CodegenContext *context);
 ASTNode *parse_deref_assignment(Parser *parser, CodegenContext *context);
-ASTNode *parse_array_node(Parser *parser,DataType datatype, CodegenContext *context, uint32_t count);
+ASTNode *parse_array_node(Parser *parser, DataType datatype, CodegenContext *context, int count);
 ASTNode *parse_index_expr(Parser *parser, CodegenContext *context, ASTNode *target);
 
 bool is_all_caps(const char *name, int length);
 int token_to_int(Token token);
 void token_to_str(Token token, char* str);
+
+ASTNode* parse_struct_type(Parser *parser, CodegenContext *context);
+
+Struct *parse_struct_fields(Parser *parser, CodegenContext *context);
+
+ASTNode* parse_fxns_block(Parser *parser, CodegenContext *context);
 
 #endif

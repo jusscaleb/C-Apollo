@@ -87,6 +87,10 @@ LLVMValueRef _apl_get_lvalue_address(LLVMComponents *components, ASTNode *node) 
     return NULL;
   }
 
+  if (node->Type == AST_ACCESS) {
+    return _apl_get_struct_access_ptr(components, node);
+  }
+
   if (node->Type == AST_INDEX_EXPR) {
     LLVMValueRef target_array_ptr = NULL;
     DataType elem_dt = TYPE_INT;
@@ -102,6 +106,7 @@ LLVMValueRef _apl_get_lvalue_address(LLVMComponents *components, ASTNode *node) 
         else if (sym->type == TYPE_CHAR_ARRAY || sym->type == TYPE_CHAR) elem_dt = TYPE_CHAR;
         else if (sym->type == TYPE_BOOL_ARRAY || sym->type == TYPE_BOOL) elem_dt = TYPE_BOOL;
         else if (sym->type == TYPE_STR_ARRAY || sym->type == TYPE_STRING) elem_dt = TYPE_STRING;
+        else if (sym->type == TYPE_STRUCT) elem_dt = TYPE_STRUCT;
 
         if (sym->bucket == BUCKET_TWO || sym->array_count == 0) {
           is_dyn = true;
@@ -119,7 +124,10 @@ LLVMValueRef _apl_get_lvalue_address(LLVMComponents *components, ASTNode *node) 
     LLVMValueRef idx_val = arihmetics(components, node->index_expr.index, "idx_offset");
     if (!idx_val) return NULL;
 
-    LLVMTypeRef elem_type = _apl_get_llvm_type(components, elem_dt);
+    Symbol *target_sym = (node->index_expr.target->Type == AST_VAR_REF) ? node->index_expr.target->var_ref.resolved_symbol : NULL;
+    LLVMTypeRef elem_type = (elem_dt == TYPE_STRUCT && target_sym && target_sym->llvm_struct_type)
+                                ? target_sym->llvm_struct_type
+                                : _apl_get_llvm_type(components, elem_dt);
     if (!elem_type || LLVMGetTypeKind(elem_type) == LLVMVoidTypeKind) elem_type = I32(components->ctx);
 
     if (is_dyn) {
@@ -230,6 +238,10 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
 
   if (node->Type == AST_INDEX_EXPR) {
     return _apl_gen_array_index_expr(components, node);
+  }
+
+  if (node->Type == AST_ACCESS) {
+    return _apl_gen_struct_access_load(components, node);
   }
 
   if (node->Type == AST_VAR_REF) {
@@ -384,14 +396,27 @@ __attribute__((always_inline)) float return_eval_int(ASTNode* expr){
 }
 
 __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
-      if (!node || !node->call_fxn.resolved_symbol) return NULL;
+      if (!node) return NULL;
 
-      LLVMValueRef result;
-      FxnCallMetaData meta_data = node->call_fxn.resolved_symbol->fxn_meta_data;
-      if (!meta_data.the_fxn || !meta_data.fxn_type) return NULL;
+      LLVMValueRef the_fxn = NULL;
+      LLVMTypeRef fxn_type = NULL;
+      if (node->call_fxn.resolved_symbol) {
+        the_fxn = node->call_fxn.resolved_symbol->fxn_meta_data.the_fxn;
+        fxn_type = node->call_fxn.resolved_symbol->fxn_meta_data.fxn_type;
+      }
+      if (!the_fxn && node->call_fxn.name) {
+        the_fxn = LLVMGetNamedFunction(components->module, node->call_fxn.name);
+        if (the_fxn) {
+          fxn_type = LLVMGlobalGetValueType(the_fxn);
+        }
+      }
+      if (!the_fxn || !fxn_type) return NULL;
 
       uint32_t a_numbers = (node->call_fxn.args) ? _apl_get_n_args(components, node->call_fxn.args): 0;
-      bool is_nested = (node->call_fxn.fxn.parent_fxn != NULL || (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->fxn && node->call_fxn.resolved_symbol->fxn->parent_fxn != NULL));
+      Fxn *target_fxn = (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->fxn) ? node->call_fxn.resolved_symbol->fxn : &node->call_fxn.fxn;
+      bool is_nested = (target_fxn && target_fxn->parent_fxn != NULL &&
+                        target_fxn->parent_fxn->name != NULL &&
+                        strcmp(target_fxn->parent_fxn->name, "global") != 0);
       bool is_b2_ret = (node->call_fxn.fxn.bucket == BUCKET_TWO) ||
                        (node->call_fxn.resolved_symbol && (node->call_fxn.resolved_symbol->bucket == BUCKET_TWO || (node->call_fxn.resolved_symbol->fxn && node->call_fxn.resolved_symbol->fxn->bucket == BUCKET_TWO)));
       uint32_t total_args = a_numbers + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);
@@ -439,7 +464,15 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
             break;
           }
           case AST_VAR_REF:
-            args[i] = load_variable(components, a->arg);
+            if (a->arg->var_ref.resolved_symbol && (a->arg->var_ref.resolved_symbol->type == TYPE_STRUCT || a->arg->var_ref.resolved_symbol->struct_fields)) {
+              if (a->arg->var_ref.resolved_symbol->pointer_level > 0) {
+                args[i] = load_variable(components, a->arg);
+              } else {
+                args[i] = _apl_get_lvalue_address(components, a->arg);
+              }
+            } else {
+              args[i] = load_variable(components, a->arg);
+            }
             break;
           case AST_BINARY_EXPR:
           case AST_URINARY_EXPR:
@@ -480,8 +513,7 @@ __attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponen
         args[arg_idx++] = active_arena;
       }
 
-      result = LLVMBuildCall2(components->builder, meta_data.fxn_type, meta_data.the_fxn, args, total_args, "");
-     
+      LLVMValueRef result = LLVMBuildCall2(components->builder, fxn_type, the_fxn, args, total_args, "");
       return result;
 }
 

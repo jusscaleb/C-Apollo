@@ -34,6 +34,15 @@ typedef struct Fxn {
   int array_count;
 } Fxn;
 
+
+typedef struct Fxns {
+      int length;
+      int level;
+      Fxn *parent_fxn;
+      struct Fxns *parent;
+      MemoryBucket bucket;
+}Fxns;
+
 /**
  * Registers a new function in the symbol table.
  * @param context The codegen context containing the symbol table.

@@ -24,6 +24,8 @@ typedef struct CodegenContext CodegenContext;
 typedef struct CodegenContext CodegenContext;
 // typedef struct  FxnCallMetaData FxnCallMetaData;
 typedef struct Fxn Fxn;
+typedef struct Struct Struct;
+//typedef struct Struct Struct;
 
 typedef struct FxnCallMetaData {
   LLVMTypeRef fxn_type;
@@ -45,7 +47,8 @@ typedef enum {
   TYPE_FLOAT_ARRAY,
   TYPE_BOOL_ARRAY,
   TYPE_STR_ARRAY,
-  TYPE_CHAR_ARRAY
+  TYPE_CHAR_ARRAY,
+  TYPE_STRUCT
 } DataType;
 
 typedef enum {
@@ -53,7 +56,6 @@ typedef enum {
   BUCKET_ONE, // Constants
   BUCKET_TWO, // Arena 
   BUCKET_THREE // Heap
-
 }MemoryBucket;
 
 
@@ -94,6 +96,10 @@ typedef struct Symbol {
   int pointer_level;
   MemoryBucket bucket;
   int array_count;
+  bool assigned;
+  LLVMTypeRef llvm_struct_type;
+  Struct *struct_fields;
+  char *struct_type_name;
 } Symbol;
 
 typedef struct SymbolEntry {
@@ -109,6 +115,7 @@ typedef struct SymbolTable {
   uint32_t count;
 
 } SymbolTable;
+
 
 /**
  * Registers a new variable in the symbol table.

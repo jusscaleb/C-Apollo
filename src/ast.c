@@ -73,6 +73,7 @@ ASTNode *create_var_assign_node(const char *name, int name_length,
   node->var_assign.fxn = fxn;
   node->var_assign.level = level;
   node->var_assign.deref_level = deref_level;
+  node->var_assign.target_node = NULL;
   return node;
 }
 
@@ -186,7 +187,66 @@ ASTNode *create_index_expr_node(ASTNode *target, ASTNode *index, DataType dataty
   node->index_expr.target = target;
   node->index_expr.index = index;
   node->index_expr.type = datatype;
+  return node;  
+}
+
+ASTNode *create_struct_node(Struct *fields, Fxn *fxn, int level, Arena *a, char* name, int name_length){
+  ASTNode *node = allocate_node(AST_STRUCT_DEFINITION, a);
+  node->struct_expr.fxn = fxn;
+  node->struct_expr.fields = fields;
+  node->struct_expr.level = level;
+  node->struct_expr.name = name;
+  node->struct_expr.name_length = name_length;
   return node;
 }
 
+ASTNode *create_access_node(ASTNode *src, ASTNode *target, DataType dt, Arena *a){
+  ASTNode *node = allocate_node(AST_ACCESS, a);
+  node->access.datatype = dt;
+  node->access.src = src;
+  node->access.target = target;
+  node->access.struct_type_name = NULL;
+  node->access.fields = NULL;
+
+  return node;
+}
+
+ASTNode *create_target_assign_node(ASTNode *target_node, ASTNode *value, Fxn fxn, int level, Arena *a) {
+  ASTNode *node = allocate_node(AST_VAR_ASS, a);
+  node->var_assign.name = NULL;
+  node->var_assign.name_length = 0;
+  node->var_assign.value = value;
+  node->var_assign.fxn = fxn;
+  node->var_assign.level = level;
+  node->var_assign.deref_level = 0;
+  node->var_assign.resolved_symbol = NULL;
+  node->var_assign.target_node = target_node;
+  return node;
+}
+
+ASTNode *create_fxns_node(char *name, int name_length, int level, Fxns *fxns, Arena *a) {
+  ASTNode *node = allocate_node(AST_FUNCTIONS, a);
+  node->functions.name = name;
+  node->functions.name_length = name_length;
+  node->functions.level = level;
+  node->functions.count = 0;
+  node->functions.capacity = 4;
+  node->functions.methods = (ASTNode **)arena_alloc(a, sizeof(ASTNode *) * node->functions.capacity);
+  node->functions.fxns = fxns;
+  node->functions.resolved_symbol = NULL;
+  return node;
+}
+
+void fxns_add_method(ASTNode *node, ASTNode *method, Arena *a) {
+  if (!node || node->Type != AST_FUNCTIONS || !method)
+    return;
+
+  if (node->functions.count >= node->functions.capacity) {
+    node->functions.capacity *= 2;
+    ASTNode **new_methods = (ASTNode **)arena_alloc(a, sizeof(ASTNode *) * node->functions.capacity);
+    memcpy(new_methods, node->functions.methods, sizeof(ASTNode *) * node->functions.count);
+    node->functions.methods = new_methods;
+  }
+  node->functions.methods[node->functions.count++] = method;
+}
 

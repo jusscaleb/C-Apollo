@@ -118,6 +118,7 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
       case TYPE_FLOAT_ARRAY:
       case TYPE_STR_ARRAY:
       case TYPE_CHAR_ARRAY:
+      case TYPE_STRUCT:
         return elem_dt;
       default: break;
     }
@@ -138,8 +139,89 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
     }
   }
 
+  if (expr->Type == AST_ACCESS) {
+    if (expr->access.datatype != TYPE_NULL && expr->access.fields != NULL) {
+      return expr->access.datatype;
+    }
+    Struct *fields = get_struct_fields_from_expr(context, expr->access.src);
+    expr->access.fields = fields;
+    if (!fields) {
+      report_semantic_error(context, "Cannot access field on non-struct type.");
+      return TYPE_NULL;
+    }
+    if (expr->access.target && expr->access.target->Type == AST_VAR_REF) {
+      const char *field_name = expr->access.target->var_ref.name;
+      int field_len = expr->access.target->var_ref.name_length;
+      Struct *f = fields;
+      while (f) {
+        if (f->field && f->field->Type == AST_VAR_DECL) {
+          if (f->field->var_decl.name_length == field_len &&
+              memcmp(f->field->var_decl.name, field_name, field_len) == 0) {
+            expr->access.datatype = f->field->var_decl.value_type;
+            if (f->field->var_decl.value_type == TYPE_STRUCT) {
+              expr->access.struct_type_name = f->field->var_decl.struct_type_name;
+            }
+            return expr->access.datatype;
+          }
+        }
+        f = f->next;
+      }
+      report_semantic_error(context, "Field not found in struct definition.");
+      return TYPE_NULL;
+    }
+  }
+
   report_semantic_error(context, "Could not infer expression type.");
   return TYPE_NULL;
+}
+
+Struct *get_struct_fields_from_expr(SemanticContext *context, ASTNode *expr) {
+  if (!expr) return NULL;
+  if (expr->Type == AST_VAR_REF) {
+    const int NAME_LENGTH = expr->var_ref.name_length;
+    char var_name[NAME_LENGTH + 1];
+    memcpy(var_name, expr->var_ref.name, NAME_LENGTH);
+    var_name[NAME_LENGTH] = '\0';
+    Symbol *sym = lookup_token(context->codegen, var_name, &expr->var_ref.fxn,
+                               expr->var_ref.level);
+    if (sym && (sym->type == TYPE_STRUCT || sym->struct_fields)) {
+      return sym->struct_fields;
+    }
+  } else if (expr->Type == AST_INDEX_EXPR) {
+    if (expr->index_expr.target && expr->index_expr.target->Type == AST_VAR_REF) {
+      const int NAME_LENGTH = expr->index_expr.target->var_ref.name_length;
+      char var_name[NAME_LENGTH + 1];
+      memcpy(var_name, expr->index_expr.target->var_ref.name, NAME_LENGTH);
+      var_name[NAME_LENGTH] = '\0';
+      Symbol *sym = lookup_token(context->codegen, var_name, &expr->index_expr.target->var_ref.fxn,
+                                 expr->index_expr.target->var_ref.level);
+      if (sym && sym->struct_fields) {
+        return sym->struct_fields;
+      }
+    }
+  } else if (expr->Type == AST_ACCESS) {
+    Struct *parent_fields = get_struct_fields_from_expr(context, expr->access.src);
+    if (parent_fields && expr->access.target && expr->access.target->Type == AST_VAR_REF) {
+      const char *field_name = expr->access.target->var_ref.name;
+      int field_len = expr->access.target->var_ref.name_length;
+      Struct *f = parent_fields;
+      while (f) {
+        if (f->field && f->field->Type == AST_VAR_DECL) {
+          if (f->field->var_decl.name_length == field_len &&
+              memcmp(f->field->var_decl.name, field_name, field_len) == 0) {
+            if (f->field->var_decl.value_type == TYPE_STRUCT && f->field->var_decl.struct_type_name) {
+              Symbol *s_sym = lookup_token(context->codegen, f->field->var_decl.struct_type_name,
+                                           &f->field->var_decl.fxn, f->field->var_decl.level);
+              if (s_sym) return s_sym->struct_fields;
+            }
+            return NULL;
+          }
+        }
+        f = f->next;
+      }
+    }
+  }
+  return NULL;
 }
 
 int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr) {
@@ -197,6 +279,25 @@ int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr) {
     return infer_expr_pointer_level(context, expr->index_expr.target);
   }
 
+  if (expr->Type == AST_ACCESS) {
+    Struct *fields = get_struct_fields_from_expr(context, expr->access.src);
+    if (fields && expr->access.target && expr->access.target->Type == AST_VAR_REF) {
+      const char *field_name = expr->access.target->var_ref.name;
+      int field_len = expr->access.target->var_ref.name_length;
+      Struct *f = fields;
+      while (f) {
+        if (f->field && f->field->Type == AST_VAR_DECL) {
+          if (f->field->var_decl.name_length == field_len &&
+              memcmp(f->field->var_decl.name, field_name, field_len) == 0) {
+            return f->field->var_decl.pointer_level;
+          }
+        }
+        f = f->next;
+      }
+    }
+    return 0;
+  }
+
   return 0;
 }
 
@@ -218,6 +319,8 @@ MemoryBucket infer_bucket_type(SemanticContext *context, ASTNode *expr){
     }
     case AST_INDEX_EXPR:
       return infer_bucket_type(context, expr->index_expr.target);
+    case AST_ACCESS:
+      return infer_bucket_type(context, expr->access.src);
     case AST_URINARY_EXPR:
       return infer_bucket_type(context, expr->urinary_expr.value);
     case AST_CALL_FXN:
@@ -252,6 +355,7 @@ bool is_types_compatible(DataType expected, DataType inferred, int expected_ptr_
       (inferred == TYPE_STR_ARRAY || inferred == TYPE_STRING)) return true;
   if ((expected == TYPE_CHAR_ARRAY || expected == TYPE_CHAR) &&
       (inferred == TYPE_CHAR_ARRAY || inferred == TYPE_CHAR)) return true;
+  if (expected == TYPE_STRUCT && (inferred == TYPE_STRUCT || inferred == TYPE_INT_ARRAY || inferred == TYPE_NULL)) return true;
 
   return false;
 }

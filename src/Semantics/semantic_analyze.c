@@ -53,6 +53,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       analyze_node(context, param->param);
       if (param->param->var_decl.resolved_symbol) {
         param->param->var_decl.resolved_symbol->param_idx = p_idx;
+        param->param->var_decl.resolved_symbol->assigned = true;
       }
       p_idx++;
       param = param->next;
@@ -76,31 +77,73 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, name, &node->var_decl.fxn,
                                node->var_decl.level);
-    if (sym && memcmp(sym->fxn->name, node->var_decl.fxn.name,
-                      strlen(sym->fxn->name)) == 1) {
+    if (sym && sym->fxn && sym->fxn->name && node->var_decl.fxn.name &&
+        strcmp(sym->fxn->name, node->var_decl.fxn.name) == 0 &&
+        sym->scope_level == node->var_decl.level) {
       report_semantic_error(context, "Multiple definition of variable.");
       break;
     }
+    
 
-    DataType inferred;
-    if (node->var_decl.value) {
+
+    Symbol *struct_sym = NULL;
+    if (node->var_decl.value_type == TYPE_STRUCT && node->var_decl.struct_type_name) {
+      struct_sym = lookup_token(context->codegen, node->var_decl.struct_type_name,
+                                &node->var_decl.fxn, node->var_decl.level);
+      if (!struct_sym || struct_sym->type != TYPE_STRUCT) {
+        report_semantic_error(context, "Undefined struct type.");
+        break;
+      }
+
+      if (node->var_decl.value) {
+        if (node->var_decl.value->Type == AST_ARRAY_LITERAL) {
+          ASTNode **elements = node->var_decl.value->array_literal.elements;
+          uint32_t count = node->var_decl.value->array_literal.count;
+
+          uint32_t expected_count = 0;
+          Struct *f = struct_sym->struct_fields;
+          while (f) {
+            if (f->field) expected_count++;
+            f = f->next;
+          }
+
+          if (count != expected_count) {
+            report_semantic_error(context, "Struct initializer field count mismatch.");
+            break;
+          }
+
+          f = struct_sym->struct_fields;
+          for (uint32_t i = 0; i < count && f; i++) {
+            if (elements[i]) {
+              analyze_node(context, elements[i]);
+              DataType elem_type = infer_expr_type(context, elements[i]);
+              int elem_ptr = infer_expr_pointer_level(context, elements[i]);
+              bool is_lit = (elements[i]->Type == AST_LITERAL_EXPR);
+
+              DataType field_type = f->field->var_decl.value_type;
+              int field_ptr = f->field->var_decl.pointer_level;
+
+              if (!is_types_compatible(field_type, elem_type, field_ptr, elem_ptr, is_lit)) {
+                report_semantic_error(context, "Datatype mismatch in struct field initializer.");
+                break;
+              }
+            }
+            f = f->next;
+          }
+        }
+      }
+    } else if (node->var_decl.value) {
       analyze_node(context, node->var_decl.value);
       if (node->var_decl.value_type == TYPE_NULL) {
-        inferred = infer_expr_type(context, node->var_decl.value);
+        DataType inferred = infer_expr_type(context, node->var_decl.value);
         node->var_decl.value_type = inferred;
-
       } else {
         DataType expected_type = node->var_decl.value_type;
-        inferred = infer_expr_type(context, node->var_decl.value);
+        DataType inferred = infer_expr_type(context, node->var_decl.value);
         int inferred_ptr_level =
             infer_expr_pointer_level(context, node->var_decl.value);
-        MemoryBucket val_bucket =
-            infer_bucket_type(context, node->var_decl.value);
-        MemoryBucket decl_bucket = node->var_decl.bucket;
-
         bool is_literal = (node->var_decl.value->Type == AST_LITERAL_EXPR);
-        bool is_default_dummy = is_literal && (node->var_decl.value->literal_expr.token.type == TOKEN_NULL);
-        bool is_compatible = is_default_dummy || is_types_compatible(
+        bool is_compatible = is_types_compatible(
             expected_type, inferred, node->var_decl.pointer_level,
             inferred_ptr_level, is_literal);
 
@@ -109,26 +152,43 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
           break;
         }
       }
+    }
 
-      node->var_decl.resolved_symbol = register_variable(
-          context->codegen, name, node->var_decl.value_type, &node->var_decl.fxn,
-          node->var_decl.level, NAME_LENGTH);
+    node->var_decl.resolved_symbol = register_variable(
+        context->codegen, name, node->var_decl.value_type,
+        &node->var_decl.fxn, node->var_decl.level, NAME_LENGTH);
 
-      node->var_decl.resolved_symbol->pointer_level =
-          node->var_decl.pointer_level;
-      node->var_decl.resolved_symbol->bucket = node->var_decl.bucket;
-      node->var_decl.resolved_symbol->array_count = node->var_decl.array_count;
-
-    } else {
-      node->var_decl.value_type = TYPE_NULL;
-      node->var_decl.resolved_symbol = register_variable(
-          context->codegen, name, TYPE_NULL, &node->var_decl.fxn,
-          node->var_decl.level, NAME_LENGTH);
+    node->var_decl.resolved_symbol->pointer_level =
+        node->var_decl.pointer_level;
+    node->var_decl.resolved_symbol->bucket = node->var_decl.bucket;
+    node->var_decl.resolved_symbol->array_count = node->var_decl.array_count;
+    node->var_decl.resolved_symbol->assigned = (node->var_decl.value || node->var_decl.value_type == TYPE_STRUCT) ? true : false;
+    if (struct_sym) {
+      node->var_decl.resolved_symbol->llvm_struct_type = struct_sym->llvm_struct_type;
+      node->var_decl.resolved_symbol->struct_fields = struct_sym->struct_fields;
+      node->var_decl.resolved_symbol->struct_type_name = (char *)node->var_decl.struct_type_name;
     }
     break;
   }
 
   case AST_VAR_ASS: {
+    if (node->var_assign.target_node != NULL) {
+      analyze_node(context, node->var_assign.target_node);
+      if (node->var_assign.value) {
+        analyze_node(context, node->var_assign.value);
+        DataType target_type = infer_expr_type(context, node->var_assign.target_node);
+        DataType value_type = infer_expr_type(context, node->var_assign.value);
+        int target_ptr = infer_expr_pointer_level(context, node->var_assign.target_node);
+        int val_ptr = infer_expr_pointer_level(context, node->var_assign.value);
+        bool is_lit = (node->var_assign.value->Type == AST_LITERAL_EXPR);
+
+        if (!is_types_compatible(target_type, value_type, target_ptr, val_ptr, is_lit)) {
+          report_semantic_error(context, "Datatype mismatch in member assignment.");
+        }
+      }
+      break;
+    }
+
     const int NAME_LENGTH = node->var_assign.name_length;
     char name[NAME_LENGTH + 1];
     memcpy(name, node->var_assign.name, NAME_LENGTH);
@@ -147,34 +207,71 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       }
 
       if (node->var_assign.value) {
-        analyze_node(context, node->var_assign.value);
-        DataType inferred = infer_expr_type(context, node->var_assign.value);
-        int inferred_ptr_level =
-            infer_expr_pointer_level(context, node->var_assign.value);
-        int target_ptr_level =
-            sym->pointer_level - node->var_assign.deref_level;
-        MemoryBucket inferred_bucket_type =
-            infer_bucket_type(context, node->var_assign.value);
-        MemoryBucket target_bucket_type = sym->bucket;
+        if (sym->type == TYPE_STRUCT && node->var_assign.value->Type == AST_ARRAY_LITERAL) {
+          ASTNode **elements = node->var_assign.value->array_literal.elements;
+          uint32_t count = node->var_assign.value->array_literal.count;
 
-        if (target_ptr_level < 0) {
-          report_semantic_error(context,
-                                "Cannot dereference non-pointer variable.");
-          break;
-        }
+          uint32_t expected_count = 0;
+          Struct *f = sym->struct_fields;
+          while (f) {
+            if (f->field) expected_count++;
+            f = f->next;
+          }
 
-        bool is_literal = (node->var_assign.value->Type == AST_LITERAL_EXPR);
-        if (sym->type != TYPE_NULL && inferred != TYPE_NULL &&
-            !is_types_compatible(sym->type, inferred, target_ptr_level,
-                                 inferred_ptr_level, is_literal)) {
-          report_semantic_error(context, "Incompatible assignment type.");
-          break;
-        } else if (sym->type == TYPE_NULL && inferred != TYPE_NULL) {
-          sym->type = inferred;
-          sym->pointer_level = target_ptr_level;
+          if (count != expected_count) {
+            report_semantic_error(context, "Struct initializer field count mismatch.");
+            break;
+          }
+
+          f = sym->struct_fields;
+          for (uint32_t i = 0; i < count && f; i++) {
+            if (elements[i]) {
+              analyze_node(context, elements[i]);
+              DataType elem_type = infer_expr_type(context, elements[i]);
+              int elem_ptr = infer_expr_pointer_level(context, elements[i]);
+              bool is_lit = (elements[i]->Type == AST_LITERAL_EXPR);
+
+              DataType field_type = f->field->var_decl.value_type;
+              int field_ptr = f->field->var_decl.pointer_level;
+
+              if (!is_types_compatible(field_type, elem_type, field_ptr, elem_ptr, is_lit)) {
+                report_semantic_error(context, "Datatype mismatch in struct field initializer.");
+                break;
+              }
+            }
+            f = f->next;
+          }
+        } else {
+          analyze_node(context, node->var_assign.value);
+          DataType inferred = infer_expr_type(context, node->var_assign.value);
+          int inferred_ptr_level =
+              infer_expr_pointer_level(context, node->var_assign.value);
+          int target_ptr_level =
+              sym->pointer_level - node->var_assign.deref_level;
+          MemoryBucket inferred_bucket_type =
+              infer_bucket_type(context, node->var_assign.value);
+          MemoryBucket target_bucket_type = sym->bucket;
+
+          if (target_ptr_level < 0) {
+            report_semantic_error(context,
+                                  "Cannot dereference non-pointer variable.");
+            break;
+          }
+
+          bool is_literal = (node->var_assign.value->Type == AST_LITERAL_EXPR);
+          if (sym->type != TYPE_NULL && inferred != TYPE_NULL &&
+              !is_types_compatible(sym->type, inferred, target_ptr_level,
+                                   inferred_ptr_level, is_literal)) {
+            report_semantic_error(context, "Incompatible assignment type.");
+            break;
+          } else if (sym->type == TYPE_NULL && inferred != TYPE_NULL) {
+            sym->type = inferred;
+            sym->pointer_level = target_ptr_level;
+          }
         }
       }
     }
+    node->var_assign.resolved_symbol->assigned = true;
     break;
   }
 
@@ -304,8 +401,59 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       sym = lookup_token(context->codegen, fn_name, &node->call_fxn.fxn,
                          node->call_fxn.level);
       if (!sym) {
-        report_semantic_error(context, "Call to undeclared function.");
-        break;
+        char *underscore = strchr(fn_name, '_');
+        if (underscore) {
+          int rec_len = (int)(underscore - fn_name);
+          char rec_name[rec_len + 1];
+          memcpy(rec_name, fn_name, rec_len);
+          rec_name[rec_len] = '\0';
+          Symbol *rec_sym = lookup_token(context->codegen, rec_name, &node->call_fxn.fxn, node->call_fxn.level);
+          if (rec_sym && (rec_sym->type == TYPE_STRUCT || rec_sym->struct_fields)) {
+            const char *struct_name = rec_sym->struct_type_name ? rec_sym->struct_type_name : rec_sym->name;
+            const char *method_name = underscore + 1;
+            char mangled[256];
+            snprintf(mangled, sizeof(mangled), "%s_%s", struct_name, method_name);
+            sym = lookup_token(context->codegen, mangled, &node->call_fxn.fxn, node->call_fxn.level);
+            if (sym) {
+              Params *fp = (sym->fxn) ? sym->fxn->params : NULL;
+              if (fp && fp->param && strcmp(fp->param->var_decl.name, "self") == 0) {
+                ASTNode *rec_node = create_var_ref_node(rec_sym->name, rec_sym->name_length, node->call_fxn.fxn, node->call_fxn.level, context->codegen->a);
+                rec_node->var_ref.resolved_symbol = rec_sym;
+                Args *this_arg = (Args *)arena_alloc(context->codegen->a, sizeof(Args));
+                this_arg->arg = rec_node;
+                this_arg->datatype = TYPE_STRUCT;
+                this_arg->next = node->call_fxn.args;
+                node->call_fxn.args = this_arg;
+              }
+              int mangled_len = strlen(mangled);
+              char *mangled_dup = (char *)arena_alloc(context->codegen->a, mangled_len + 1);
+              memcpy(mangled_dup, mangled, mangled_len);
+              mangled_dup[mangled_len] = '\0';
+              node->call_fxn.name = mangled_dup;
+              node->call_fxn.name_length = mangled_len;
+            }
+          }
+        }
+
+        if (!sym) {
+          for (int s_idx = 0; s_idx < context->codegen->symbol_count; s_idx++) {
+            Symbol *s = &context->codegen->symbols[s_idx];
+            if (s->is_active && s->t_type == FUNC && s->name) {
+              const char *m_suffix = strchr(s->name, '_');
+              if (m_suffix && strcmp(m_suffix + 1, fn_name) == 0) {
+                sym = s;
+                node->call_fxn.name = s->name;
+                node->call_fxn.name_length = s->name_length;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!sym) {
+          report_semantic_error(context, "Call to undeclared function.");
+          break;
+        }
       }
       node->call_fxn.return_type = sym->type;
       node->call_fxn.resolved_symbol = sym;
@@ -340,12 +488,8 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         bool bucket_ok = false;
 
         if (expected_bucket == BUCKET_THREE) {
-          // Parameter expects Heap object (@) -> Argument must be Heap object
-          // or literal constant
           bucket_ok = (passed_bucket == BUCKET_THREE) || is_passed_literal;
         } else if (passed_bucket == BUCKET_THREE) {
-          // Parameter expects Stack -> Passing Heap object (@) without
-          // dereferencing is invalid
           bucket_ok = false;
         } else {
           bucket_ok = (passed_bucket == expected_bucket) ||
@@ -353,10 +497,14 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
                       (expected_bucket == BUCKET_PLUS_ONE);
         }
 
-        if (passed_arg->datatype !=
+        bool is_this_param = (expected_param->param && expected_param->param->var_decl.value_type == TYPE_STRUCT &&
+                              expected_param->param->var_decl.pointer_level > 0 &&
+                              passed_arg->datatype == TYPE_STRUCT);
+
+        if (!is_this_param && (passed_arg->datatype !=
                 expected_param->param->var_decl.value_type ||
             passed_ptr_level != expected_param->param->var_decl.pointer_level ||
-            !bucket_ok) {
+            !bucket_ok)) {
           report_semantic_error(
               context,
               "Argument type or memory bucket mismatch in function call.");
@@ -370,12 +518,12 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       if (is_println)
         continue;
       if (passed_arg == NULL && expected_param != NULL) {
-        report_semantic_error(context, "Too many arguments in fxn call.");
+        report_semantic_error(context, "Too few arguments in fxn call.");
         break;
       }
 
       if (passed_arg != NULL && expected_param == NULL) {
-        report_semantic_error(context, "Too few arguments in fxn call.");
+        report_semantic_error(context, "Too many arguments in fxn call.");
         break;
       }
     }
@@ -387,6 +535,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
 
   case AST_VAR_REF: {
+
     const int NAME_LENGTH = node->var_ref.name_length;
     char name[NAME_LENGTH + 1];
     memcpy(name, node->var_ref.name, NAME_LENGTH);
@@ -401,6 +550,12 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     } else {
       node->var_ref.resolved_symbol = sym;
     }
+
+    if(!node->var_ref.resolved_symbol->assigned){
+      report_semantic_error(context, "Use of unassigned variable.");
+      break;
+    }
+
     break;
   }
   case AST_URINARY_EXPR: {
@@ -413,6 +568,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       ASTNode *val_node = node->urinary_expr.value;
       bool is_valid_lvalue =
           (val_node->Type == AST_VAR_REF || val_node->Type == AST_INDEX_EXPR ||
+           val_node->Type == AST_ACCESS ||
            (val_node->Type == AST_URINARY_EXPR &&
             val_node->urinary_expr.operator_type == TOKEN_MUL));
       if (is_valid_lvalue) {
@@ -428,9 +584,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     case TOKEN_SUB: {
       analyze_node(context, node->urinary_expr.value);
       node->urinary_expr.eval_type = infer_expr_type(context, node);
-      if(op_type == TOKEN_MUL){
-        uint32_t p_level = infer_expr_pointer_level(context, node->urinary_expr.value);
-        if(p_level == 0){
+      if (op_type == TOKEN_MUL) {
+        uint32_t p_level =
+            infer_expr_pointer_level(context, node->urinary_expr.value);
+        if (p_level == 0) {
           report_semantic_error(context, "Operand must be a pointer.");
           break;
         }
@@ -443,9 +600,13 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
   }
   case AST_ARRAY_LITERAL: {
+    if (node->array_literal.element_type == TYPE_STRUCT) {
+      break;
+    }
     ASTNode **elements = node->array_literal.elements;
 
-    if (node->array_literal.element_type == TYPE_NULL && node->array_literal.count > 0 && elements[0]) {
+    if (node->array_literal.element_type == TYPE_NULL &&
+        node->array_literal.count > 0 && elements[0]) {
       node->array_literal.element_type = infer_expr_type(context, elements[0]);
     }
 
@@ -492,6 +653,42 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     }
     break;
   }
+
+  case AST_ACCESS: {
+    analyze_node(context, node->access.src);
+    node->access.datatype = infer_expr_type(context, node);
+    node->access.fields = get_struct_fields_from_expr(context, node->access.src);
+    break;
+  }
+
+  case AST_STRUCT_DEFINITION: {
+    Symbol *sym = lookup_token(context->codegen, node->struct_expr.name, node->struct_expr.fxn, node->struct_expr.level);
+    if (sym) {
+      report_semantic_error(context, "Multiple definition of struct.");
+      break;
+    }
+    Symbol *res_symbol = register_variable(context->codegen, node->struct_expr.name, TYPE_STRUCT, node->struct_expr.fxn, node->struct_expr.level, node->struct_expr.name_length);
+    res_symbol->struct_fields = node->struct_expr.fields;
+    node->struct_expr.sym = res_symbol;
+
+    Struct *field = node->struct_expr.fields;
+    while (field) {
+      if (!field->field || field->field->Type != AST_VAR_DECL) {
+        report_semantic_error(context, "Expected variable declarations as fields.");
+      }
+      field = field->next;
+    }
+    break;
+  }
+
+  case AST_FUNCTIONS: {
+    for (int i = 0; i < node->functions.count; i++) {
+      if (node->functions.methods[i]) {
+        analyze_node(context, node->functions.methods[i]);
+      }
+    }
+    break;
+  }
   }
 }
 
@@ -506,6 +703,8 @@ static void analyze_block(SemanticContext *context, ASTNode *block_node) {
   }
 
   for (int i = initial_symbol_count; i < context->codegen->symbol_count; ++i) {
-    context->codegen->symbols[i].is_active = false;
+    if (context->codegen->symbols[i].t_type != FUNC && context->codegen->symbols[i].type != TYPE_STRUCT) {
+      context->codegen->symbols[i].is_active = false;
+    }
   }
 }

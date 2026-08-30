@@ -15,21 +15,29 @@ ASTNode *begin(Parser *parser, CodegenContext *context) {
                               .array_count = -1};
   ASTNode *program_block = create_block_node(parser->lexer->fxn->level, context->a);
 
-  // Checking global variables
-  while (parser->current.type == TOKEN_VAR) {
-    MemoryBucket b = (parser->previous.type == TOKEN_SIGIL) ? 3 : 0;
-    
-    ASTNode *var_node = var(parser, context, TYPE_NULL, b);
-    consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
-    if (var_node) {
-      block_add_statement(program_block, var_node, context->a);
-    }
-  }
-
-  while (parser->current.type == TOKEN_FXN) {
-    ASTNode *fxn_node = parse_function(parser, context);
-    if (fxn_node) {
-      block_add_statement(program_block, fxn_node, context->a);
+  while (parser->current.type == DECLARE_STRUCT || parser->current.type == TOKEN_VAR || parser->current.type == TOKEN_FXN || parser->current.type == TOKEN_FXNS) {
+    if (parser->current.type == DECLARE_STRUCT) {
+      ASTNode *struct_node = parse_struct_type(parser, context);
+      if (struct_node) {
+        block_add_statement(program_block, struct_node, context->a);
+      }
+    } else if (parser->current.type == TOKEN_FXNS) {
+      ASTNode *fxns_node = parse_fxns_block(parser, context);
+      if (fxns_node) {
+        block_add_statement(program_block, fxns_node, context->a);
+      }
+    } else if (parser->current.type == TOKEN_VAR) {
+      MemoryBucket b = (parser->previous.type == TOKEN_SIGIL) ? 3 : 0;
+      ASTNode *var_node = var(parser, context, TYPE_NULL, b);
+      consume(parser, TOKEN_SEMICOLON, "Expected ';' to end line.");
+      if (var_node) {
+        block_add_statement(program_block, var_node, context->a);
+      }
+    } else if (parser->current.type == TOKEN_FXN) {
+      ASTNode *fxn_node = parse_function(parser, context);
+      if (fxn_node) {
+        block_add_statement(program_block, fxn_node, context->a);
+      }
     }
   }
 

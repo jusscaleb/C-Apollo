@@ -123,6 +123,10 @@ typedef enum {
   TOKEN_SIGIL,
   TOKEN_LSQUARE_BRACE,
   TOKEN_RSQUARE_BRACE,
+  DECLARE_STRUCT,
+  TOKEN_ACCESS,
+  TOKEN_FXNS,
+  TOKEN_SELF,
 } TokenType;
 
 /*-------------DEFINING THE TOKEN-------------*/

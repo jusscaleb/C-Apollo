@@ -15,6 +15,7 @@
 #include "token.h"
 #include "variables.h"
 #include "../headers/memory.h"
+#include <stdint.h>
 
 
 
@@ -42,6 +43,10 @@ typedef enum {
   AST_RET_NODE,
   AST_ARRAY_LITERAL,
   AST_INDEX_EXPR,
+  AST_STRUCT_DEFINITION,
+  AST_STRUCT_DECL,
+  AST_ACCESS,
+  AST_FUNCTIONS,
 } ASTNodeType;
 
 typedef struct ASTNode ASTNode;
@@ -52,6 +57,12 @@ typedef struct Params {
   ASTNode *param;
   struct Params *next;
 } Params;
+
+typedef struct Struct {
+    ASTNode *field;
+    struct Struct *next;
+}Struct;
+
 
 typedef struct Args {
   ASTNode *arg;
@@ -74,10 +85,22 @@ struct ASTNode {
       int name_length;
       ASTNode *body;
       int level;
+      Fxns fxns;
       Fxn fxn;
       Symbol *resolved_symbol;
       int pointer_level;
     } function;
+
+    struct {
+      char* name;
+      int name_length;
+      struct Symbol *resolved_symbol;
+      int level;
+      int count;
+      int capacity;
+      ASTNode **methods;
+      Fxns *fxns;
+    }functions;
 
     struct {
       ASTNode **statements;
@@ -90,6 +113,8 @@ struct ASTNode {
       const char *name;
       int name_length;
       DataType value_type;
+      const char *struct_type_name;
+      int struct_type_name_len;
       ASTNode *value;
       Fxn fxn;
       int level;
@@ -131,6 +156,7 @@ struct ASTNode {
       int level;
       struct Symbol *resolved_symbol;
       int deref_level;
+      ASTNode *target_node;
     } var_assign;
 
     struct {
@@ -180,6 +206,25 @@ struct ASTNode {
       ASTNode *index;
       DataType type;
     }index_expr;
+
+    struct {
+      Symbol *sym;
+      Struct *fields;
+      Fxn *fxn;
+      int level;
+      MemoryBucket bucket;
+      char* name;
+      int name_length;
+    }struct_expr;
+
+    struct { 
+      ASTNode* src;
+      ASTNode* target;
+      DataType datatype; 
+      char *struct_type_name;
+      Struct *fields;
+    }access;
+
   };
 };
 
@@ -329,4 +374,16 @@ ASTNode *create_urinary_node(TokenType operator_type, ASTNode *value, Arena *a);
 ASTNode *create_array_node(ASTNode **elements, uint32_t count, uint32_t capacity, bool is_dynamic, DataType element_type, Arena *a);
 
 ASTNode *create_index_expr_node(ASTNode *target, ASTNode *index, DataType datatype, Arena *a);
+
+ASTNode *create_struct_node(Struct *fields, Fxn *fxn, int level, Arena *a, char* name, int name_length);
+
+
+ASTNode *create_access_node(ASTNode *src, ASTNode *target, DataType dt, Arena *a);
+
+ASTNode *create_target_assign_node(ASTNode *target_node, ASTNode *value, Fxn fxn, int level, Arena *a);
+
+ASTNode *create_fxns_node(char *name, int name_length, int level, Fxns *fxns, Arena *a);
+
+void fxns_add_method(ASTNode *node, ASTNode *method, Arena *a);
+
 #endif

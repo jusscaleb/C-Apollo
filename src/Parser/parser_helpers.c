@@ -56,6 +56,31 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   return node;
 }
 
+ASTNode *register_and_form_method(Parser *parser, CodegenContext *context, const char *prefix, int prefix_len) {
+  Token name_token = parser->current;
+
+  const int NAME_LENGTH = prefix_len + 1 + name_token.length;
+  char *name = (char *)arena_alloc(context->a, NAME_LENGTH + 1);
+  snprintf(name, NAME_LENGTH + 1, "%.*s_%.*s", prefix_len, prefix, name_token.length, name_token.start);
+
+  Fxn *parent = parser->lexer->fxn;
+  Fxn *fxn = (Fxn *)arena_alloc(context->a, sizeof(Fxn));
+
+  fxn->length = NAME_LENGTH;
+  fxn->name = name;
+  fxn->level = parser->lexer->scope_level;
+  fxn->line = parser->lexer->line;
+  fxn->parent_fxn = parent;
+  fxn->return_type = TYPE_NULL;
+
+  parser->lexer->fxn = fxn;
+
+  ASTNode *node = function(parser, context);
+
+  parser->lexer->fxn = parent;
+  return node;
+}
+
 Params *get_params(CodegenContext *context, Parser *parser) {
   Params *p = (Params *)arena_alloc(context->a, sizeof(Params));
   MemoryBucket b = 0;
@@ -84,8 +109,65 @@ Params *get_params(CodegenContext *context, Parser *parser) {
   case DECLARE_BOOL: {
     p->param = var(parser, context, TYPE_BOOL, b);
     break;
-  }case DECLARE_CHAR: {
+  }
+  case DECLARE_CHAR: {
     p->param = var(parser,context, TYPE_CHAR,b );
+    break;
+  }
+  case TOKEN_SELF: {
+    int self_len = parser->current.length;
+    char *self_name = (char *)arena_alloc(context->a, self_len + 1);
+    memcpy(self_name, parser->current.start, self_len);
+    self_name[self_len] = '\0';
+    advance(parser);
+    const char *fxn_n = (parser->lexer->fxn && parser->lexer->fxn->name) ? parser->lexer->fxn->name : "";
+    const char *underscore = strchr(fxn_n, '_');
+    int s_len = underscore ? (int)(underscore - fxn_n) : (int)strlen(fxn_n);
+    char *s_type = (char *)arena_alloc(context->a, s_len + 1);
+    memcpy(s_type, fxn_n, s_len);
+    s_type[s_len] = '\0';
+
+    ASTNode *var_node = create_var_decl_node(
+        self_name, self_len, TYPE_STRUCT, NULL, *parser->lexer->fxn,
+        parser->lexer->scope_level, context->a, 1, BUCKET_PLUS_ONE, -1);
+    var_node->var_decl.struct_type_name = s_type;
+    var_node->var_decl.struct_type_name_len = s_len;
+    p->param = var_node;
+    break;
+  }
+  case TOKEN_IDENTIFIER: {
+    const int TYPE_LEN = parser->current.length;
+    char *type_name = (char *)arena_alloc(context->a, TYPE_LEN + 1);
+    memcpy(type_name, parser->current.start, TYPE_LEN);
+    type_name[TYPE_LEN] = '\0';
+    advance(parser);
+
+    int ptr_level = 0;
+    while (parser->current.type == TOKEN_MUL) {
+      ptr_level++;
+      advance(parser);
+    }
+
+    if (parser->current.type == TOKEN_SELF) {
+      advance(parser);
+      ASTNode *var_node = create_var_decl_node(
+          "self", 4, TYPE_STRUCT, NULL, *parser->lexer->fxn,
+          parser->lexer->scope_level, context->a, (ptr_level > 0 ? ptr_level : 1), b, -1);
+      var_node->var_decl.struct_type_name = type_name;
+      var_node->var_decl.struct_type_name_len = TYPE_LEN;
+      p->param = var_node;
+    } else if (parser->current.type == TOKEN_IDENTIFIER) {
+      Token param_name_token = parser->current;
+      advance(parser);
+      ASTNode *var_node = create_var_decl_node(
+          param_name_token.start, param_name_token.length, TYPE_STRUCT, NULL, *parser->lexer->fxn,
+          parser->lexer->scope_level, context->a, ptr_level, b, -1);
+      var_node->var_decl.struct_type_name = type_name;
+      var_node->var_decl.struct_type_name_len = TYPE_LEN;
+      p->param = var_node;
+    } else {
+      return NULL;
+    }
     break;
   }
 
