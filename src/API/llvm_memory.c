@@ -90,13 +90,15 @@ void _apl_emit_arc_release(LLVMComponents *components, LLVMValueRef heap_ptr) {
 LLVMValueRef _apl_allocate_variable_by_bucket(LLVMComponents *components, Symbol *sym, LLVMTypeRef var_type) {
   if (!sym) return NULL;
 
+  if (sym->scope_level == 0 || sym->bucket == BUCKET_ONE) {
+    LLVMValueRef existing = LLVMGetNamedGlobal(components->module, sym->name);
+    if (existing) return existing;
+    LLVMValueRef global_var = LLVMAddGlobal(components->module, var_type, sym->name);
+    LLVMSetInitializer(global_var, LLVMConstNull(var_type));
+    return global_var;
+  }
+
   switch (sym->bucket) {
-    case BUCKET_ONE: {
-      LLVMValueRef global_var = LLVMAddGlobal(components->module, var_type, sym->name);
-      LLVMSetGlobalConstant(global_var, true);
-      LLVMSetInitializer(global_var, LLVMConstNull(var_type));
-      return global_var;
-    }
     case BUCKET_TWO: {
       LLVMValueRef size_val = LLVMSizeOf(var_type);
       LLVMValueRef fn = LLVMGetNamedFunction(components->module, "apl_arena_grow_and_alloc");

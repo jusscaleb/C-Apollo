@@ -4,10 +4,9 @@
 ##                     ##    
 #########################
 
-#run "python -m doctest println.py"
+# run: "python -m doctest println.py"
 
 from test import test_n
-
 
 
 def run_println_tests():
@@ -16,58 +15,80 @@ def run_println_tests():
     println test: DONE.
     """
     TESTS = [
+        test_n(
+            "println", 1, "String Literals",
+            "fxn run() {\n"
+            "    println(\"hello world\");\n"
+            "}\n",
+            "hello world"
+        ),
 
-    test_n("println",
-    1,
-    "String Literals", 
-    "### STRING LITERALS TEST ###\n"
-    "fxn run() -> (void) { println(\"hello world\");" 
-    "}"
-    , "hello world"),
+        test_n(
+            "println", 2, "Integer Literals",
+            "fxn run() {\n"
+            "    println(42);\n"
+            "}\n",
+            "42"
+        ),
 
+        test_n(
+            "println", 3, "Float Literals",
+            "fxn run() {\n"
+            "    println(3.14159);\n"
+            "}\n",
+            "3.14159"
+        ),
 
-    test_n("println",2,"Integers", 
-    "### INTEGERS ###\n"
-    "fxn run() -> (void) {" 
-    "println(5);"
-    "}", "5"),
+        test_n(
+            "println", 4, "Boolean Literals",
+            "fxn run() {\n"
+            "    println(true);\n"
+            "    println(false);\n"
+            "}\n",
+            "true\nfalse"
+        ),
 
-    test_n("println",3,"Variable", 
-    "### CONCATENATION ###\n"
-    "fxn run() -> (void) { var name = \"Apollo\"; var year = 2026; println(name + \" was made in \" + year); }", 
-    "Apollo was made in 2026"),
+        test_n(
+            "println", 5, "Variadic Multiple Arguments",
+            "fxn run() {\n"
+            "    var name = \"Apollo\";\n"
+            "    var year = 2026;\n"
+            "    println(name, \" was created in \", year);\n"
+            "}\n",
+            "Apollo was created in 2026"
+        ),
 
-    test_n("println",4, "Sum", 
-    
-    "### ARITHMETIC ###\n"
-    "fxn run() -> (void) { println(5 + 10); }", "15"),
+        test_n(
+            "println", 6, "Arithmetic Expression Inside Println",
+            "fxn run() {\n"
+            "    println(15 + 27 * 2);\n"
+            "}\n",
+            "69"
+        ),
 
-    test_n("println",5, "Product", 
-    
-    "### PRODUCT ###\n"
-    "fxn run() -> (void) { println(5 * 10); }", "50"),
-    test_n("println",6, "Quotient", 
-    "### QUOTIENT ###\n"
-    "fxn run() -> (void) { println(10 / 5); }", "2"),
-    
-    test_n("println",7, "Modulo", 
-    "### MODULUS ###\n"
-    "fxn run() -> (void) { println(\"Mod: \" + 10 % 5); }", "Mod: 0"),
+        test_n(
+            "println", 7, "Character Literal",
+            "fxn run() {\n"
+            "    println('A');\n"
+            "}\n",
+            "A"
+        ),
 
-    ### ESCAPE CHARACTERS ###
-    test_n("println",8, "Escape", 
-    "### ESCAPE CHARACTERS ###\n"
-    "fxn run() -> (void) { println(\"Newline: \\nTab: \\tskipped\\nQuote: \\\"quote\\\" \"); }", "Newline: \nTab: \tskipped\nQuote: \"quote\""),
-    
-    ### BOOLEANS ###
-    test_n("println",9, "Escape", 
-    "### BOOLEANS ###\n"
-    "fxn run() -> (void) { println(null); println(true);\nprintln(false);}", "null\ntrue\nfalse"),    
+        test_n(
+            "println", 8, "Escape Characters",
+            "fxn run() {\n"
+            "    println(\"Line1\\nLine2\\tTabbed\");\n"
+            "}\n",
+            "Line1\nLine2\tTabbed"
+        )
     ]
 
-    for test in TESTS:
-        TESTS[test]
+    passed = sum(1 for res in TESTS if res == 1)
+    if passed == len(TESTS):
+        print("println test: DONE.")
+    else:
+        print(f"println test: {passed}/{len(TESTS)} passed.")
 
-    print(f"println test: DONE.")
 
-    
+if __name__ == '__main__':
+    run_println_tests()

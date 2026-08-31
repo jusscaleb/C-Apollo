@@ -14,7 +14,7 @@ INPUT="\e[36m"
 
 
 
-VALID_TESTS=("println"  "conditionals"  "variable" "fxns" )
+VALID_TESTS=("println" "conditionals" "variable" "fxns" "structs" "pointers" "arrays" "memory")
 
 
 exec_doctest() {
@@ -109,13 +109,17 @@ else
 
 fi
 
-if [ $1 = 'help' ]; then
+if [ "$1" = 'help' ]; then
     echo "---------------------DIAGNOSIS MENU---------------------------"
-    echo "1) println --------------------------------> tests println()"
-    echo "2) conditionals --------------------------------> tests conditionals"
-    echo "3) var -----------------------------------------> tests variables"
-    echo "4) fxns ----------------------------------------> tests fxns"
-    echo "5) performance ----------------------------------> compiler performance"
+    echo "1) println --------------------------------> tests println() and formatting"
+    echo "2) conditionals ---------------------------> tests if/elif/else and while/for loops"
+    echo "3) variable -------------------------------> tests variables, types, and in-place ops"
+    echo "4) fxns -----------------------------------> tests functions, params, and returns"
+    echo "5) structs --------------------------------> tests structs and method blocks"
+    echo "6) pointers -------------------------------> tests pointers and dereferencing"
+    echo "7) arrays ---------------------------------> tests fixed stack & dynamic arena arrays"
+    echo "8) memory ---------------------------------> tests 3+1 bucket memory architecture"
+    echo "9) performance ----------------------------> compiler performance benchmarks"
 
     exit 0
 fi

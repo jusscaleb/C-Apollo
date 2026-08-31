@@ -31,6 +31,7 @@ typedef struct Error {
   char *message;
   char *got;
   int line;
+  int column;
 } Error;
 
 // Error stack

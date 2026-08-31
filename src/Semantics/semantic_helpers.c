@@ -1,6 +1,49 @@
 #include "../../headers/semantic.h"
 #include <stdio.h>
 
+static void get_node_location(ASTNode *node, int *out_line, int *out_col) {
+  if (!node) { *out_line = 0; *out_col = 0; return; }
+  switch (node->Type) {
+    case AST_VAR_DECL:
+      *out_line = node->var_decl.fxn.line;
+      *out_col = 0;
+      break;
+    case AST_VAR_REF:
+      *out_line = node->var_ref.fxn.line;
+      *out_col = 0;
+      break;
+    case AST_VAR_ASS:
+      *out_line = node->var_assign.fxn.line;
+      *out_col = 0;
+      break;
+    case AST_FUNCTION:
+      *out_line = node->function.fxn.line;
+      *out_col = 0;
+      break;
+    case AST_CALL_FXN:
+      *out_line = node->call_fxn.fxn.line;
+      *out_col = 0;
+      break;
+    case AST_LITERAL_EXPR:
+      *out_line = node->literal_expr.token.line;
+      *out_col = 0;
+      break;
+    case AST_BINARY_EXPR:
+      if (node->binary_expr.left) get_node_location(node->binary_expr.left, out_line, out_col);
+      break;
+    case AST_STRUCT_DEFINITION:
+      if (node->struct_expr.fxn) *out_line = node->struct_expr.fxn->line;
+      break;
+    case AST_RET_NODE:
+      *out_line = node->ret_node.fxn.line;
+      break;
+    default:
+      *out_line = 0;
+      *out_col = 0;
+      break;
+  }
+}
+
 // Helper to push semantic errors
 void report_semantic_error(SemanticContext *context, const char *msg) {
   if (!context) return;
@@ -8,8 +51,14 @@ void report_semantic_error(SemanticContext *context, const char *msg) {
   e->token = (Token){0};
   e->type = SEMANTICERROR;
   e->message = strdup(msg);
-  e->got = strdup("semantic_analysis");
-  e->line = 0;
+  e->got = NULL;
+  
+  int line = 0, column = 0;
+  if (context->current_node) {
+    get_node_location(context->current_node, &line, &column);
+  }
+  e->line = line;
+  e->column = column;
   errorStack_push(context->errors, e);
 }
 

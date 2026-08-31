@@ -24,6 +24,8 @@ __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
   e->message = _strdup(message);
   e->token.line = lexer->line;
   e->type = LEXERROR;
+  e->line = lexer->line;
+  e->column = lexer->column;
   e->got = _strdup(got);
 
   errorStack_push(lexer->errors, e);

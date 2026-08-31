@@ -76,6 +76,10 @@ void _apl_gen_println_ir(LLVMComponents *components,
           println_args = load_variable(components, expr);
           break;
         }
+        if (expr->Type == AST_CALL_FXN) {
+          println_args = _apl_eval_function_call(components, expr);
+          break;
+        }
         if (expr->Type == AST_ACCESS || expr->Type == AST_BINARY_EXPR || expr->Type == AST_URINARY_EXPR) {
           println_args = arihmetics(components, expr, "");
           break;
@@ -304,6 +308,10 @@ void _apl_gen_return(LLVMComponents *components,
   if (val_node) {
     if (val_node->Type == AST_VAR_REF) {
       ret_val = load_variable(components, val_node);
+    } else if (val_node->Type == AST_ACCESS) {
+      ret_val = _apl_gen_struct_access_load(components, val_node);
+    } else if (val_node->Type == AST_INDEX_EXPR) {
+      ret_val = _apl_gen_array_index_expr(components, val_node);
     } else if (val_node->Type == AST_CALL_FXN) {
       ret_val = _apl_eval_function_call(components, val_node);
     } else if (val_node->Type == AST_BINARY_EXPR || val_node->Type == AST_URINARY_EXPR) {

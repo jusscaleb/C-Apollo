@@ -228,7 +228,26 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
       if (expr) {
         char str[expr->literal_expr.token.length + 1];
         slice_string(expr->literal_expr.token, str);
-        _apl_build_string_reassign(components, var_ptr, str, string_struct_type);
+        if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
+          size_t str_len = strlen(str);
+          LLVMValueRef str_const = LLVMConstStringInContext(components->ctx, str, (unsigned)str_len, false);
+          char g_name[64];
+          snprintf(g_name, sizeof(g_name), ".gstr_%s", sym->name ? sym->name : "anon");
+          LLVMValueRef g_lit = LLVMAddGlobal(components->module, LLVMTypeOf(str_const), g_name);
+          LLVMSetInitializer(g_lit, str_const);
+          LLVMSetGlobalConstant(g_lit, true);
+          LLVMSetLinkage(g_lit, LLVMPrivateLinkage);
+
+          LLVMValueRef zero = LLVMConstInt(I32(components->ctx), 0, false);
+          LLVMValueRef idxs[] = { zero, zero };
+          LLVMValueRef str_ptr = LLVMConstGEP2(LLVMTypeOf(str_const), g_lit, idxs, 2);
+          LLVMValueRef len_val = LLVMConstInt(I32(components->ctx), (unsigned)str_len, false);
+          LLVMValueRef struct_members[] = { str_ptr, len_val };
+          LLVMValueRef struct_init = LLVMConstStructInContext(components->ctx, struct_members, 2, false);
+          LLVMSetInitializer(var_ptr, struct_init);
+        } else {
+          _apl_build_string_reassign(components, var_ptr, str, string_struct_type);
+        }
       } else {
         val = LLVMConstNull(string_struct_type);
         if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
@@ -357,8 +376,10 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
     var_node->var_decl.resolved_symbol->llvm_val_ref = var_ptr;
   }
 
-  if (components->current_frame_alloc != NULL &&
-      var_node->var_decl.resolved_symbol && var_ptr != NULL) {
+  if (components->current_frame_alloc != NULL && components->builder &&
+      LLVMGetInsertBlock(components->builder) != NULL &&
+      var_node->var_decl.resolved_symbol && var_ptr != NULL &&
+      var_node->var_decl.resolved_symbol->scope_level > 0) {
     int idx = var_node->var_decl.resolved_symbol->frame_index;
     LLVMValueRef indices[] = {LLVMConstInt(I32(components->ctx), 0, false),
                               LLVMConstInt(I32(components->ctx), idx, false)};

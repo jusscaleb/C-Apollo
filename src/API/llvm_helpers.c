@@ -225,6 +225,15 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
       uint8_t c = parse_char_literal(node->literal_expr.token);
       return LLVMConstInt(I8(components->ctx), c, 0);
     }
+    if (node->literal_expr.token.type == TOKEN_FLOAT) {
+      float f_val = str_to_int_k(node->literal_expr.token.start,
+                                 node->literal_expr.token.length);
+      return LLVMConstReal(F32(components->ctx), f_val);
+    }
+    if (node->literal_expr.token.type == TOKEN_BOOL) {
+      int b_val = (node->literal_expr.token.length == 5) ? 0 : 1;
+      return LLVMConstInt(I1(components->ctx), b_val, 0);
+    }
 
     int val = (int)str_to_int_k(node->literal_expr.token.start,
                                 node->literal_expr.token.length);
@@ -323,12 +332,59 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
     LLVMValueRef right =
         arihmetics(components, node->binary_expr.right, "right_tmp");
 
+    if (!left || !right)
+      return NULL;
+
     LLVMTypeRef left_type = LLVMTypeOf(left);
     LLVMTypeRef right_type = LLVMTypeOf(right);
 
+    LLVMTypeKind left_kind = LLVMGetTypeKind(left_type);
+    LLVMTypeKind right_kind = LLVMGetTypeKind(right_type);
+
+    bool is_float = (left_kind == LLVMFloatTypeKind || left_kind == LLVMDoubleTypeKind ||
+                     right_kind == LLVMFloatTypeKind || right_kind == LLVMDoubleTypeKind);
+
+    if (is_float) {
+      if (left_kind == LLVMIntegerTypeKind) {
+        left = LLVMBuildSIToFP(components->builder, left, F32(components->ctx), "promoted_left");
+      }
+      if (right_kind == LLVMIntegerTypeKind) {
+        right = LLVMBuildSIToFP(components->builder, right, F32(components->ctx), "promoted_right");
+      }
+
+      switch (node->binary_expr.operator_type) {
+      // Float Arithmetic
+      case TOKEN_ADD:
+        return LLVMBuildFAdd(components->builder, left, right, result_name);
+      case TOKEN_SUB:
+        return LLVMBuildFSub(components->builder, left, right, result_name);
+      case TOKEN_DIV:
+        return LLVMBuildFDiv(components->builder, left, right, result_name);
+      case TOKEN_MUL:
+        return LLVMBuildFMul(components->builder, left, right, result_name);
+      case TOKEN_MOD:
+        return LLVMBuildFRem(components->builder, left, right, result_name);
+
+      // Float Comparisons
+      case TOKEN_GT:
+        return LLVMBuildFCmp(components->builder, LLVMRealOGT, left, right, result_name);
+      case TOKEN_ST:
+        return LLVMBuildFCmp(components->builder, LLVMRealOLT, left, right, result_name);
+      case TOKEN_GE:
+        return LLVMBuildFCmp(components->builder, LLVMRealOGE, left, right, result_name);
+      case TOKEN_SE:
+        return LLVMBuildFCmp(components->builder, LLVMRealOLE, left, right, result_name);
+      case TOKEN_EQT:
+        return LLVMBuildFCmp(components->builder, LLVMRealOEQ, left, right, result_name);
+      case TOKEN_NEQ:
+        return LLVMBuildFCmp(components->builder, LLVMRealONE, left, right, result_name);
+      default:
+        return NULL;
+      }
+    }
+
     if (left_type != right_type) {
-      if (LLVMGetTypeKind(left_type) == LLVMIntegerTypeKind &&
-          LLVMGetTypeKind(right_type) == LLVMIntegerTypeKind) {
+      if (left_kind == LLVMIntegerTypeKind && right_kind == LLVMIntegerTypeKind) {
         uint32_t left_bw = LLVMGetIntTypeWidth(left_type);
         uint32_t right_bw = LLVMGetIntTypeWidth(right_type);
         if (left_bw < right_bw) {
@@ -349,6 +405,8 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
       return LLVMBuildSDiv(components->builder, left, right, result_name);
     case TOKEN_MUL:
       return LLVMBuildMul(components->builder, left, right, result_name);
+    case TOKEN_MOD:
+      return LLVMBuildSRem(components->builder, left, right, result_name);
 
     // Comparisons
     case TOKEN_GT:

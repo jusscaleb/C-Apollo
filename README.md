@@ -1,103 +1,134 @@
 # Apollo Programming Language
 
-**Version:** `v3.0.0.WIP-preview`  
+**Version:** `v3.0.0-unstable-preview`  
 **Release Channel:** Active Development / Unstable Preview  
-**Version Format:** `MAJOR.MINOR.PATCH.TAG`
+**Target Architecture:** `x86_64-w64-windows-gnu` / Windows Native  
+**Compiler Backend:** LLVM 19 C-API (`libLLVM-19`) + Clang Linker
 
-Apollo is a modern compiled programming language featuring a modular custom compiler frontend and LLVM C-API backend written in C99. The compilation pipeline tokenizes and parses Apollo source code (`.apl`), executes static semantic analysis with strict type inference, generates LLVM IR bitcode using the official LLVM C API (`libLLVM-19`), links modular pre-compiled runtime libraries (`apollo-modules`), and compiles down to native executable binaries (`.exe`).
+Apollo is a modern, high-performance compiled programming language combining the raw speed and deterministic control of C with modern syntax abstractions (struct encapsulation, methods, static & dynamic arrays, pointers) and an innovative **3+1 Bucket Memory Architecture**. The compilation pipeline tokenizes source code (`.apl`), constructs an Abstract Syntax Tree (AST) via recursive descent Pratt parsing, executes static type-checking and semantic validation, emits LLVM IR bitcode using the official LLVM C API (`libLLVM-19`), dynamically links pre-compiled runtime bitcodes (`apollo-modules`), and compiles directly down to optimized native executable binaries (`.exe`).
 
 ---
 
-## Project Layout
+## Table of Contents
+
+1. [Project Layout & Architecture](#project-layout--architecture)
+2. [Quick Start & Toolchain Setup](#quick-start--toolchain-setup)
+3. [Compiler Pipeline & Workflow](#compiler-pipeline--workflow)
+4. [3+1 Bucket Memory Architecture](#31-bucket-memory-architecture)
+5. [Language Syntax & Feature Guide](#language-syntax--feature-guide)
+   - [Program Entry Point](#program-entry-point)
+   - [Variables, Types & Constants](#variables-types--constants)
+   - [Pointers & Memory Referencing](#pointers--memory-referencing)
+   - [Static & Dynamic Arrays](#static--dynamic-arrays)
+   - [Structs, Methods (`fxns`), and `self`](#structs-methods-fxns-and-self)
+   - [Control Flow (`if`/`elif`/`else`, `while`, `for`)](#control-flow)
+   - [Console Output (`println`)](#console-output)
+6. [Standard Runtime Modules (`apollo-modules/`)](#standard-runtime-modules-apollo-modules)
+7. [Testing & Quality Assurance](#testing--quality-assurance)
+8. [Documentation Portal (`docs/`)](#documentation-portal-docs)
+9. [Related Architecture Specifications](#related-architecture-specifications)
+10. [License](#license)
+
+---
+
+## Project Layout & Architecture
 
 ```text
 Apollo/
-├── CMakeLists.txt              # Build system configuration (CMake 3.20+, MinGW & LLVM-19)
-├── Contributions.md            # Guidelines for open-source contributions
+├── CMakeLists.txt              # CMake build configuration (MinGW & LLVM-19)
+├── Contributions.md            # Open-source contribution guidelines
+├── DATA_STRUCTURES.md          # Data structures & memory layout specification
+├── IMPROVEMENTS.md             # Memory optimization and scaling roadmap
 ├── LICENSE                     # MIT Open Source License
 ├── MEMORY.md                   # 3+1 Bucket Memory Architecture specification
-├── PERFORMANCE.md              # Benchmarks and performance analysis
-├── README.md                   # Project documentation and architectural overview
-├── Task.md                     # Roadmap and Object-Oriented Programming (OOP) migration plan
-├── run.sh                      # One-shot build & execution shell script
-├── diagnosis.sh                # Compiler pipeline diagnostic tool
-├── caleb.apl                   # Sample Apollo source program
-├── apollo-modules/             # Pre-compiled runtime library bitcodes linked during LLVM codegen
-│   ├── compile.sh              # Shell script to compile runtime C modules to LLVM bitcode
-│   ├── APLMODULES.md           # Runtime module specification and architecture
-│   ├── apl-io/                 # I/O primitives & string printing runtime (`apl-io.c`, `apl-io.h`, `apl-io.bc`)
-│   ├── apl-string/             # String manipulation runtime (`apl-string.c`, `apl-string.h`, `apl-string.bc`)
-│   └── apl-sys/                # System calls and OS interop runtime (`apl-sys.c`, `apl-sys.h`, `apl-sys.bc`)
+├── PERFORMANCE.md              # Compiler & runtime optimization benchmarks
+├── README.md                   # Master project documentation
+├── Task.md                     # OOP migration roadmap & checklist
+├── run.sh                      # One-shot build and execution script (Git Bash / MSYS2)
+├── diagnosis.sh                # Compiler pipeline diagnostic test runner
+├── caleb.apl                   # Sample Apollo program demonstrating structs & methods
+├── apollo-modules/             # Pre-compiled C runtime libraries linked during codegen
+│   ├── compile.sh              # Runtime bitcode compilation script
+│   ├── APLMODULES.md           # Runtime sub-libraries specification
+│   ├── apl-io/                 # I/O primitives & scalar printing (`.c`, `.h`, `.bc`)
+│   ├── apl-mem/                # 3+1 Bucket memory engine (Arena & ARC) (`.c`, `.h`, `.bc`)
+│   ├── apl-string/             # String manipulation runtime (`.c`, `.h`, `.bc`)
+│   └── apl-sys/                # System calls and OS interop (`.c`, `.h`, `.bc`)
 ├── docs/                       # Web-based interactive documentation application
-│   ├── index.html              # Documentation app HTML shell
-│   ├── package.json            # Node.js dependencies and script definitions (Vite + React)
-│   ├── vite.config.js          # Vite build system configuration
-│   └── src/                    # Documentation web application components (`App.jsx`, `index.css`)
+│   ├── index.html              # Documentation portal HTML shell
+│   ├── package.json            # Node.js dependencies (Vite + React)
+│   ├── vite.config.js          # Vite build configuration
+│   └── src/                    # UI components, syntax highlighter & styling
 ├── headers/                    # Core compiler C header declarations
-│   ├── ast.h                   # Abstract Syntax Tree (AST) node structures and constructors
-│   ├── defs.h                  # Global compiler context, AST node types, and data types
-│   ├── error.h                 # Rich error diagnostic stack and reporting structures
-│   ├── functions.h             # Function signature tracking and symbol table entries
-│   ├── keywords_hash.h         # Hash lookup tables for lexer keyword resolution
-│   ├── llvm_backend.h          # LLVM C-API backend prototypes and `LLVMComponents` struct
-│   ├── memory.h                # Arena memory allocator interface
-│   ├── parser.h                # Recursive descent parser state and entry declarations
-│   ├── semantic.h              # Semantic analyzer context and validation prototypes
+│   ├── ast.h                   # AST node structures, unions, and constructors
+│   ├── defs.h                  # Global compiler context, definitions, and debug tracing
+│   ├── error.h                 # Error stack allocation and formatted diagnostic reporting
+│   ├── functions.h             # Function & method signature tracking and metadata
+│   ├── keywords_hash.h         # GNU gperf hash table for O(1) keyword resolution
+│   ├── llvm_backend.h          # LLVM C-API backend prototypes and LLVMComponents state
+│   ├── memory.h                # Compiler-internal Arena memory allocator interface
+│   ├── parser.h                # Recursive descent parser state and parsing entry points
+│   ├── semantic.h              # Semantic analyzer context, type checking, and validation
 │   ├── token.h                 # Lexer tokens, token types, and scanner state
-│   └── variables.h             # Scope levels and symbol table variable tracking
+│   └── variables.h             # Symbol table, scopes, data types, and memory buckets
 ├── src/                        # Modular C source code implementation
-│   ├── main.c                  # Compiler driver entry point (`main()`)
+│   ├── main.c                  # Compiler driver entry point (`main()`) & process orchestrator
 │   ├── ast.c                   # AST allocation, node construction, and tree utilities
-│   ├── error.c                 # Error stack allocation and formatted diagnostic output
-│   ├── lexer.c                 # Tokenizer / Scanner engine
-│   ├── memory.c                # Arena memory manager allocation & reset routines
-│   ├── variables.c             # Variable symbol table allocation and scope management
-│   ├── gperf/                  # Fast keyword lookup hash generator configurations
-│   │   └── keywords.gperf      # GNU gperf hash table specification for language keywords
-│   ├── API/                    # LLVM Code Generation Engine (C-API)
-│   │   ├── llvm_main.c         # LLVM environment setup, module verification, runtime linking, & file output
-│   │   ├── llvm_fxns.c         # Code generation for function declarations and calls
-│   │   ├── llvm_condbr.c       # Code generation for `if`/`else` conditionals, `while` and `for` loops
-│   │   ├── llvm_variables.c    # Code generation for variable allocation (`alloca`), loads, stores, and in-place ops
-│   │   └── llvm_helpers.c      # LLVM IR builder helper utilities and type conversions
-│   ├── Parser/                 # Recursive Descent Parser Modules
-│   │   ├── parser_entry.c      # High-level entry point (`compile_parse()`) and program block parsing
-│   │   ├── parser_expr.c       # Expression parser with precedence climbing (Pratt parsing)
-│   │   ├── parser_functions.c  # Function declaration and parameter list parsing
-│   │   ├── parser_var.c        # Variable declaration and assignment statement parsing
-│   │   └── parser_helpers.c    # Parsing utility functions, token matching, and panic-mode error recovery
+│   ├── error.c                 # Diagnostic error stack and visual snippet printing
+│   ├── lexer.c                 # Tokenizer / Scanner engine with gperf keyword lookups
+│   ├── memory.c                # Compiler Arena memory manager allocation & reset routines
+│   ├── variables.c             # Variable symbol table (FNV-1a hash table) & scope management
+│   ├── gperf/
+│   │   └── keywords.gperf      # GNU gperf hash table definition for language keywords
+│   ├── API/                    # LLVM Code Generation Engine (libLLVM-19 C-API)
+│   │   ├── llvm_main.c         # Module setup, bitcode loading, verification, & output
+│   │   ├── llvm_fxns.c         # Function prologue/epilogue, nested frames, arena returns
+│   │   ├── llvm_condbr.c       # Control flow: if/else branches, while/for loops & loop marks
+│   │   ├── llvm_variables.c    # Variable allocation by bucket, loads, stores, in-place ops
+│   │   ├── llvm_arrays.c       # Static array alloca, dynamic array headers, bounds checks
+│   │   ├── llvm_structs.c      # Named LLVM struct types, GEP field resolution, member access
+│   │   ├── llvm_memory.c       # 3+1 Bucket memory codegen (Arena create/reset, Heap ARC)
+│   │   └── llvm_helpers.c      # Binary/unary expressions, GEP address helpers, optimization
+│   ├── Parser/                 # Recursive Descent Pratt Parser Modules
+│   │   ├── parser_entry.c      # Parsing driver entry point (`compile_parse()`) & global scope
+│   │   ├── parser_data_structures.c # Array literals, indexing, struct defs, & fxns blocks
+│   │   ├── parser_expr.c       # Pratt expression parser with operator precedence climbing
+│   │   ├── parser_functions.c  # Function declarations, return types, and parameter lists
+│   │   ├── parser_var.c        # Variable declarations, assignments, pointers, & control flow
+│   │   └── parser_helpers.c    # Token matching, panic-mode recovery (`synchronize()`), utils
 │   └── Semantics/              # Static Type Checker & Analyzer
-│       ├── semantic_analyze.c  # AST traversal for static semantic checks and symbol validation
-│       └── semantic_helpers.c  # Type checking helpers and scope validation utilities
-├── tests/                      # Automated Python testing suite & benchmark cases
-│   ├── test.py                 # Primary test suite execution runner
-│   ├── conditionals.py         # Test cases for control flow structures (`if`/`else`, loops)
-│   ├── fxns.py                 # Test cases for function calls and recursion
-│   ├── println.py              # Test cases for standard output printing
-│   ├── variable.py             # Test cases for variable scope and type declarations
+│       ├── semantic_analyze.c  # AST traversal for static type checking & symbol verification
+│       └── semantic_helpers.c  # Type compatibility, pointer level inference, & struct lookups
+├── tests/                      # Automated Python test runner & benchmark suite
+│   ├── test.py                 # Primary automated test runner
+│   ├── conditionals.py         # Control flow test cases (if/else, while, for)
+│   ├── fxns.py                 # Function calls, recursion, and return value test cases
+│   ├── println.py              # Console I/O and formatted output test cases
+│   ├── variable.py             # Scope levels, pointers, arrays, and type declaration tests
 │   └── performance/            # Performance and stress test benchmarks
-└── temp/                       # Intermediate artifacts (`output.bc`, `output.ll`, `program.exe`)
+└── temp/                       # Intermediate compiler artifacts (`output.bc`, `program.exe`)
 ```
 
 ---
 
-## Quick Start & Building
+## Quick Start & Toolchain Setup
 
 ### Prerequisites
 
-- **GCC / MinGW-w64** (C99 compliant compiler)
+- **GCC / MinGW-w64** (C99-compliant compiler toolchain)
 - **CMake** (v3.20 or newer)
 - **LLVM 19** development headers & libraries (`libLLVM-19`)
-- **Clang** (Used as native linker and LLVM bitcode compiler)
+- **Clang** (Used as native Windows linker and LLVM bitcode compiler)
+- **Python 3.8+** (For automated diagnostic and doctest execution)
 
 ---
 
 ### 1. Automated Build & Run via `run.sh`
 
-The project includes a shell helper script (`run.sh`) that manages build directory setup, CMake configuration, compilation, and execution of `.apl` scripts:
+The included `run.sh` script automates CMake configuration, building the compiler, and executing an `.apl` source file:
 
 ```bash
-# Build compiler and execute a source file
+# Build compiler and execute an Apollo program
 ./run.sh caleb.apl
 
 # Run existing build without re-triggering CMake configuration
@@ -108,16 +139,16 @@ The project includes a shell helper script (`run.sh`) that manages build directo
 
 ### 2. Manual CMake Build
 
-To build the compiler executable (`apollo.exe`) manually using CMake:
+To configure and compile `apollo.exe` manually using CMake:
 
 ```powershell
 # Create build directory and generate MinGW Makefiles
 cmake -B build -G "MinGW Makefiles" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-# Build target executable
+# Compile the target executable
 cmake --build build
 
-# Execute an Apollo script
+# Execute an Apollo program
 ./build/apollo.exe caleb.apl
 ```
 
@@ -125,7 +156,7 @@ cmake --build build
 
 ### 3. Direct GCC Build Command
 
-If compiling directly without CMake via MinGW-w64:
+To compile the compiler directly with MinGW-w64 GCC without CMake:
 
 ```powershell
 gcc src/main.c src/ast.c src/error.c src/lexer.c src/memory.c src/variables.c `
@@ -140,154 +171,296 @@ gcc src/main.c src/ast.c src/error.c src/lexer.c src/memory.c src/variables.c `
 
 ---
 
-### 4. VS Code Task Integration
+### 4. Compiler Diagnostics via `diagnosis.sh`
 
-Open any `.apl` script in VS Code and press `Ctrl + Shift + B` to trigger the pre-configured build task in `.vscode/tasks.json`.
-
----
-
-### 5. Compiler Diagnostics via `diagnosis.sh`
-
-Run the compiler diagnostic utility to inspect toolchain dependencies, header availability, pre-compiled runtime bitcodes, and build status:
+Run the diagnostic suite to validate language features across test suites:
 
 ```bash
+# Run all test suites (println, conditionals, variable, fxns)
 ./diagnosis.sh
+
+# Run an individual test suite
+./diagnosis.sh println
+./diagnosis.sh conditionals
+./diagnosis.sh variable
+./diagnosis.sh fxns
+
+# Run compiler performance benchmarks
+./diagnosis.sh performance
 ```
 
 ---
 
-## Compiler Architecture & Pipeline
+## Compiler Pipeline & Workflow
 
 ```mermaid
 flowchart TD
-    Source[".apl Source Code"] --> Lexer["Lexer (src/lexer.c)"]
-    Lexer --> Parser["Modular Parser (src/Parser/*)"]
-    Parser --> AST["AST Representation"]
-    AST --> Semantic["Semantic Analyzer (src/Semantics/*)"]
-    Semantic --> LLVMBackend["LLVM C-API Backend (src/API/*)"]
-    Modules["Runtime Bitcodes (apollo-modules/*.bc)"] --> LLVMBackend
+    Source[".apl Source Code"] --> Lexer["Lexer (src/lexer.c) + gperf"]
+    Lexer --> Parser["Pratt Parser (src/Parser/*)"]
+    Parser --> AST["Abstract Syntax Tree (ASTNode)"]
+    AST --> Semantic["Semantic Analyzer & Type Checker (src/Semantics/*)"]
+    Semantic --> LLVMBackend["LLVM C-API Generator (src/API/*)"]
+    Modules["Pre-compiled Bitcodes (apollo-modules/*.bc)"] --> LLVMBackend
     LLVMBackend --> Bitcode["Intermediate Bitcode (temp/output.bc)"]
-    Bitcode --> Clang["Clang Compiler & Linker"]
-    Clang --> Executable["Native Binary (temp/program.exe)"]
+    Bitcode --> Clang["Clang Optimizer & Linker (-O3)"]
+    Clang --> Executable["Native Windows Executable (temp/program.exe)"]
 ```
 
 ### Pipeline Phases
 
-1. **Lexical Analysis (`src/lexer.c`)**:
-   - Converts source text into a stream of typed tokens (`TOKEN_INT`, `TOKEN_IDENTIFIER`, `TOKEN_IF`, `TOKEN_FXN`, etc.).
-   - Employs GNU `gperf` generated hash lookup table (`src/gperf/keywords.gperf` -> `headers/keywords_hash.h`) for $O(1)$ keyword identification.
-   - Tracks exact source line numbers and positions for diagnostic reporting.
-2. **Modular Syntactic Parsing (`src/Parser/`)**:
-   - Built using a recursive descent architecture split into focused sub-modules (`parser_var.c`, `parser_functions.c`, `parser_expr.c`).
-   - Expressions are parsed using **Pratt Precedence-Climbing** (`parser_expr.c`) to handle binary and unary operator precedence cleanly.
-   - Features **Panic-Mode Error Recovery** (`synchronize()` in `parser_helpers.c`) to isolate parsing errors without cascading failures.
-3. **Static Semantic Analysis & Type Inference (`src/Semantics/`)**:
-   - Traverses the AST to check symbol accessibility, variable initialization, and scope level boundaries.
-   - Performs static type checking and evaluates boolean/comparison expressions (`>`, `<`, `>=`, `<=`, `==`, `!=`, `and`, `or`).
-4. **LLVM Code Generation & Runtime Linking (`src/API/`)**:
+1. **Lexical Analysis ([`src/lexer.c`](file:///c:/Users/caleb/SCXRPIUS/Apollo/src/lexer.c))**:
+   - Converts source text into typed tokens (`TOKEN_INT`, `TOKEN_STRING`, `TOKEN_IDENTIFIER`, `TOKEN_ACCESS`, `DECLARE_STRUCT`, `TOKEN_FXNS`, etc.).
+   - Utilizes GNU `gperf` generated hash lookup tables ([`headers/keywords_hash.h`](file:///c:/Users/caleb/SCXRPIUS/Apollo/headers/keywords_hash.h)) for $O(1)$ keyword identification.
+   - Tracks exact file lines, columns, and character offsets for rich diagnostic error output.
+2. **Modular Syntactic Parsing ([`src/Parser/`](file:///c:/Users/caleb/SCXRPIUS/Apollo/src/Parser))**:
+   - Built with recursive descent and Pratt Precedence Climbing ([`parser_expr.c`](file:///c:/Users/caleb/SCXRPIUS/Apollo/src/Parser/parser_expr.c)) for binary, unary, and postfix member access expressions.
+   - Parses struct definitions, `fxns` method blocks, parameter lists, array initializers, and control flow.
+   - Implements Panic-Mode error recovery (`synchronize()` in [`parser_helpers.c`](file:///c:/Users/caleb/SCXRPIUS/Apollo/src/Parser/parser_helpers.c)) to isolate syntax errors cleanly.
+3. **Static Semantic Analysis & Type Inference ([`src/Semantics/`](file:///c:/Users/caleb/SCXRPIUS/Apollo/src/Semantics))**:
+   - Walks the AST to enforce variable initialization, scope boundaries, and symbol resolution.
+   - Resolves pointer indirection levels, verifies struct member existence, and checks array indexing types.
+   - Validates memory bucket classifications (Stack, Static, Arena, Heap ARC).
+4. **LLVM Code Generation & Runtime Linking ([`src/API/`](file:///c:/Users/caleb/SCXRPIUS/Apollo/src/API))**:
    - Emits optimized LLVM IR bitcode using the official `libLLVM-19` C API.
-   - Dynamically loads and links pre-compiled runtime bitcodes from `apollo-modules/` (`apl-io.bc`, `apl-string.bc`, `apl-sys.bc`) via `LLVMLinkModules2`.
-   - Validates generated LLVM modules using `LLVMVerifyModule`.
-   - Writes compiled bitcode to `temp/output.bc`.
+   - Links pre-compiled runtime bitcodes (`apl-io.bc`, `apl-mem.bc`, `apl-string.bc`, `apl-sys.bc`) via `LLVMLinkModules2`.
+   - Generates named struct types, GEP field offsets, arena allocations, and loop bookmarks.
+   - Validates LLVM module integrity via `LLVMVerifyModule` and writes bitcode to `temp/output.bc`.
 5. **Native Execution**:
-   - Calls `clang -O3 temp/output.bc -o temp/program.exe` to emit fully compiled, optimized Windows executable binaries.
+   - Invokes `clang -O3 --target=x86_64-w64-windows-gnu temp/output.bc -o temp/program.exe` to produce native Windows binaries.
 
 ---
 
 ## 3+1 Bucket Memory Architecture
 
-Apollo utilizes a deterministic **3+1 Bucket Memory Model** that combines hardware call stack allocation (`alloca`), static data segments, scoped region arenas, and Automatic Reference Counting (ARC). This model eliminates Garbage Collector (GC) latency pauses while bypassing 90%+ of ARC overhead. For full technical specifications, see [MEMORY.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/MEMORY.md).
+Apollo implements a deterministic **3+1 Bucket Memory Architecture** that unifies hardware call stack allocation (`alloca`), static data segments, scoped region arenas, and Automatic Reference Counting (ARC). This model eliminates Garbage Collector (GC) latency pauses while bypassing 90%+ of ARC overhead. For complete specifications, see [MEMORY.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/MEMORY.md).
 
 ```mermaid
 graph TD
-    A["Apollo Program Allocation"] --> B{"Allocation Type & Scope"}
-    B -->|"Fixed Scalar Primitives"| C["Bucket 0 (+1): CPU Call Stack"]
-    B -->|"Global / Immutable Constants"| D["Bucket 1: Static Bucket"]
-    B -->|"Local Dynamic Data (Stays in Scope)"| E["Bucket 2: Scoped Region Arena"]
-    B -->|"Cross-Scope / Escaping Objects"| F["Bucket 3: Dynamic Heap ARC"]
+    A["Apollo Allocation Request"] --> B{"Scope & Mutability Classification"}
+    B -->|"Fixed Scalar Primitives & Stack Arrays"| C["Bucket 0 (+1): CPU Call Stack (alloca)"]
+    B -->|"Compile-time Constants & Literals"| D["Bucket 1: Static Segment (.rodata / .data)"]
+    B -->|"Local Dynamic Data (Stays in Scope)"| E["Bucket 2: Scoped Region Arena (apl-mem)"]
+    B -->|"Escaping Data & Explicit @ Heap Instances"| F["Bucket 3: Dynamic Heap ARC (_apl_arc)"]
 ```
 
-| Bucket | Memory Region | Target Data Types | Lifespan | Deallocation Cost | ARC Overhead |
+| Bucket | Memory Region | Target Data Types | Lifespan | Deallocation Latency | ARC Overhead |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Bucket 0 (+1)** | CPU Call Stack (`alloca`) | `int`, `char`, `float`, `bool`, stack `ptr` | Function Frame LIFO | $O(1)$ Hardware Frame Pop | **0%** (Disabled) |
-| **Bucket 1** | Static Data Segment | `static str`, global constants, literals | Process Execution | Process Exit | **0%** (Disabled) |
-| **Bucket 2** | Scoped Region Arena | Local `str`, `array`, `dict`, `struct` | Function / Block Scope | $O(1)$ Bulk Arena Reset | **0%** (Disabled) |
-| **Bucket 3** | Dynamic Heap | Returned structs, escaping objects | Reference-Counted | `retain` / `release` on `count == 0` | Active on escape |
+| **Bucket 0 (+1)** | CPU Call Stack (`alloca`) | `int`, `char`, `float`, `bool`, `ptr`, `T[N]` | Function Frame LIFO | **0.0 ns** (Stack Pop) | **0%** (Disabled) |
+| **Bucket 1** | Static Data Segment | `const`, `static str`, literals, ALL_CAPS | Process Execution | **0.0 ns** (Process Exit) | **0%** (Disabled) |
+| **Bucket 2** | Scoped Region Arena | Local `str`, `T[]`, `dict`, local structs | Function / Block Scope | **$O(1)$** Bulk Arena Reset | **0%** (Disabled) |
+| **Bucket 3** | Dynamic Heap ARC | Escaping objects, `@var`, cross-scope structs | Reference-Counted | Deterministic (`count == 0`) | Active on escape |
+
+### Key Memory Innovations:
+- **Loop Bookmark Optimization**: At each loop iteration, Apollo records an arena bookmark (`apl_arena_get_mark`) and rewinds (`apl_arena_set_mark`), maintaining flat RAM usage even across millions of iterations.
+- **Parent Arena Return Pattern**: Child functions returning dynamic data allocate directly inside the parent function's arena (`target_return_arena`), eliminating static escape analysis and heap fragmentation.
 
 ---
 
-## Language Syntax & Features
+## Language Syntax & Feature Guide
 
-### Function Declarations
+### Program Entry Point
 
-Functions are declared using the `fxn` keyword. The `run()` function serves as the primary entry point:
+Every Apollo program defines an entry point function named `run()`:
 
 ```apl
-fxn add(a, b) {
-    return a + b;
-}
-
-fxn run() -> (void) {
-    var result = add(10, 20);
-    println("Result: ", result);
+fxn run() {
+    println("Hello, Apollo!");
 }
 ```
 
-### Variables and Types
+---
 
-Apollo supports strong typing with auto-inference or explicit declaration keywords (`var`, `#int`, `#float`, `#bool`, `#str`):
+### Variables, Types & Constants
+
+Apollo supports type inference via `var` or explicit primitive type declarations (`int`, `float`, `bool`, `char`, `str`):
 
 ```apl
+// Type Inference
 var count = 10;
-var name = "Apollo";
-var is_active = true;
+var pi = 3.14159;
+var message = "Compiled with Apollo";
+var is_ready = true;
 
-# In-place assignments and increments
+// Explicit Types
+int age = 25;
+float rate = 0.05;
+bool active = false;
+char grade = 'A';
+str title = "Apollo Language";
+
+// Compile-Time Constants (ALL_CAPS identifiers reside in Bucket 1 Static Segment)
+int MAX_CONNECTIONS = 5000;
+str APP_VERSION = "3.0.0";
+
+// In-Place Operations & Compound Assignments
 count++;
-count += 5;
+count--;
+count += 10;
+count -= 2;
+count *= 3;
+count /= 2;
+count %= 5;
 ```
+
+---
+
+### Pointers & Memory Referencing
+
+Apollo provides C-like pointer capabilities with compile-time safety and automatic dereferencing:
+
+```apl
+fxn run() {
+    int original = 42;
+
+    // Create a pointer using address-of (&)
+    int* ptr = &original;
+
+    // Dereference using (*)
+    println("Pointer Address Value: ", *ptr);
+
+    // Modify original value through pointer
+    *ptr = 100;
+    println("Updated Original: ", original); // Prints 100
+}
+```
+
+---
+
+### Static & Dynamic Arrays
+
+#### 1. Static Fixed-Size Arrays (`T[N]`)
+Fixed arrays are allocated directly on the **CPU Call Stack (Bucket 0)** with zero heap overhead:
+
+```apl
+// Declare 5-element integer array
+int[5] scores = { 90, 85, 95, 88, 100 };
+
+// Access & mutate by index
+scores[0] = 92;
+println("First score: ", scores[0]);
+```
+
+#### 2. Dynamic Resizable Arrays (`T[]`)
+Dynamic arrays reside in the **Scoped Region Arena (Bucket 2)** with automatic bounds checking:
+
+```apl
+// Declare dynamic array
+int[] dyn_list = { 10, 20, 30, 40 };
+
+// Index access
+println("Element at 2: ", dyn_list[2]);
+```
+
+---
+
+### Structs, Methods (`fxns`), and `self`
+
+Apollo supports data encapsulation via `struct` definitions and dedicated `fxns` method blocks. Methods can be static or bound to instances via the `self` keyword:
+
+```apl
+// 1. Define Struct Layout
+struct Math {
+    int x;
+    int y;
+};
+
+// 2. Define Methods and Static Functions
+fxns Math {
+    // Static Function (Namespace Call)
+    pow(int x) -> int {
+        return x * x;
+    }
+
+    // Instance Method (Mutating State via 'self')
+    set(self, int nx, int ny) {
+        self.x = nx;
+        self.y = ny;
+    }
+
+    // Instance Method (Reading State via 'self')
+    add(self) -> int {
+        return self.x + self.y;
+    }
+}
+
+// 3. Instantiate and Invoke
+fxn run() {
+    Math m;
+    m.set(40, 60);
+
+    // Call static namespace function
+    println("8 squared is: ", Math.pow(8));
+
+    // Call instance method
+    println("Sum of m: ", m.add()); // Prints 100
+}
+```
+
+---
 
 ### Control Flow
 
-#### `if` / `else` Conditional Branches
+#### `if` / `elif` / `else` Branching
 ```apl
-if (count > 10) {
-    println("Count is greater than 10");
+var score = 85;
+
+if (score >= 90) {
+    println("Grade: A");
+} elif (score >= 80) {
+    println("Grade: B");
 } else {
-    println("Count is 10 or less");
+    println("Grade: C or below");
 }
 ```
 
 #### `while` Loops
 ```apl
-var i = 0;
-while (i < 5) {
-    println("Iteration: ", i);
-    i++;
+var counter = 0;
+while (counter < 5) {
+    println("Counter: ", counter);
+    counter++;
 }
 ```
 
 #### `for` Loops
 ```apl
-for (var j = 0; j < 10; j++) {
-    println("Value: ", j);
+for (var i = 0; i < 10; i++) {
+    println("Index: ", i);
 }
+```
+
+---
+
+### Console Output
+
+The built-in `println()` function accepts variable arguments across different data types:
+
+```apl
+var name = "Apollo";
+var version = 3;
+var speed = 99.9;
+
+println("Language: ", name, " | Version: ", version, " | Performance: ", speed, "%");
 ```
 
 ---
 
 ## Standard Runtime Modules (`apollo-modules/`)
 
-Apollo delegates common runtime operations to modular C sub-libraries compiled into LLVM bitcode:
+Apollo standardizes runtime operations in modular C sub-libraries compiled to LLVM bitcode (`.bc`) and linked during codegen:
 
-- **`apl-io`**: Handles formatted console I/O, string printing, and scalar output.
-- **`apl-string`**: Supplies string allocation, concatenation, length, and slice helpers.
-- **`apl-sys`**: Provides OS-level utilities, memory allocation wrappers, and process operations.
+| Module | Location | Primary Responsibilities |
+| :--- | :--- | :--- |
+| **`apl-io`** | [`apollo-modules/apl-io/`](file:///c:/Users/caleb/SCXRPIUS/Apollo/apollo-modules/apl-io) | Formatted console output (`print_int`, `print_float`, `print_bool`, `print_str`, `__apl_print_ptr`, `_apl_panic_out_of_bounds`) |
+| **`apl-mem`** | [`apollo-modules/apl-mem/`](file:///c:/Users/caleb/SCXRPIUS/Apollo/apollo-modules/apl-mem) | 3+1 Bucket memory engine (64KB Arena chunk allocator, loop marks, and ARC Heap manager) |
+| **`apl-string`** | [`apollo-modules/apl-string/`](file:///c:/Users/caleb/SCXRPIUS/Apollo/apollo-modules/apl-string) | String allocation, slice manipulation, concatenation, and length calculations |
+| **`apl-sys`** | [`apollo-modules/apl-sys/`](file:///c:/Users/caleb/SCXRPIUS/Apollo/apollo-modules/apl-sys) | System calls, OS memory allocation wrappers, and process operations |
 
-To re-compile runtime modules to LLVM bitcode:
+To recompile runtime bitcode modules after modifying C sources:
 ```bash
 cd apollo-modules
 ./compile.sh apl-io
+./compile.sh apl-mem
 ./compile.sh apl-string
 ./compile.sh apl-sys
 ```
@@ -296,20 +469,28 @@ cd apollo-modules
 
 ## Testing & Quality Assurance
 
-Apollo includes an automated test runner suite written in Python located in `tests/`:
+Apollo features an automated test runner suite written in Python located in `tests/`:
 
 ```powershell
-# Run the test suite
+# Run the complete test suite
 python tests/test.py
+```
+
+To run feature-specific doctests through `diagnosis.sh`:
+```bash
+./diagnosis.sh println
+./diagnosis.sh conditionals
+./diagnosis.sh variable
+./diagnosis.sh fxns
 ```
 
 ---
 
-## Frontend Documentation Portal (`docs/`)
+## Documentation Portal (`docs/`)
 
-The repository includes a modern React + Vite documentation site under `docs/`.
+The repository includes a modern web-based documentation application built with React and Vite in the `docs/` directory.
 
-To launch the documentation portal locally:
+To run the documentation portal locally:
 ```powershell
 cd docs
 npm install
@@ -318,17 +499,20 @@ npm run dev
 
 ---
 
-## Roadmap
+## Related Architecture Specifications
 
-See [Task.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/Task.md) for the active Object-Oriented Programming (OOP) evolution checklist, including upcoming support for:
-- Classes and Struct Data Encapsulation
-- Object Instantiation (`new`)
-- Member Access Dot Operator (`.`)
-- Method Dispatch and `this` Pointer Passing
-- Struct Embedding and V-Table Polymorphism
+For in-depth architectural and technical design details, refer to the following repository specifications:
+
+- [MEMORY.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/MEMORY.md): In-depth 3+1 Bucket Memory Architecture specification and benchmarks.
+- [DATA_STRUCTURES.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/DATA_STRUCTURES.md): Detailed specification of Apollo's core data structures (Arrays, Maps, Structs, Slices).
+- [IMPROVEMENTS.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/IMPROVEMENTS.md): Memory architecture improvement and scaling roadmap.
+- [PERFORMANCE.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/PERFORMANCE.md): Compiler build times and runtime binary optimization guide.
+- [Task.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/Task.md): Object-Oriented Programming (OOP) migration plan and checklist.
+- [APLMODULES.md](file:///c:/Users/caleb/SCXRPIUS/Apollo/apollo-modules/APLMODULES.md): Pre-compiled runtime library specification and architecture.
 
 ---
 
 ## License
 
-Apollo is released under the **MIT License**. Feel free to modify, build upon, and distribute under its terms.
+Apollo is open-source software licensed under the **[MIT License](file:///c:/Users/caleb/SCXRPIUS/Apollo/LICENSE)**.
+

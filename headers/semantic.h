@@ -28,6 +28,7 @@
 typedef struct {
   ErrorStack *errors;
   CodegenContext *codegen;
+  ASTNode *current_node;
 } SemanticContext;
 
 /**

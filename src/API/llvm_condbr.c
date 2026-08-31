@@ -34,7 +34,11 @@ void _apl_gen_if_block(LLVMComponents *components,
 
   if (elseBB) {
     LLVMPositionBuilderAtEnd(components->builder, elseBB);
-    _apl_gen_block_from_ast(components, elseB);
+    if (elseB->Type == AST_IF) {
+      _apl_gen_if_block(components, elseB);
+    } else {
+      _apl_gen_block_from_ast(components, elseB);
+    }
     if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(components->builder))) {
       LLVMBuildBr(components->builder, mergeBB);
     }

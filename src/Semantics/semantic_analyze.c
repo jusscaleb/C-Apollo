@@ -14,6 +14,9 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   if (!node)
     return;
 
+  ASTNode *prev_node = context->current_node;
+  context->current_node = node;
+
   switch (node->Type) {
   case AST_PROGRAM:
     if (node->program.function) {
@@ -690,6 +693,8 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     break;
   }
   }
+
+  context->current_node = prev_node;
 }
 
 static void analyze_block(SemanticContext *context, ASTNode *block_node) {

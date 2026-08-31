@@ -57,7 +57,11 @@ void realloc_errorStack(ErrorStack *s) {
 void errorStack_free(ErrorStack *s) {
   if (s->data != NULL) {
     for (size_t i = 0; i < s->size; i++) {
-      free(s->data[i]);
+      if (s->data[i] != NULL) {
+        if (s->data[i]->message) free(s->data[i]->message);
+        if (s->data[i]->got) free(s->data[i]->got);
+        free(s->data[i]);
+      }
     }
     free(s->data);
     s->data = NULL;
