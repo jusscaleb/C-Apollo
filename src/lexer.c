@@ -22,24 +22,12 @@ __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
                                               const char *got) {
   Error *e = (Error *)alloc_space(1, sizeof(Error));
   e->message = _strdup(message);
-  e->line = lexer->line;
   e->type = LEXERROR;
   e->line = lexer->line;
   e->column = lexer->column;
   e->got = _strdup(got);
-  e->column = lexer->column;
 
   errorStack_push(lexer->errors, e);
-  //synchronize(lexer, TOKEN_SEMICOLON);
-  
-}
-void synchronize(Lexer *lexer, TokenType safe_token){
-  TokenType  token = next_token(lexer).type;
-  if(token != safe_token){
-      printf("Token Type: %s\n", TokenNames[token]);
-      synchronize(lexer,safe_token);
-  }
-
 }
 
 

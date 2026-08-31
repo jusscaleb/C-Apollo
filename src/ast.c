@@ -17,8 +17,6 @@ static ASTNode *allocate_node(ASTNodeType type, Arena *a) {
 ASTNode *create_literal_node(Token token, Arena *a) {
   ASTNode *node = allocate_node(AST_LITERAL_EXPR, a);
   node->literal_expr.token = token;
-  node->literal_expr.line = token.line;
-  node->literal_expr.column = token.column;
 
   return node;
 }
@@ -32,8 +30,6 @@ ASTNode *create_binary_node(ASTNode *left, TokenType operator_type,
   node->binary_expr.left = left;
   node->binary_expr.operator_type = operator_type;
   node->binary_expr.right = right;
-  node->binary_expr.line = line;
-  node->binary_expr.column = column;
 
   return node;
 }
@@ -64,8 +60,6 @@ ASTNode *create_var_ref_node(const char *name, int name_length, Fxn fxn,
   node->var_ref.name_length = name_length;
   node->var_ref.fxn = fxn;
   node->var_ref.level = level;
-  node->var_ref.line = line;
-  node->var_ref.column = column;
 
   return node;
 }
@@ -90,8 +84,6 @@ ASTNode *create_if_node(ASTNode *condition, ASTNode *then_block,
   node->if_stmt.condition = condition;
   node->if_stmt.then_block = then_block;
   node->if_stmt.else_block = else_block;
-  node->if_stmt.line = line;
-  node->if_stmt.column = column;
   return node;
 }
 
@@ -99,8 +91,6 @@ ASTNode *create_while_node(ASTNode *condition, ASTNode *then_block, Arena *a) {
   ASTNode *node = allocate_node(AST_WHILE, a);
   node->while_lp.condition = condition;
   node->while_lp.then_block = then_block;
-  node->while_lp.line = line;
-  node->while_lp.column = column;
 
   return node;
 }
@@ -121,8 +111,6 @@ ASTNode *create_for_node(ASTNode *variable, ASTNode *condition,
   node->for_lp.condtion = condition;
   node->for_lp.variable = variable;
   node->for_lp.then_block = then_block;
-  node->for_lp.line = line;
-  node->for_lp.column = column;
   return node;
 }
 
@@ -137,11 +125,7 @@ void block_add_statement(ASTNode *block, ASTNode *statement, Arena *a) {
 
 ASTNode *create_fxn_call_node(char *name, int name_length,
                               Fxn fxn, int level, Args *args, Arena *a) {
-  
   ASTNode *node = allocate_node(AST_CALL_FXN, a);
-  
-
-  printf("CALLING NODE: %s\n", name);
   node->call_fxn.name = name;
   node->call_fxn.name_length = name_length;
   node->call_fxn.fxn = fxn;
@@ -168,10 +152,6 @@ ASTNode *create_program_node(ASTNode *block, Arena *a) {
   ASTNode *node = allocate_node(AST_PROGRAM, a);
   node->program.function =
       block; // Using 'function' field to store the block of functions for now
-  if (block) {
-    node->program.line = block->block.line;
-    node->program.column = block->block.column;
-  }
   return node;
 }
 
@@ -179,8 +159,6 @@ ASTNode *create_ret_node(CodegenContext *context, Fxn fxn, ASTNode *value, Arena
   ASTNode *node = allocate_node(AST_RET_NODE, a);
   node->ret_node.fxn = fxn;
   node->ret_node.value = value;
-  node->ret_node.line = line;
-  node->ret_node.column = column;
   return node;
 }
 
