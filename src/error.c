@@ -1,12 +1,7 @@
-/*=========================================================================
-
-                            THE REPORTER
-
-==========================================================================*/
-
 #include "../headers/error.h"
-#include <stdio.h>
 #include <string.h>
+
+
 
 const char *ErrorToken[] = {"Syntax Error",    "Assignment Error",
                             "Reference Error", "Type Error",
@@ -35,16 +30,25 @@ __attribute__((always_inline)) Error *errorStack_pop(ErrorStack *s) {
 }
 
 void errorStack_seek(ErrorStack *s) {
-  while (s->size > 0) {
-    Error *e = errorStack_pop(s);
-    fprintf(stderr, "[%s] %s on [%d:%d]", ErrorToken[e->type], e->message,
-            e->line, e->column);
+  for (size_t i = 0; i < s->size; i++) {
+    Error *e = s->data[i];
+    if (e == NULL) continue;
+    if (e->column > 0) {
+      fprintf(stderr, "[%s] %s on [%d:%d]", ErrorToken[e->type], e->message,
+              e->line, e->column);
+    } else if (e->line > 0) {
+      fprintf(stderr, "[%s] %s Line [%d]", ErrorToken[e->type], e->message,
+              e->line);
+    } else {
+      fprintf(stderr, "[%s] %s", ErrorToken[e->type], e->message);
+    }
 
     if (e->got != NULL && strlen(e->got) > 0)
       fprintf(stderr, " (Found: %s)", e->got);
 
     fprintf(stderr, "\n");
   }
+  fflush(stderr);
 }
 
 void error(Parser *parser, const char *errorMessage, ErrorType type) {
@@ -52,13 +56,14 @@ void error(Parser *parser, const char *errorMessage, ErrorType type) {
   e->type = type;
   e->message = _strdup(errorMessage);
   e->token = parser->current;
-  e->line = parser->lexer->line;
+  e->line = (parser->current.line > 0) ? parser->current.line : parser->lexer->line;
   e->column = parser->lexer->column;
 
-  int len = parser->current.length;
+  int len = (parser->current.length > 0) ? parser->current.length : 0;
   e->got = alloc_space(len + 1, sizeof(char));
-  if (parser->current.start != NULL) {
-    sprintf(e->got, "%.*s", len, parser->current.start);
+  if (parser->current.start != NULL && len > 0) {
+    memcpy(e->got, parser->current.start, len);
+    e->got[len] = '\0';
   } else {
     e->got[0] = '\0';
   }

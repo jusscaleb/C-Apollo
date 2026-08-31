@@ -1,18 +1,20 @@
-# Apollo Docs Website
+# Apollo Documentation Web Application
 
-Documentation site for Apollo Programming Language `v2.0.0 (Unstable Preview)`.
+Documentation site and interactive web portal for Apollo Programming Language `v3.0.0.WIP-preview`.
 
-Apollo uses `MAJOR.MINOR.PATCH` versioning. This preview release documents active compiler support for primitive function parameters and return values, while noting that the language surface is still unstable.
+Apollo uses `MAJOR.MINOR.PATCH.TAG` versioning. This preview release documents active compiler support, static type checking, runtime modules, control flow, functions, and ongoing Object-Oriented Programming (OOP) language features.
 
-## Run Locally
+## Quick Start (Run Locally)
 
 ```powershell
+cd docs
 npm install
 npm run dev
 ```
 
-## Build
+## Production Build
 
 ```powershell
 npm run build
 ```
+

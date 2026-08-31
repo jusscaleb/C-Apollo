@@ -5,17 +5,19 @@
 
               The Apollo Semantics Compile Time library.
       Developed by Caleb Dhliwayo (calebbrandon999@gmail.com)
-     
+
 ----------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
 
-
-
-
 #ifndef SEMANTIC_H
 #define SEMANTIC_H
 
+#include "../headers/functions.h"
+#include "../headers/variables.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "ast.h"
 #include "defs.h"
 #include "error.h"
@@ -23,10 +25,10 @@
 
 // The semantic context might eventually need its own symbol table,
 // but for now we just walk the tree.
-
 typedef struct {
   ErrorStack *errors;
   CodegenContext *codegen;
+  ASTNode *current_node;
 } SemanticContext;
 
 /**
@@ -38,4 +40,53 @@ typedef struct {
  */
 void analyze_semantics(SemanticContext *context, ASTNode *node);
 
-#endif // SEMANTIC_H
+/**
+ * Infers the DataType of an AST expression node.
+ * @param context Pointer to the semantic context.
+ * @param expr AST expression node to analyze.
+ * @return Inferred DataType of the expression.
+ */
+DataType infer_expr_type(SemanticContext *context, ASTNode *expr);
+
+/**
+ * Infers the pointer indirection level (0 = non-pointer, 1 = ptr, 2 = ptr-to-ptr) of an AST expression node.
+ * @param context Pointer to the semantic context.
+ * @param expr AST expression node to analyze.
+ * @return Inferred pointer level of the expression.
+ */
+int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr);
+
+/**
+ * Pushes a semantic error message onto the error stack.
+ * @param context Pointer to the semantic context.
+ * @param msg Error description string.
+ */
+void report_semantic_error(SemanticContext *context, const char *msg);
+
+/**
+ * Resolves the Struct fields linked with a struct variable expression or access expression.
+ */
+Struct *get_struct_fields_from_expr(SemanticContext *context, ASTNode *expr);
+
+// Forward declarations for internal tree-walking functions
+
+/**
+ * Analyzes semantics of an individual AST node.
+ * @param context Pointer to the semantic context.
+ * @param node AST node to analyze.
+ */
+static void analyze_node(SemanticContext *context, ASTNode *node);
+
+/**
+ * Analyzes semantics of an AST statement block node.
+ * @param context Pointer to the semantic context.
+ * @param block_node AST block node to analyze.
+ */
+static void analyze_block(SemanticContext *context, ASTNode *block_node);
+
+
+MemoryBucket infer_bucket_type(SemanticContext *context, ASTNode *expr);
+
+bool is_types_compatible(DataType expected, DataType inferred, int expected_ptr_level, int inferred_ptr_level, bool is_literal);
+
+#endif

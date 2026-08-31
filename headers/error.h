@@ -9,18 +9,12 @@
 ----------------------------------------------------------------------
     Licensed under the MIT License. See LICENSE file for details.
 ====================================================================*/
-
-
-
-
 #ifndef APOLLO_ERROR_H
 #define APOLLO_ERROR_H
 
-#include "defs.h"
 #include "token.h"
 #include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "memory.h"
 
 typedef enum {
   SYNTAXERROR,

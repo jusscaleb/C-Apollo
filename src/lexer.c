@@ -1,34 +1,31 @@
-/*--------------------------------------------------------------------------------
-
-                        CHARACTER GROUPER :)
-
----------------------------------------------------------------------------------*/
-
 #include "../headers/error.h"
+#include "../headers/keywords_hash.h"
 #include "../headers/token.h"
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 
-// Defining the TokenNames in token.h
-void synchronize(Lexer *lexer, TokenType safe_token);
 const char *TokenNames[] = {
-    "Fxn",    "EOF",    "run",    "void",   "IDENTIFIER", "->", "STRING",
-    "(", ")", "{", "}", ";",   "INT",   "DOUB",
-    "FLOAT",  "+",    "*",    "-",    "/",    "%",   "++",
-    "--",    "+=",   "-=",   "*=",   "/=",   "%=",   "println",
-    "var",    "=",      "bool",   "NULL",   "==",        "!=",   ">",
-    "<",     ">=",     "<=",     "and",    "or",         "if",    "elif",
-    "else",   "while",  "for",    "int",    "str",        "bool",  "float",
-    ","};
+    "Fxn",        "EOF",        "run",       "void",       "IDENTIFIER",
+    "->",         "STRING",     "(",         ")",          "{",
+    "}",          ";",          "INT",       "DOUBLE",     "FLOAT",
+    "+",          "*",          "-",         "/",          "%",
+    "++",         "--",         "+=",        "-=",         "*=",
+    "/=",         "%=",         "var",       "=",          "bool",
+    "null",       "==",         "!=",        ">",          "<",
+    ">=",         "<=",         "and",       "or",         "if",
+    "elif",       "else",       "while",     "for",        "int",
+    "str",        "bool",       "float",     "char",       "int*",
+    "char*",      "bool*",      "float*",    "str*",       ",",
+    "return",     "char_lit",   "&","*","...", "@", "[", "]", "struct", "fxns", "self"
+};
 
 // FOR ERROR HANDLING
- __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message, const char *got) {
+__attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
+                                              const char *got) {
   Error *e = (Error *)alloc_space(1, sizeof(Error));
   e->message = _strdup(message);
   e->line = lexer->line;
   e->type = LEXERROR;
+  e->line = lexer->line;
+  e->column = lexer->column;
   e->got = _strdup(got);
   e->column = lexer->column;
 
@@ -48,65 +45,21 @@ void synchronize(Lexer *lexer, TokenType safe_token){
 
 
 /**
- *Checks if the keyword is reserved.
+ *Checks if the keyword is reserved using gperf pre-hashed lookup table.
  *If not it is a user-defined keyword
  */
-
- //TO BE MODIFIED FOR OPTIMIZATION.
-__attribute__((always_inline)) static TokenType check_keyword(const char *start, int length) {
-  //check length 3
-  TokenType token = TOKEN_IDENTIFIER;
-  switch(length){
-    case 2:
-      if(start[0] == 'o' && start[1] == 'r') token = TOKEN_OR;
-      if(start[0] == 'i' && start[1] == 'f') token = TOKEN_IF;
-      break;
-    
-    case 3:
-      if(memcmp(start, "fxn", 3) == 0) token = TOKEN_FXN;
-      if(memcmp(start, "run", 3) == 0) token = TOKEN_RUN;
-      if(memcmp(start, "var", 3) == 0) token = TOKEN_VAR;
-      if(memcmp(start, "and", 3) == 0) token = TOKEN_AND;
-      if(memcmp(start, "int", 3) == 0) token = DECLARE_INT;
-      if(memcmp(start, "for", 3) == 0) token = TOKEN_FOR;
-      if(memcmp(start, "str", 3) == 0) token = DECLARE_STR;
-      break;
-
-    case 4:
-      if(memcmp(start, "void", 4) == 0) token = TOKEN_VOID;
-      if(memcmp(start, "true", 4) == 0) token = TOKEN_BOOL;
-      if(memcmp(start, "else", 4) == 0) token = TOKEN_ELSE;
-      if(memcmp(start, "elif", 4) == 0) token = TOKEN_ELIF;
-      if(memcmp(start, "null", 4) == 0) token = TOKEN_NULL;
-      if(memcmp(start, "bool", 4) == 0) token = DECLARE_BOOL;
-      break;
-    
-    case 5:
-      if(memcmp(start, "false", 5) == 0) token = TOKEN_BOOL;
-      if(memcmp(start, "while", 5) == 0) token = TOKEN_WHILE;
-      if(memcmp(start, "float", 5) == 0) token = DECLARE_FLOAT;
-      break;
-    
-    case 6:
-      if(memcmp(start, "return", 6) == 0) token = TOKEN_RETURN;
-      break;
-      
-    case 7:
-      if(memcmp(start, "println", 7) == 0) token = TOKEN_PRINTLN;
-      break;
-  }
-
-  return token;
+__attribute__((always_inline)) TokenType check_keyword(const char *start,
+                                                       int length) {
+  const struct KeywordEntry *entry = in_word_set(start, length);
+  return entry ? entry->type : TOKEN_IDENTIFIER;
 }
 
 Token next_token(Lexer *lexer) {
-  // Loops through to consume and ignore spaces, tabs and carriage returns.
   while (*lexer->current == ' ' || *lexer->current == '\r' ||
          *lexer->current == '\t' || *lexer->current == '\n') {
     if (*lexer->current == '\n') {
       lexer->line++;
-      lexer->column = 0;
-    } // move to the next line.
+    }
     lexer->current++;
     lexer->column++; // move pointer one character forward.
   }
@@ -127,11 +80,18 @@ Token next_token(Lexer *lexer) {
 
   // using a switch to check single characters
   switch (c) {
+
+  case '[' :{
+    Token token = {TOKEN_LSQUARE_BRACE, start, 1, lexer->line};
+    return token;
+  }
+  case ']' : {
+    Token token = {TOKEN_RSQUARE_BRACE, start, 1, lexer->line};
+    return token;
+  }
   case '}': {
     Token token = {TOKEN_RBRACE, start, 1, lexer->line};
     lexer->scope_level--;
-    // lexer->fxn = lexer->fxn->parent_fxn;
-    lexer->column += token.length;
     return token;
   }
 
@@ -161,19 +121,24 @@ Token next_token(Lexer *lexer) {
   }
 
   case '-': {
+    if (_IS_DIGIT_((unsigned char)*lexer->current)) {
+      return check_number(lexer, start);
+    }
+
     if (*lexer->current == '>') {
       lexer->current++;
       Token token = {TOKEN_ARROW, start, 2, lexer->line};
       lexer->column += token.length;
 
       return token;
-    }if (*lexer->current == '-') {
+    }
+    if (*lexer->current == '-') {
       lexer->current++;
       Token token = {TOKEN_DEC, start, 2, lexer->line};
       lexer->column += token.length;
       return token;
-
-    }if (*lexer->current == '=') {
+    }
+    if (*lexer->current == '=') {
       lexer->current++;
       Token token = {TOKEN_SEQ, start, 2, lexer->line};
       lexer->column += token.length;
@@ -222,6 +187,35 @@ Token next_token(Lexer *lexer) {
   }
 
   case '/': {
+    if (*lexer->current == '/') {
+      while (*lexer->current != '\0' && *lexer->current != '\n') {
+        lexer->current++;
+        lexer->column++;
+      }
+      return next_token(lexer);
+    }
+    if (*lexer->current == '*') {
+      lexer->current++;
+      lexer->column++;
+
+      while (*lexer->current != '\0') {
+        if (*lexer->current == '*' && *(lexer->current + 1) == '/') {
+          lexer->current += 2;
+          lexer->column += 2;
+          return next_token(lexer);
+        }
+
+        if (*lexer->current == '\n') {
+          lexer->line++;
+          lexer->column = 1;
+        } else {
+          lexer->column++;
+        }
+        lexer->current++;
+      }
+      lex_error(lexer, "Unterminated block comment.", "");
+      return next_token(lexer);
+    }
     if (*lexer->current == '=') {
       lexer->current++;
       Token token = {TOKEN_DEQ, start, 2, lexer->line};
@@ -248,11 +242,8 @@ Token next_token(Lexer *lexer) {
     return token;
   }
   case '#': {
-    while (*lexer->current != '\0' && *lexer->current != '\n') {
-      lexer->current++;
-      lexer->column++;
-    }
-    lexer->column = 0;
+   
+
     return next_token(lexer);
   }
 
@@ -324,10 +315,8 @@ Token next_token(Lexer *lexer) {
       return token;
     }
 
-    lex_error(lexer, "Could not recognize token. Did you mean '&&' ?", "&");
-    Token token = {TOKEN_EOF, start, 1, lexer->line};
-    lexer->column += token.length;
-
+    //lex_error(lexer, "Could not recognize token. Did you mean '&&' ?", "&");
+    Token token = {TOKEN_REF, start, 1, lexer->line};
     return token;
   }
 
@@ -350,111 +339,46 @@ Token next_token(Lexer *lexer) {
 
     return token;
   }
+  case '.': {
+    if (*lexer->current == '.' && *(lexer->current + 1) == '.') {
+      lexer->current += 2;
+      lexer->column += 2;
+      Token token = {TOKEN_VARARGS, start, 3, lexer->line};
+      return token;
+    }
+
+    Token token = {TOKEN_ACCESS, start, 1, lexer->line};
+    return token;
+  }
+  case '@':{
+    Token token = {TOKEN_SIGIL, start, 1, lexer->line};
+    return token;
+  }
+
+
+
   }
 
   // HANDLE STRINGS
   if (c == '"') {
-    // Loops until it reaches closing quotes or \0.
-    while (*lexer->current != '\0') {
-      if (*lexer->current == '\n'){
-        lexer->column = 0;
-        lexer->line++;
-      }
+    return check_string_or_char(lexer, start, true);
+  }
 
-      if (*lexer->current == '"') {
-        break;
-      }
-
-      // Checks for escaped characters.
-      if (*lexer->current == '\\') {
-        lexer->current++;
-        lexer->column += 2;
-
-        // If it reaches \0 that means it's an unterminated string.
-        if (*lexer->current == '\0') {
-          int len = (int)(lexer->current - start);
-          char temp[len + 1];
-          memcpy(temp, start, len);
-          temp[len] = '\0'; 
-          //snprintf(temp, len + 1, "%.*s", len, start);
-          lex_error(lexer, "Unterminated String", temp);
-          Token token = {TOKEN_EOF, start, len, lexer->line};
-          return token;
-        }
-
-        lexer->current++;
-        lexer->column++;
-        continue;
-      }
-
-      lexer->current++;
-      lexer->column++;
-    }
-
-    // If it reaches \0 that means it's an unterminated string.
-    if (*lexer->current == '\0') {
-      int len = (int)(lexer->current - start);
-      char temp[len + 1];
-      memcpy(temp, start, len);
-      temp[len] = '\0';
-      //snprintf(temp, len + 1, "%.*s", len, start);
-      lex_error(lexer, "Unterminated String", temp);
-      Token token = {TOKEN_EOF, start, len, lexer->line};
-      return token;
-    }
-
-    int length = (int)(lexer->current - start);
-    lexer->current++;
-    lexer->column++;
-
-    Token token = {TOKEN_STRING, start, length, lexer->line};
-    return token;
+  // HANDLE CHARACTERS
+  if (c == '\'') {
+    return check_string_or_char(lexer, start, false);
   }
 
   // Checking Int
-  if (isdigit((unsigned char)c)) {
-    set is_float = false;
-
-    while (isdigit((unsigned char)*lexer->current)) {
-      lexer->current++;
-      lexer->column++;
-    }
-
-    if (*lexer->current == '.') {
-      is_float = true;
-      lexer->current++;
-      lexer->column++;
-
-
-      //this should be changed to (lexer->current >= '0' && lexer->current <= '9)
-      //Manual check more efficient, zero overhead.
-      if (!isdigit((unsigned char)*lexer->current)) {
-        int len = (int)(lexer->current - start);
-        char temp[len + 1];
-        //snprintf(temp, len + 1, "%.*s", len, start);
-        memcpy(temp, start, len);
-        temp[len] = '\0';
-        lex_error(lexer, "Expected value int after '.' ", temp);
-      }
-    }
-    while (isdigit((unsigned char)*lexer->current)) {
-      lexer->current++;
-      lexer->column++;
-    }
-
-    int length = (int)(lexer->current - start);
-
-    TokenType type = (is_float) ? TOKEN_FLOAT : TOKEN_INT;
-    Token token = {type, start, length, lexer->line};
-    return token;
+  if (_IS_DIGIT_((unsigned char)c)) {
+    return check_number(lexer, start);
   }
 
   // Catering for other types of Keywords
-  //this should be changed to (lexer->current >= 'a' && lexer->current <= 'z' // (Also caps))
-  //Manual check more efficient, zero overhead.
-  if (isalpha(c) || c == '_') {
+  if (_IS_ALPHA_(c) || c == '_') {
     // Could my_number_2...
-    while (isalnum((unsigned char)*lexer->current) || *lexer->current == '_') {
+    while (_IS_ALNUM_((unsigned char)*lexer->current) ||
+           *lexer->current == '_') {
       lexer->current++;
       lexer->column++;
     }
@@ -475,5 +399,106 @@ Token next_token(Lexer *lexer) {
   char temp[2] = {c, '\0'};
   lex_error(lexer, "Undefined string.", temp);
   Token token = {TOKEN_EOF, start, 1, lexer->line};
+  return token;
+}
+
+__attribute__((always_inline)) Token check_number(Lexer *lexer,
+                                                  const char *start) {
+  bool is_float = false;
+  while (_IS_DIGIT_((unsigned char)*lexer->current)) {
+    lexer->current++;
+    lexer->column++;
+  }
+
+  if (*lexer->current == '.') {
+    is_float = true;
+    lexer->current++;
+    lexer->column++;
+
+    if (!_IS_DIGIT_((unsigned char)*lexer->current)) {
+      int len = (int)(lexer->current - start);
+      char temp[len + 1];
+      memcpy(temp, start, len);
+      temp[len] = '\0';
+      lex_error(lexer, "Expected value int after '.' ", temp);
+    }
+  }
+  while (_IS_DIGIT_((unsigned char)*lexer->current)) {
+    lexer->current++;
+    lexer->column++;
+  }
+
+  int length = (int)(lexer->current - start);
+
+  TokenType type = (is_float) ? TOKEN_FLOAT : TOKEN_INT;
+  Token token = {type, start, length, lexer->line};
+  return token;
+}
+
+__attribute__((always_inline)) Token check_string_or_char(Lexer *lexer,
+                                                          const char *start,
+                                                          bool is_str) {
+
+  const char TERMINATING_STRING = is_str ? '"' : '\'';
+  const char *err_msg =
+      is_str ? "Unterminated String Literal" : "Unterminated Character Literal";
+  TokenType t = is_str ? TOKEN_STRING : TOKEN_CHAR;
+
+  while (*lexer->current != '\0') {
+    if (*lexer->current == '\n')
+      lexer->line++;
+
+    if (*lexer->current == TERMINATING_STRING) {
+      break;
+    }
+
+    // Checks for escaped characters.
+    if (*lexer->current == '\\') {
+      lexer->current++;
+      lexer->column++;
+
+      // If it reaches \0 that means it's an unterminated string.
+      if (*lexer->current == '\0') {
+        int len = (int)(lexer->current - start);
+        char temp[len + 1];
+        memcpy(temp, start, len);
+        temp[len] = '\0';
+        lex_error(lexer, err_msg, temp);
+        Token token = {TOKEN_EOF, start, len, lexer->line};
+        return token;
+      }
+
+      lexer->current++;
+      lexer->column++;
+      continue;
+    }
+
+    lexer->current++;
+    lexer->column++;
+  }
+
+  if (*lexer->current == '\0') {
+    int len = (int)(lexer->current - start);
+    char temp[len + 1];
+    memcpy(temp, start, len);
+    temp[len] = '\0';
+    lex_error(lexer, err_msg, temp);
+    Token token = {TOKEN_EOF, start, len, lexer->line};
+    return token;
+  }
+
+  int length = (int)(lexer->current - start);
+
+  if (!is_str) {
+    if (length + 1 < 3 || length + 1 > 4) {
+      lex_error(lexer, "Character literal must contain exactly one character",
+                start);
+    }
+  }
+
+  lexer->current++;
+  lexer->column++;
+
+  Token token = {t, start, length, lexer->line};
   return token;
 }

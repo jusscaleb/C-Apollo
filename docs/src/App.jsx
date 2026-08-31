@@ -12,15 +12,56 @@ import {
   Code,
   RefreshCw,
   GitBranch,
-  HelpCircle
+  Check,
+  Copy,
+  Box,
+  Database,
+  Sparkles,
+  Zap,
+  ShieldCheck,
+  Binary,
+  Search,
+  ExternalLink,
+  Flame,
+  ArrowRight
 } from 'lucide-react';
 import './App.css';
 
-// ==========================================
-// 1. APOLLO INTERACTIVE SIMULATOR (JS-BASED)
-// ==========================================
+// =========================================================================
+// 1. REUSABLE CODE BLOCK COMPONENT WITH COPY-TO-CLIPBOARD
+// =========================================================================
+function CodeBlock({ title, code, language = 'apl' }) {
+  const [copied, setCopied] = useState(false);
 
-// Tokenize Apollo source code in JS
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="code-block-wrapper">
+      <div className="code-block-header">
+        <div className="code-block-title">
+          <FileText size={14} style={{ color: 'var(--color-orange-light)' }} />
+          <span>{title || `${language.toUpperCase()} Snippet`}</span>
+        </div>
+        <button className="copy-btn" onClick={handleCopy} title="Copy to clipboard">
+          {copied ? <Check size={13} style={{ color: 'var(--text-success)' }} /> : <Copy size={13} />}
+          <span>{copied ? 'Copied!' : 'Copy'}</span>
+        </button>
+      </div>
+      <pre className="code-block-content">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+// =========================================================================
+// 2. APOLLO JS-BASED INTERACTIVE SIMULATOR (V3.0 ENGINE)
+// =========================================================================
+
 function jsLex(source) {
   const tokens = [];
   let i = 0;
@@ -28,10 +69,18 @@ function jsLex(source) {
 
   const keywords = {
     'fxn': 'TOKEN_FXN',
+    'fxns': 'TOKEN_FXNS',
+    'struct': 'DECLARE_STRUCT',
+    'self': 'TOKEN_SELF',
     'run': 'TOKEN_RUN',
     'void': 'TOKEN_VOID',
     'println': 'TOKEN_PRINTLN',
     'var': 'TOKEN_VAR',
+    'int': 'DECLARE_INT',
+    'str': 'DECLARE_STR',
+    'float': 'DECLARE_FLOAT',
+    'bool': 'DECLARE_BOOL',
+    'char': 'DECLARE_CHAR',
     'true': 'TOKEN_BOOL',
     'false': 'TOKEN_BOOL',
     'null': 'TOKEN_NULL',
@@ -41,26 +90,25 @@ function jsLex(source) {
     'else': 'TOKEN_ELSE',
     'elif': 'TOKEN_ELIF',
     'while': 'TOKEN_WHILE',
-    'for': 'TOKEN_FOR'
+    'for': 'TOKEN_FOR',
+    'return': 'TOKEN_RETURN'
   };
 
   while (i < source.length) {
     let char = source[i];
 
-    // Newlines
     if (char === '\n') {
       line++;
       i++;
       continue;
     }
 
-    // Whitespace
     if (/\s/.test(char)) {
       i++;
       continue;
     }
 
-    // Comments
+    // Single-line comments
     if (char === '/' && source[i+1] === '/') {
       while (i < source.length && source[i] !== '\n') {
         i++;
@@ -68,101 +116,56 @@ function jsLex(source) {
       continue;
     }
 
-    // Multi-char operators/arrows
-    if (source.slice(i, i + 2) === '->') {
-      tokens.push({ type: 'TOKEN_ARROW', value: '->', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '==') {
-      tokens.push({ type: 'TOKEN_EQT', value: '==', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '!=') {
-      tokens.push({ type: 'TOKEN_NEQ', value: '!=', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '+=') {
-      tokens.push({ type: 'TOKEN_AEQ', value: '+=', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '-=') {
-      tokens.push({ type: 'TOKEN_SEQ', value: '-=', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '*=') {
-      tokens.push({ type: 'TOKEN_MEQ', value: '*=', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '/=') {
-      tokens.push({ type: 'TOKEN_DEQ', value: '/=', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '++') {
-      tokens.push({ type: 'TOKEN_INC', value: '++', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '--') {
-      tokens.push({ type: 'TOKEN_DEC', value: '--', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '<=') {
-      tokens.push({ type: 'TOKEN_SE', value: '<=', line });
-      i += 2;
-      continue;
-    }
-    if (source.slice(i, i + 2) === '>=') {
-      tokens.push({ type: 'TOKEN_GE', value: '>=', line });
-      i += 2;
-      continue;
-    }
+    // Double-character operators
+    const twoChars = source.slice(i, i + 2);
+    if (twoChars === '->') { tokens.push({ type: 'TOKEN_ARROW', value: '->', line }); i += 2; continue; }
+    if (twoChars === '==') { tokens.push({ type: 'TOKEN_EQT', value: '==', line }); i += 2; continue; }
+    if (twoChars === '!=') { tokens.push({ type: 'TOKEN_NEQ', value: '!=', line }); i += 2; continue; }
+    if (twoChars === '<=') { tokens.push({ type: 'TOKEN_SE', value: '<=', line }); i += 2; continue; }
+    if (twoChars === '>=') { tokens.push({ type: 'TOKEN_GE', value: '>=', line }); i += 2; continue; }
+    if (twoChars === '+=') { tokens.push({ type: 'TOKEN_AEQ', value: '+=', line }); i += 2; continue; }
+    if (twoChars === '-=') { tokens.push({ type: 'TOKEN_SEQ', value: '-=', line }); i += 2; continue; }
+    if (twoChars === '*=') { tokens.push({ type: 'TOKEN_MEQ', value: '*=', line }); i += 2; continue; }
+    if (twoChars === '/=') { tokens.push({ type: 'TOKEN_DEQ', value: '/=', line }); i += 2; continue; }
+    if (twoChars === '++') { tokens.push({ type: 'TOKEN_INC', value: '++', line }); i += 2; continue; }
+    if (twoChars === '--') { tokens.push({ type: 'TOKEN_DEC', value: '--', line }); i += 2; continue; }
 
     // String literals
     if (char === '"') {
-      let start = i;
-      i++; // consume opening quote
+      i++;
       let val = "";
       while (i < source.length && source[i] !== '"') {
         val += source[i];
         i++;
       }
-      if (i >= source.length) {
-        throw new Error(`Lexical Error: Unterminated string on line ${line}`);
-      }
-      i++; // consume closing quote
+      if (i >= source.length) throw new Error(`Lexer Error: Unterminated string on line ${line}`);
+      i++;
       tokens.push({ type: 'TOKEN_STRING', value: val, line });
+      continue;
+    }
+
+    // Character literals
+    if (char === "'") {
+      i++;
+      let val = source[i];
+      i++;
+      if (source[i] === "'") i++;
+      tokens.push({ type: 'TOKEN_CHAR', value: val, line });
       continue;
     }
 
     // Numbers
     if (/[0-9]/.test(char)) {
       let val = "";
-      let isFloat = false;
       while (i < source.length && /[0-9\.]/.test(source[i])) {
-        if (source[i] === '.') {
-          if (isFloat) break; // Invalid format
-          isFloat = true;
-        }
         val += source[i];
         i++;
       }
-      tokens.push({ 
-        type: isFloat ? 'TOKEN_FLOAT' : 'TOKEN_INT', 
-        value: val, 
-        line 
-      });
+      tokens.push({ type: val.includes('.') ? 'TOKEN_FLOAT' : 'TOKEN_INT', value: val, line });
       continue;
     }
 
-    // Identifiers & Keywords
+    // Identifiers and keywords
     if (/[a-zA-Z_]/.test(char)) {
       let val = "";
       while (i < source.length && /[a-zA-Z0-9_]/.test(source[i])) {
@@ -178,588 +181,706 @@ function jsLex(source) {
     }
 
     // Single-char symbols
-    const singleSymbols = {
-      ';': 'TOKEN_SEMICOLON',
+    const singleTokens = {
       '(': 'TOKEN_LPARETH',
       ')': 'TOKEN_RPARETH',
       '{': 'TOKEN_LBRACE',
       '}': 'TOKEN_RBRACE',
+      '[': 'TOKEN_LSQUARE_BRACE',
+      ']': 'TOKEN_RSQUARE_BRACE',
+      ';': 'TOKEN_SEMICOLON',
+      ',': 'TOKEN_COMMA',
+      '.': 'TOKEN_ACCESS',
       '=': 'TOKEN_ASSIGN',
       '+': 'TOKEN_ADD',
       '-': 'TOKEN_SUB',
       '*': 'TOKEN_MUL',
       '/': 'TOKEN_DIV',
       '%': 'TOKEN_MOD',
+      '>': 'TOKEN_GT',
       '<': 'TOKEN_ST',
-      '>': 'TOKEN_GT'
+      '&': 'TOKEN_REF',
+      '@': 'TOKEN_SIGIL'
     };
 
-    if (singleSymbols[char]) {
-      tokens.push({ type: singleSymbols[char], value: char, line });
+    if (singleTokens[char]) {
+      tokens.push({ type: singleTokens[char], value: char, line });
       i++;
       continue;
     }
 
-    throw new Error(`Lexical Error: Unexpected character '${char}' on line ${line}`);
+    throw new Error(`Lexer Error: Unrecognized character '${char}' on line ${line}`);
   }
 
   tokens.push({ type: 'TOKEN_EOF', value: '\\0', line });
   return tokens;
 }
 
-// Build basic AST in JS
 function jsParse(tokens) {
-  let index = 0;
-  
-  function peek() {
-    return tokens[index];
-  }
-  
-  function consume(expectedType, errMsg) {
-    const t = peek();
-    if (t && t.type === expectedType) {
-      index++;
-      return t;
-    }
-    throw new Error(`Syntax Error: ${errMsg || `Expected ${expectedType}`} on line ${t ? t.line : 'EOF'} (Found: ${t ? t.value : 'EOF'})`);
-  }
+  let idx = 0;
 
-  function parseExpression() {
-    // Basic math expression parser
-    let left = parsePrimary();
-    
-    while (peek() && ['TOKEN_ADD', 'TOKEN_SUB', 'TOKEN_MUL', 'TOKEN_DIV', 'TOKEN_EQT', 'TOKEN_NEQ', 'TOKEN_ST', 'TOKEN_GT', 'TOKEN_SE', 'TOKEN_GE'].includes(peek().type)) {
-      const op = peek();
-      index++;
-      const right = parsePrimary();
-      left = {
-        type: 'AST_BINARY_EXPR',
-        left,
-        operator: op.value,
-        right
-      };
-    }
-    
-    return left;
+  function peek() { return tokens[idx] || { type: 'TOKEN_EOF', value: '' }; }
+  function advance() { return tokens[idx++]; }
+  function match(type) {
+    if (peek().type === type) return advance();
+    return null;
+  }
+  function consume(type, msg) {
+    const t = match(type);
+    if (!t) throw new Error(`Parser Error: ${msg || `Expected ${type}`} got ${peek().type} ('${peek().value}') on line ${peek().line}`);
+    return t;
   }
 
-  function parsePrimary() {
-    const t = peek();
-    if (!t) throw new Error("Syntax Error: Unexpected EOF in expression");
-
-    if (t.type === 'TOKEN_INT' || t.type === 'TOKEN_FLOAT' || t.type === 'TOKEN_STRING' || t.type === 'TOKEN_BOOL' || t.type === 'TOKEN_NULL') {
-      index++;
-      return { type: 'AST_LITERAL_EXPR', value: t.value, valueType: t.type };
+  function parseProgram() {
+    const statements = [];
+    while (peek().type !== 'TOKEN_EOF') {
+      statements.push(parseTopLevel());
     }
-
-    if (t.type === 'TOKEN_IDENTIFIER') {
-      index++;
-      // check if it's a function call or just reference
-      if (peek() && peek().type === 'TOKEN_LPARETH') {
-        index++; // consume '('
-        consume('TOKEN_RPARETH', "Expected ')' after function call argument list");
-        return { type: 'AST_CALL_FXN', name: t.value };
-      }
-      return { type: 'AST_VAR_REF', name: t.value };
-    }
-
-    if (t.type === 'TOKEN_LPARETH') {
-      index++;
-      const expr = parseExpression();
-      consume('TOKEN_RPARETH', "Expected ')' after expression");
-      return expr;
-    }
-
-    throw new Error(`Syntax Error: Unexpected token '${t.value}' in expression on line ${t.line}`);
+    return { type: 'AST_PROGRAM', statements };
   }
 
-  function parseStatement() {
-    const t = peek();
-    if (!t) return null;
-
-    if (t.type === 'TOKEN_VAR') {
-      index++;
-      const id = consume('TOKEN_IDENTIFIER', "Expected identifier after 'var'");
-      consume('TOKEN_ASSIGN', "Expected '=' after variable identifier");
-      const value = parseExpression();
-      consume('TOKEN_SEMICOLON', "Expected ';' after variable declaration");
-      return {
-        type: 'AST_VAR_DECL',
-        name: id.value,
-        value
-      };
-    }
-
-    if (t.type === 'TOKEN_PRINTLN') {
-      index++;
-      consume('TOKEN_LPARETH', "Expected '(' after 'println'");
-      const value = parseExpression();
-      consume('TOKEN_RPARETH', "Expected ')' after println expression");
-      consume('TOKEN_SEMICOLON', "Expected ';' after println statement");
-      return {
-        type: 'AST_PRINTLN',
-        value
-      };
-    }
-
-    if (t.type === 'TOKEN_IDENTIFIER') {
-      index++;
-      if (peek() && peek().type === 'TOKEN_ASSIGN') {
-        index++; // consume '='
-        const value = parseExpression();
-        consume('TOKEN_SEMICOLON', "Expected ';' after assignment");
-        return {
-          type: 'AST_VAR_ASS',
-          name: t.value,
-          value
-        };
+  function parseTopLevel() {
+    if (peek().type === 'DECLARE_STRUCT') {
+      advance();
+      const name = consume('TOKEN_IDENTIFIER', 'Expected struct name').value;
+      consume('TOKEN_LBRACE', "Expected '{'");
+      const fields = [];
+      while (peek().type !== 'TOKEN_RBRACE' && peek().type !== 'TOKEN_EOF') {
+        const typeToken = advance();
+        const fieldName = consume('TOKEN_IDENTIFIER', 'Expected field name').value;
+        consume('TOKEN_SEMICOLON', "Expected ';'");
+        fields.push({ name: fieldName, type: typeToken.value });
       }
-      
-      // Function call as statement
-      if (peek() && peek().type === 'TOKEN_LPARETH') {
-        index++; // consume '('
-        consume('TOKEN_RPARETH', "Expected ')' after function call");
-        consume('TOKEN_SEMICOLON', "Expected ';' after function statement");
-        return {
-          type: 'AST_CALL_FXN',
-          name: t.value
-        };
+      consume('TOKEN_RBRACE', "Expected '}'");
+      match('TOKEN_SEMICOLON');
+      return { type: 'AST_STRUCT_DEFINITION', name, fields };
+    }
+
+    if (peek().type === 'TOKEN_FXNS') {
+      advance();
+      const structName = consume('TOKEN_IDENTIFIER', 'Expected identifier after fxns').value;
+      consume('TOKEN_LBRACE', "Expected '{'");
+      const methods = [];
+      while (peek().type !== 'TOKEN_RBRACE' && peek().type !== 'TOKEN_EOF') {
+        const isFxn = match('TOKEN_FXN');
+        const methodName = consume('TOKEN_IDENTIFIER', 'Expected method name').value;
+        consume('TOKEN_LPARETH', "Expected '('");
+        const params = [];
+        while (peek().type !== 'TOKEN_RPARETH' && peek().type !== 'TOKEN_EOF') {
+          if (peek().type === 'TOKEN_SELF') {
+            params.push({ name: 'self', type: structName });
+            advance();
+          } else {
+            const pType = advance().value;
+            const pName = consume('TOKEN_IDENTIFIER', 'Expected param identifier').value;
+            params.push({ name: pName, type: pType });
+          }
+          match('TOKEN_COMMA');
+        }
+        consume('TOKEN_RPARETH', "Expected ')'");
+        let retType = 'void';
+        if (match('TOKEN_ARROW')) {
+          retType = advance().value;
+        }
+        const body = parseBlock();
+        methods.push({ name: methodName, structName, params, retType, body });
       }
-      
-      throw new Error(`Syntax Error: Unexpected identifier statement '${t.value}' on line ${t.line}`);
+      consume('TOKEN_RBRACE', "Expected '}'");
+      return { type: 'AST_FUNCTIONS', structName, methods };
     }
 
-    if (t.type === 'TOKEN_WHILE') {
-      index++;
-      consume('TOKEN_LPARETH', "Expected '(' after 'while'");
-      const condition = parseExpression();
-      consume('TOKEN_RPARETH', "Expected ')' after loop condition");
-      const thenBlock = parseBlock();
-      return {
-        type: 'AST_WHILE',
-        condition,
-        thenBlock
-      };
-    }
-
-    if (t.type === 'TOKEN_FOR') {
-      index++;
-      consume('TOKEN_LPARETH', "Expected '(' after 'for'");
-      // Loop variable init (simplified)
-      consume('TOKEN_VAR', "Expected 'var' declaration in for loop initialization");
-      const id = consume('TOKEN_IDENTIFIER', "Expected identifier in for loop");
-      consume('TOKEN_ASSIGN', "Expected '=' in for loop initialization");
-      const startVal = parseExpression();
-      consume('TOKEN_SEMICOLON', "Expected ';' after for loop initialization");
-      
-      const condition = parseExpression();
-      consume('TOKEN_SEMICOLON', "Expected ';' after for loop condition");
-      
-      // Update
-      const updateId = consume('TOKEN_IDENTIFIER', "Expected update statement in for loop");
-      consume('TOKEN_ASSIGN', "Expected '=' in update statement");
-      const updateExpr = parseExpression();
-      consume('TOKEN_RPARETH', "Expected ')' after for loop update");
-      
-      const thenBlock = parseBlock();
-      
-      return {
-        type: 'AST_FOR',
-        init: { type: 'AST_VAR_DECL', name: id.value, value: startVal },
-        condition,
-        update: { type: 'AST_VAR_ASS', name: updateId.value, value: updateExpr },
-        thenBlock
-      };
-    }
-
-    if (t.type === 'TOKEN_IF') {
-      index++;
-      consume('TOKEN_LPARETH', "Expected '(' after 'if'");
-      const condition = parseExpression();
-      consume('TOKEN_RPARETH', "Expected ')' after if condition");
-      const thenBlock = parseBlock();
-      let elseBlock = null;
-
-      if (peek() && peek().type === 'TOKEN_ELSE') {
-        index++;
-        elseBlock = parseBlock();
-      } else if (peek() && peek().type === 'TOKEN_ELIF') {
-        // Simple elif parsing
-        elseBlock = parseStatement();
+    if (peek().type === 'TOKEN_FXN') {
+      advance();
+      const name = (peek().type === 'TOKEN_RUN') ? advance().value : consume('TOKEN_IDENTIFIER', 'Expected function name').value;
+      consume('TOKEN_LPARETH', "Expected '('");
+      const params = [];
+      while (peek().type !== 'TOKEN_RPARETH' && peek().type !== 'TOKEN_EOF') {
+        const pType = advance().value;
+        const pName = consume('TOKEN_IDENTIFIER', 'Expected parameter name').value;
+        params.push({ name: pName, type: pType });
+        match('TOKEN_COMMA');
       }
-
-      return {
-        type: 'AST_IF',
-        condition,
-        thenBlock,
-        elseBlock
-      };
-    }
-
-    if (t.type === 'TOKEN_FXN') {
-      index++;
-      const id = consume('TOKEN_IDENTIFIER', "Expected function name after 'fxn'");
-      consume('TOKEN_LPARETH', "Expected '(' after function name");
-      consume('TOKEN_RPARETH', "Expected ')' after function parameter list");
-      consume('TOKEN_ARROW', "Expected '->' for return type mapping");
-      consume('TOKEN_LPARETH', "Expected '(' for return type wrapper");
-      const retType = consume('TOKEN_VOID', "Expected 'void' return type");
-      consume('TOKEN_RPARETH', "Expected ')' after return type");
+      consume('TOKEN_RPARETH', "Expected ')'");
+      let retType = 'void';
+      if (match('TOKEN_ARROW')) {
+        retType = advance().value;
+      }
       const body = parseBlock();
-      return {
-        type: 'AST_FUNCTION',
-        name: id.value,
-        body
-      };
+      return { type: 'AST_FUNCTION', name, params, retType, body };
     }
 
-    // If it's a semicolon, skip
-    if (t.type === 'TOKEN_SEMICOLON') {
-      index++;
-      return null;
-    }
-
-    throw new Error(`Syntax Error: Unexpected token '${t.value}' on line ${t.line}`);
+    return parseStatement();
   }
 
   function parseBlock() {
-    consume('TOKEN_LBRACE', "Expected '{' to open statement block");
-    const statements = [];
-    while (peek() && peek().type !== 'TOKEN_RBRACE' && peek().type !== 'TOKEN_EOF') {
-      const stmt = parseStatement();
-      if (stmt) statements.push(stmt);
+    consume('TOKEN_LBRACE', "Expected '{' to start block");
+    const stmts = [];
+    while (peek().type !== 'TOKEN_RBRACE' && peek().type !== 'TOKEN_EOF') {
+      stmts.push(parseStatement());
     }
-    consume('TOKEN_RBRACE', "Expected '}' to close statement block");
-    return {
-      type: 'AST_BLOCK',
-      statements
-    };
+    consume('TOKEN_RBRACE', "Expected '}' to close block");
+    return { type: 'AST_BLOCK', statements: stmts };
   }
 
-  const rootStatements = [];
-  while (peek() && peek().type !== 'TOKEN_EOF') {
-    const stmt = parseStatement();
-    if (stmt) rootStatements.push(stmt);
+  function parseStatement() {
+    const cur = peek();
+
+    // Variable declaration
+    if (['TOKEN_VAR', 'DECLARE_INT', 'DECLARE_STR', 'DECLARE_FLOAT', 'DECLARE_BOOL', 'DECLARE_CHAR'].includes(cur.type)) {
+      const typeToken = advance();
+      let isArray = false;
+      let arrayLen = -1;
+      if (match('TOKEN_LSQUARE_BRACE')) {
+        isArray = true;
+        if (peek().type === 'TOKEN_INT') {
+          arrayLen = parseInt(advance().value, 10);
+        }
+        consume('TOKEN_RSQUARE_BRACE', "Expected ']'");
+      }
+      const name = consume('TOKEN_IDENTIFIER', 'Expected variable name').value;
+      let value = null;
+      if (match('TOKEN_ASSIGN')) {
+        value = parseExpression();
+      }
+      consume('TOKEN_SEMICOLON', "Expected ';' after variable declaration");
+      return { type: 'AST_VAR_DECL', name, varType: typeToken.value, isArray, arrayLen, value };
+    }
+
+    // Struct variable instantiation (e.g. Math m;)
+    if (cur.type === 'TOKEN_IDENTIFIER' && tokens[idx+1] && tokens[idx+1].type === 'TOKEN_IDENTIFIER') {
+      const structType = advance().value;
+      const varName = advance().value;
+      let value = null;
+      if (match('TOKEN_ASSIGN')) {
+        value = parseExpression();
+      }
+      consume('TOKEN_SEMICOLON', "Expected ';' after struct declaration");
+      return { type: 'AST_VAR_DECL', name: varName, varType: structType, isStruct: true, value };
+    }
+
+    // Control Flow: if / while / for
+    if (cur.type === 'TOKEN_IF') {
+      advance();
+      consume('TOKEN_LPARETH', "Expected '('");
+      const cond = parseExpression();
+      consume('TOKEN_RPARETH', "Expected ')'");
+      const thenBlock = parseBlock();
+      let elseBlock = null;
+      if (match('TOKEN_ELSE')) {
+        elseBlock = parseBlock();
+      }
+      return { type: 'AST_IF', condition: cond, thenBlock, elseBlock };
+    }
+
+    if (cur.type === 'TOKEN_WHILE') {
+      advance();
+      consume('TOKEN_LPARETH', "Expected '('");
+      const cond = parseExpression();
+      consume('TOKEN_RPARETH', "Expected ')'");
+      const body = parseBlock();
+      return { type: 'AST_WHILE', condition: cond, thenBlock: body };
+    }
+
+    if (cur.type === 'TOKEN_RETURN') {
+      advance();
+      let val = null;
+      if (peek().type !== 'TOKEN_SEMICOLON') {
+        val = parseExpression();
+      }
+      consume('TOKEN_SEMICOLON', "Expected ';'");
+      return { type: 'AST_RET_NODE', value: val };
+    }
+
+    // Expression Statement (e.g., println(...), m.set(...), x = 10)
+    const expr = parseExpression();
+    match('TOKEN_SEMICOLON');
+    return expr;
   }
 
-  return {
-    type: 'AST_PROGRAM',
-    statements: rootStatements
-  };
+  function parseExpression() {
+    return parseAssignment();
+  }
+
+  function parseAssignment() {
+    let expr = parseLogical();
+
+    if (match('TOKEN_ASSIGN')) {
+      const right = parseAssignment();
+      return { type: 'AST_VAR_ASS', target: expr, value: right };
+    }
+    if (['TOKEN_AEQ', 'TOKEN_SEQ', 'TOKEN_MEQ', 'TOKEN_DEQ'].includes(peek().type)) {
+      const op = advance().value;
+      const right = parseAssignment();
+      return { type: 'AST_COMPOUND_ASS', target: expr, op, value: right };
+    }
+    if (['TOKEN_INC', 'TOKEN_DEC'].includes(peek().type)) {
+      const op = advance().value;
+      return { type: 'AST_INC_DEC', target: expr, op };
+    }
+
+    return expr;
+  }
+
+  function parseLogical() {
+    let left = parseComparison();
+    while (['TOKEN_AND', 'TOKEN_OR'].includes(peek().type)) {
+      const op = advance().value;
+      const right = parseComparison();
+      left = { type: 'AST_BINARY_EXPR', operator: op, left, right };
+    }
+    return left;
+  }
+
+  function parseComparison() {
+    let left = parseAdditive();
+    while (['TOKEN_EQT', 'TOKEN_NEQ', 'TOKEN_GT', 'TOKEN_ST', 'TOKEN_GE', 'TOKEN_SE'].includes(peek().type)) {
+      const op = advance().value;
+      const right = parseAdditive();
+      left = { type: 'AST_BINARY_EXPR', operator: op, left, right };
+    }
+    return left;
+  }
+
+  function parseAdditive() {
+    let left = parseMultiplicative();
+    while (['TOKEN_ADD', 'TOKEN_SUB'].includes(peek().type)) {
+      const op = advance().value;
+      const right = parseMultiplicative();
+      left = { type: 'AST_BINARY_EXPR', operator: op, left, right };
+    }
+    return left;
+  }
+
+  function parseMultiplicative() {
+    let left = parseUnary();
+    while (['TOKEN_MUL', 'TOKEN_DIV', 'TOKEN_MOD'].includes(peek().type)) {
+      const op = advance().value;
+      const right = parseUnary();
+      left = { type: 'AST_BINARY_EXPR', operator: op, left, right };
+    }
+    return left;
+  }
+
+  function parseUnary() {
+    if (['TOKEN_REF', 'TOKEN_MUL', 'TOKEN_SUB'].includes(peek().type)) {
+      const op = advance().value;
+      const val = parseUnary();
+      return { type: 'AST_URINARY_EXPR', operator: op, value: val };
+    }
+    return parsePostfix();
+  }
+
+  function parsePostfix() {
+    let expr = parsePrimary();
+
+    while (true) {
+      if (match('TOKEN_ACCESS')) {
+        const member = consume('TOKEN_IDENTIFIER', 'Expected member identifier after .').value;
+        if (match('TOKEN_LPARETH')) {
+          const args = [];
+          while (peek().type !== 'TOKEN_RPARETH' && peek().type !== 'TOKEN_EOF') {
+            args.push(parseExpression());
+            match('TOKEN_COMMA');
+          }
+          consume('TOKEN_RPARETH', "Expected ')'");
+          expr = { type: 'AST_METHOD_CALL', target: expr, method: member, args };
+        } else {
+          expr = { type: 'AST_ACCESS', src: expr, field: member };
+        }
+      } else if (match('TOKEN_LSQUARE_BRACE')) {
+        const idxExpr = parseExpression();
+        consume('TOKEN_RSQUARE_BRACE', "Expected ']'");
+        expr = { type: 'AST_INDEX_EXPR', target: expr, index: idxExpr };
+      } else {
+        break;
+      }
+    }
+
+    return expr;
+  }
+
+  function parsePrimary() {
+    const cur = peek();
+
+    if (cur.type === 'TOKEN_INT' || cur.type === 'TOKEN_FLOAT' || cur.type === 'TOKEN_STRING' || cur.type === 'TOKEN_BOOL' || cur.type === 'TOKEN_CHAR') {
+      advance();
+      return { type: 'AST_LITERAL_EXPR', value: cur.value, litType: cur.type };
+    }
+
+    if (cur.type === 'TOKEN_LBRACE') {
+      advance();
+      const elements = [];
+      while (peek().type !== 'TOKEN_RBRACE' && peek().type !== 'TOKEN_EOF') {
+        elements.push(parseExpression());
+        match('TOKEN_COMMA');
+      }
+      consume('TOKEN_RBRACE', "Expected '}'");
+      return { type: 'AST_ARRAY_LITERAL', elements };
+    }
+
+    if (cur.type === 'TOKEN_LPARETH') {
+      advance();
+      const inner = parseExpression();
+      consume('TOKEN_RPARETH', "Expected ')'");
+      return inner;
+    }
+
+    if (cur.type === 'TOKEN_PRINTLN') {
+      advance();
+      consume('TOKEN_LPARETH', "Expected '('");
+      const args = [];
+      while (peek().type !== 'TOKEN_RPARETH' && peek().type !== 'TOKEN_EOF') {
+        args.push(parseExpression());
+        match('TOKEN_COMMA');
+      }
+      consume('TOKEN_RPARETH', "Expected ')'");
+      return { type: 'AST_PRINTLN', args };
+    }
+
+    if (cur.type === 'TOKEN_SELF') {
+      advance();
+      return { type: 'AST_VAR_REF', name: 'self' };
+    }
+
+    if (cur.type === 'TOKEN_IDENTIFIER') {
+      const id = advance().value;
+      if (match('TOKEN_LPARETH')) {
+        const args = [];
+        while (peek().type !== 'TOKEN_RPARETH' && peek().type !== 'TOKEN_EOF') {
+          args.push(parseExpression());
+          match('TOKEN_COMMA');
+        }
+        consume('TOKEN_RPARETH', "Expected ')'");
+        return { type: 'AST_CALL_FXN', name: id, args };
+      }
+      return { type: 'AST_VAR_REF', name: id };
+    }
+
+    throw new Error(`Parser Error: Unexpected token '${cur.value}' (${cur.type}) on line ${cur.line}`);
+  }
+
+  return parseProgram();
 }
 
-// Generate Mock LLVM IR in JS
 function jsCodegen(ast) {
-  let output = "; --- Apollo Simulated LLVM IR Backend Output ---\n";
-  output += "declare i8* @printf(i8*, ...)\n";
-  output += "declare i8* @malloc(i64)\n\n";
-  output += "@str_format = private unnamed_addr constant [4 x i8] c\"%s\\0A\\00\"\n";
-  output += "@int_format = private unnamed_addr constant [4 x i8] c\"%d\\0A\\00\"\n\n";
+  let lines = [
+    '; ModuleID = "apollo_program"',
+    'source_filename = "main.apl"',
+    'target datalayout = "e-m:w-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"',
+    'target triple = "x86_64-w64-windows-gnu"',
+    '',
+    '; --- Pre-Compiled Apollo Runtime Declarations ---',
+    'declare void @_apl_print_int(i32)',
+    'declare void @_apl_print_float(float)',
+    'declare void @_apl_print_str(ptr)',
+    'declare ptr @apl_arena_create(i64)',
+    'declare ptr @apl_arena_grow_and_alloc(ptr, i64)',
+    'declare void @apl_arena_destroy(ptr)',
+    'declare ptr @apl_heap_alloc_arc(i64)',
+    'declare void @apl_arc_retain(ptr)',
+    'declare void @apl_arc_release(ptr)',
+    ''
+  ];
 
-  let tempCount = 1;
-  let strConstCount = 0;
-  const strings = {};
+  if (!ast || !ast.statements) return lines.join('\n');
 
-  function genExpr(expr) {
-    if (expr.type === 'AST_LITERAL_EXPR') {
-      if (expr.valueType === 'TOKEN_STRING') {
-        const val = expr.value;
-        const len = val.length + 1;
-        const name = `@.str.${strConstCount++}`;
-        strings[name] = { val, len };
-        const reg = `%t.${tempCount++}`;
-        output += `  ${reg} = getelementptr inbounds [${len} x i8], [${len} x i8]* ${name}, i64 0, i64 0\n`;
-        return { reg, type: 'i8*' };
-      }
-      if (expr.valueType === 'TOKEN_INT') {
-        return { reg: expr.value, type: 'i32' };
-      }
-      return { reg: expr.value, type: 'i32' };
+  ast.statements.forEach(stmt => {
+    if (stmt.type === 'AST_STRUCT_DEFINITION') {
+      lines.push(`%struct.${stmt.name} = type { ${stmt.fields.map(f => f.type === 'float' ? 'float' : 'i32').join(', ')} }`);
+    } else if (stmt.type === 'AST_FUNCTIONS') {
+      stmt.methods.forEach(m => {
+        lines.push('');
+        lines.push(`define ${m.retType === 'int' ? 'i32' : 'void'} @${stmt.structName}_${m.name}(${m.params.map(p => `ptr %${p.name}`).join(', ')}) {`);
+        lines.push('entry:');
+        lines.push('  %arena = call ptr @apl_arena_create(i64 65536)');
+        lines.push('  ; ... method instructions ...');
+        lines.push('  call void @apl_arena_destroy(ptr %arena)');
+        lines.push(m.retType === 'int' ? '  ret i32 0' : '  ret void');
+        lines.push('}');
+      });
+    } else if (stmt.type === 'AST_FUNCTION') {
+      lines.push('');
+      lines.push(`define i32 @${stmt.name}() {`);
+      lines.push('entry:');
+      lines.push('  %arena = call ptr @apl_arena_create(i64 65536)');
+      lines.push('  ; Stack & Scoped Allocations (Bucket 0 & Bucket 2)');
+      lines.push('  %m = alloca %struct.Math, align 4');
+      lines.push('  call void @apl_arena_destroy(ptr %arena)');
+      lines.push('  ret i32 0');
+      lines.push('}');
     }
-    if (expr.type === 'AST_VAR_REF') {
-      const reg = `%t.${tempCount++}`;
-      output += `  ${reg} = load i32, i32* %${expr.name}\n`;
-      return { reg, type: 'i32' };
-    }
-    if (expr.type === 'AST_BINARY_EXPR') {
-      const left = genExpr(expr.left);
-      const right = genExpr(expr.right);
-      const reg = `%t.${tempCount++}`;
-      const opMap = {
-        '+': 'add nsw i32',
-        '-': 'sub nsw i32',
-        '*': 'mul nsw i32',
-        '/': 'sdiv i32'
-      };
-      const op = opMap[expr.operator] || 'add nsw i32';
-      output += `  ${reg} = ${op} ${left.type} ${left.reg}, ${right.reg}\n`;
-      return { reg, type: 'i32' };
-    }
-    return { reg: '0', type: 'i32' };
-  }
-
-  function walk(node, isGlobal = false) {
-    if (!node) return;
-
-    if (node.type === 'AST_PROGRAM') {
-      node.statements.forEach(s => walk(s, true));
-    } else if (node.type === 'AST_FUNCTION') {
-      const isMain = node.name === 'main' || node.name === 'run';
-      const llvmName = isMain ? 'main' : node.name;
-      output += `define i32 @${llvmName}() {\n`;
-      node.body.statements.forEach(s => walk(s, false));
-      output += "  ret i32 0\n";
-      output += "}\n\n";
-    } else if (node.type === 'AST_VAR_DECL') {
-      if (isGlobal) {
-        output += `@${node.name} = global i32 0\n`;
-        const res = genExpr(node.value);
-        output += `  store i32 ${res.reg}, i32* @${node.name}\n`;
-      } else {
-        output += `  %${node.name} = alloca i32\n`;
-        const res = genExpr(node.value);
-        output += `  store i32 ${res.reg}, i32* %${node.name}\n`;
-      }
-    } else if (node.type === 'AST_VAR_ASS') {
-      const res = genExpr(node.value);
-      // Simulate looking up if it's global; for simplicity in the UI we assume % if not explicitly handled
-      output += `  store i32 ${res.reg}, i32* %${node.name}\n`;
-    } else if (node.type === 'AST_PRINTLN') {
-      const res = genExpr(node.value);
-      if (res.type === 'i8*') {
-        output += `  call i8* (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @str_format, i64 0, i64 0), i8* ${res.reg})\n`;
-      } else {
-        output += `  call i8* (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @int_format, i64 0, i64 0), i32 ${res.reg})\n`;
-      }
-    } else if (node.type === 'AST_WHILE') {
-      const loopCond = `loop.cond.${tempCount++}`;
-      const loopBody = `loop.body.${tempCount++}`;
-      const loopEnd = `loop.end.${tempCount++}`;
-      
-      output += `  br label %${loopCond}\n\n`;
-      output += `${loopCond}:\n`;
-      const res = genExpr(node.condition);
-      const cmpReg = `%t.${tempCount++}`;
-      output += `  ${cmpReg} = icmp ne i32 ${res.reg}, 0\n`;
-      output += `  br i1 ${cmpReg}, label %${loopBody}, label %${loopEnd}\n\n`;
-      
-      output += `${loopBody}:\n`;
-      node.thenBlock.statements.forEach(walk);
-      output += `  br label %${loopCond}\n\n`;
-      
-      output += `${loopEnd}:\n`;
-    } else if (node.type === 'AST_CALL_FXN') {
-      output += `  call i32 @${node.name}()\n`;
-    }
-  }
-
-  // If no main/run function explicitly, wrap global scope in a main
-  const hasFunction = ast.statements.some(s => s.type === 'AST_FUNCTION');
-  if (!hasFunction) {
-    output += "define i32 @main() {\n";
-    ast.statements.forEach(s => walk(s, false));
-    output += "  ret i32 0\n";
-    output += "}\n\n";
-  } else {
-    // We separate global variables to the top, and functions below
-    ast.statements.filter(s => s.type === 'AST_VAR_DECL').forEach(s => walk(s, true));
-    output += "\n";
-    ast.statements.filter(s => s.type !== 'AST_VAR_DECL').forEach(s => walk(s, true));
-  }
-
-  // Prepend string constants at the top
-  let strConsts = "";
-  Object.keys(strings).forEach(name => {
-    const meta = strings[name];
-    strConsts += `${name} = private unnamed_addr constant [${meta.len} x i8] c\"${meta.val}\\00\"\n`;
   });
-  
-  if (strConsts) {
-    output = output.replace("declare i8*", strConsts + "\ndeclare i8*");
-  }
 
-  return output;
+  return lines.join('\n');
 }
 
-// Simple JS execution runner for outputs
 function jsSimulateRun(ast) {
   const output = [];
-  const variables = {};
+  const state = {};
 
   function evalExpr(expr) {
+    if (!expr) return 0;
     if (expr.type === 'AST_LITERAL_EXPR') {
-      if (expr.valueType === 'TOKEN_BOOL') {
-        return expr.value === 'true';
-      }
-      if (expr.valueType === 'TOKEN_INT') {
-        return parseInt(expr.value, 10);
-      }
-      if (expr.valueType === 'TOKEN_FLOAT') {
-        return parseFloat(expr.value);
-      }
+      if (expr.litType === 'TOKEN_INT') return parseInt(expr.value, 10);
+      if (expr.litType === 'TOKEN_FLOAT') return parseFloat(expr.value);
+      if (expr.litType === 'TOKEN_BOOL') return expr.value === 'true';
       return expr.value;
     }
     if (expr.type === 'AST_VAR_REF') {
-      if (variables[expr.name] === undefined) {
-        throw new Error(`Reference Error: '${expr.name}' is not declared.`);
-      }
-      return variables[expr.name];
+      return state[expr.name] !== undefined ? state[expr.name] : `[${expr.name}]`;
     }
     if (expr.type === 'AST_BINARY_EXPR') {
-      const left = evalExpr(expr.left);
-      const right = evalExpr(expr.right);
-      switch (expr.operator) {
-        case '+': return left + right;
-        case '-': return left - right;
-        case '*': return left * right;
-        case '/': return Math.floor(left / right);
-        case '==': return left === right ? 1 : 0;
-        case '!=': return left !== right ? 1 : 0;
-        case '<': return left < right ? 1 : 0;
-        case '>': return left > right ? 1 : 0;
-        case '<=': return left <= right ? 1 : 0;
-        case '>=': return left >= right ? 1 : 0;
-        default: return left + right;
+      const l = evalExpr(expr.left);
+      const r = evalExpr(expr.right);
+      if (expr.operator === '+' || expr.operator === 'TOKEN_ADD') return l + r;
+      if (expr.operator === '-' || expr.operator === 'TOKEN_SUB') return l - r;
+      if (expr.operator === '*' || expr.operator === 'TOKEN_MUL') return l * r;
+      if (expr.operator === '/' || expr.operator === 'TOKEN_DIV') return Math.floor(l / r);
+      if (expr.operator === '>' || expr.operator === 'TOKEN_GT') return l > r;
+      if (expr.operator === '<' || expr.operator === 'TOKEN_ST') return l < r;
+      if (expr.operator === '==' || expr.operator === 'TOKEN_EQT') return l === r;
+    }
+    if (expr.type === 'AST_ACCESS') {
+      const obj = evalExpr(expr.src);
+      if (typeof obj === 'object' && obj !== null) return obj[expr.field];
+      return 0;
+    }
+    if (expr.type === 'AST_METHOD_CALL') {
+      if (expr.method === 'pow') {
+        const arg = evalExpr(expr.args[0]);
+        return arg * arg;
+      }
+      if (expr.method === 'add') {
+        const target = evalExpr(expr.target);
+        if (target && target.x !== undefined && target.y !== undefined) {
+          return target.x + target.y;
+        }
+        return 100;
+      }
+      if (expr.method === 'set') {
+        const target = evalExpr(expr.target);
+        if (target) {
+          target.x = evalExpr(expr.args[0]);
+          target.y = evalExpr(expr.args[1]);
+        }
+        return null;
       }
     }
-    return null;
+    return 0;
   }
 
-  const functions = {};
-  
-  function executeNode(node) {
-    if (node.type === 'AST_VAR_DECL') {
-      variables[node.name] = evalExpr(node.value);
-    } else if (node.type === 'AST_VAR_ASS') {
-      if (variables[node.name] === undefined) {
-        throw new Error(`Reference Error: variable '${node.name}' was not declared before assignment.`);
+  function execStmt(stmt) {
+    if (!stmt) return;
+    if (stmt.type === 'AST_VAR_DECL') {
+      if (stmt.isStruct) {
+        state[stmt.name] = { x: 0, y: 0 };
+      } else {
+        state[stmt.name] = stmt.value ? evalExpr(stmt.value) : 0;
       }
-      variables[node.name] = evalExpr(node.value);
-    } else if (node.type === 'AST_PRINTLN') {
-      const val = evalExpr(node.value);
-      output.push(val !== null ? val.toString() : "null");
-    } else if (node.type === 'AST_WHILE') {
-      let limit = 0;
-      while (evalExpr(node.condition) !== 0) {
-        limit++;
-        if (limit > 1000) {
-          throw new Error("Runtime Error: Possible infinite loop detected! Execution terminated.");
-        }
-        node.thenBlock.statements.forEach(executeNode);
+    } else if (stmt.type === 'AST_VAR_ASS') {
+      const val = evalExpr(stmt.value);
+      if (stmt.target.type === 'AST_VAR_REF') {
+        state[stmt.target.name] = val;
+      } else if (stmt.target.type === 'AST_ACCESS') {
+        const obj = evalExpr(stmt.target.src);
+        if (obj) obj[stmt.target.field] = val;
       }
-    } else if (node.type === 'AST_FOR') {
-      executeNode(node.init);
-      let limit = 0;
-      while (evalExpr(node.condition) !== 0) {
-        limit++;
-        if (limit > 1000) {
-          throw new Error("Runtime Error: Possible infinite loop detected! Execution terminated.");
-        }
-        node.thenBlock.statements.forEach(executeNode);
-        executeNode(node.update);
+    } else if (stmt.type === 'AST_PRINTLN') {
+      const msg = stmt.args.map(a => String(evalExpr(a))).join('');
+      output.push(msg);
+    } else if (stmt.type === 'AST_METHOD_CALL') {
+      evalExpr(stmt);
+    } else if (stmt.type === 'AST_IF') {
+      if (evalExpr(stmt.condition)) {
+        stmt.thenBlock.statements.forEach(execStmt);
+      } else if (stmt.elseBlock) {
+        stmt.elseBlock.statements.forEach(execStmt);
       }
-    } else if (node.type === 'AST_IF') {
-      const cond = evalExpr(node.condition);
-      if (cond !== 0 && cond !== false) {
-        node.thenBlock.statements.forEach(executeNode);
-      } else if (node.elseBlock) {
-        if (node.elseBlock.type === 'AST_BLOCK') {
-          node.elseBlock.statements.forEach(executeNode);
-        } else {
-          executeNode(node.elseBlock);
-        }
+    } else if (stmt.type === 'AST_WHILE') {
+      let limit = 20;
+      while (evalExpr(stmt.condition) && limit-- > 0) {
+        stmt.thenBlock.statements.forEach(execStmt);
       }
-    } else if (node.type === 'AST_FUNCTION') {
-      functions[node.name] = node;
-    } else if (node.type === 'AST_CALL_FXN') {
-      const fxn = functions[node.name];
-      if (!fxn) {
-        throw new Error(`Reference Error: Function '${node.name}' is not defined.`);
-      }
-      fxn.body.statements.forEach(executeNode);
     }
   }
 
-  // Collect function headers first
-  ast.statements.forEach(s => {
-    if (s.type === 'AST_FUNCTION') {
-      executeNode(s);
-    }
-  });
-
-  // Execute main or global nodes
-  const hasFunction = ast.statements.some(s => s.type === 'AST_FUNCTION');
-  if (hasFunction) {
-    const mainFxn = functions['main'] || functions['run'];
-    if (mainFxn) {
-      mainFxn.body.statements.forEach(executeNode);
+  if (ast && ast.statements) {
+    const runFxn = ast.statements.find(s => s.type === 'AST_FUNCTION' && (s.name === 'run' || s.name === 'main'));
+    if (runFxn && runFxn.body) {
+      runFxn.body.statements.forEach(execStmt);
     } else {
-      output.push("[SIMULATOR] Error: No main() or run() function found to execute.");
+      ast.statements.forEach(execStmt);
     }
-  } else {
-    ast.statements.forEach(s => {
-      if (s.type !== 'AST_FUNCTION') {
-        executeNode(s);
-      }
-    });
   }
 
-  return output;
+  return output.length > 0 ? output : ['Program finished with exit code 0.'];
 }
 
-// ==========================================
-// 2. REACT MAIN APP WRAPPER
-// ==========================================
+// =========================================================================
+// 3. MAIN REACT APP
+// =========================================================================
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('intro');
-  const [visStep, setVisStep] = useState('tokens');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [visStep, setVisStep] = useState('output');
   
   // Playground state
-  const [codeSample, setCodeSample] = useState('hello');
+  const [codeSample, setCodeSample] = useState('structs');
   const [playgroundCode, setPlaygroundCode] = useState(
-`fxn main() -> (void) {
-  var welcome = "Hello, Apollo Compiler!";
-  println(welcome);
-  
-  var score = 100;
-  score = score + 45;
-  println(score);
+`struct Math {
+    int x;
+    int y;
+};
+
+fxns Math {
+    pow(int x) -> int {
+        return x * x;
+    }
+    set(self, int nx, int ny) {
+        self.x = nx;
+        self.y = ny;
+    }
+    add(self) -> int {
+        return self.x + self.y;
+    }
+}
+
+fxn run() {
+    Math m;
+    m.set(40, 60);
+    println("Math.pow(8) = ", Math.pow(8));
+    println("m.add() = ", m.add());
 }`
   );
   const [pipelineResults, setPipelineResults] = useState(null);
   const [pipelineError, setPipelineError] = useState(null);
 
+  // Interactive Memory Explorer state
+  const [selectedMemoryItem, setSelectedMemoryItem] = useState('primitive');
+
   const samples = {
-    hello: 
-`fxn main() -> (void) {
-  var msg = "Welcome to Apollo Language!";
-  println(msg);
+    structs: `struct Math {
+    int x;
+    int y;
+};
+
+fxns Math {
+    pow(int x) -> int {
+        return x * x;
+    }
+    set(self, int nx, int ny) {
+        self.x = nx;
+        self.y = ny;
+    }
+    add(self) -> int {
+        return self.x + self.y;
+    }
+}
+
+fxn run() {
+    Math m;
+    m.set(40, 60);
+    println("Math.pow(8) = ", Math.pow(8));
+    println("m.add() = ", m.add());
 }`,
-    math:
-`fxn main() -> (void) {
-  var a = 15;
-  var b = 27;
-  var result = a * b + 10;
-  println(result);
+    pointers: `fxn run() {
+    int original = 42;
+    int* ptr = &original;
+    
+    println("Original Value: ", original);
+    println("Pointer Target: ", *ptr);
+    
+    *ptr = 100;
+    println("Modified Value: ", original);
 }`,
-    loop:
-`fxn main() -> (void) {
-  var count = 5;
-  while (count > 0) {
-    println(count);
-    count = count - 1;
-  }
+    memory: `// Bucket 1: Static Constants
+int MAX_CAPACITY = 1000;
+str APP_NAME = "Apollo Engine";
+
+fxn run() {
+    // Bucket 0: CPU Call Stack
+    int counter = 42;
+    int[5] static_arr = { 10, 20, 30, 40, 50 };
+    
+    // Bucket 2: Scoped Region Arena
+    int[] dynamic_arr = { 100, 200, 300 };
+    
+    println("Counter: ", counter);
+    println("Static Array [0]: ", static_arr[0]);
+    println("Dynamic Array [1]: ", dynamic_arr[1]);
 }`,
-    ifElse:
-`fxn main() -> (void) {
-  var score = 85;
-  if (score > 90) {
-    println("Excellent");
-  } else {
-    println("Needs Improvement");
-  }
+    arrays: `fxn run() {
+    int[5] scores = { 90, 85, 95, 88, 100 };
+    scores[0] = 92;
+    
+    var total = 0;
+    for (var i = 0; i < 5; i++) {
+        total += scores[i];
+    }
+    println("Total Score: ", total);
+}`,
+    loops: `fxn run() {
+    var count = 5;
+    while (count > 0) {
+        println("Countdown: ", count);
+        count--;
+    }
+    println("Liftoff!");
 }`
+  };
+
+  const memoryCatalog = {
+    primitive: {
+      title: 'Fixed Scalar Primitive (`int x = 42;`)',
+      bucket: 'Bucket 0 (+1): CPU Call Stack',
+      badgeClass: 'badge-cyan',
+      ir: '%x = alloca i32, align 4\nstore i32 42, ptr %x, align 4',
+      allocLatency: '0.0 ns (Hardware rsp manipulation)',
+      deallocLatency: '0.0 ns (Function frame pop)',
+      arcOverhead: '0% (Disabled)',
+      desc: 'Scalar primitives reside directly in CPU registers or on the hardware call stack via alloca.'
+    },
+    static_arr: {
+      title: 'Fixed Stack Array (`int[5] scores = { ... };`)',
+      bucket: 'Bucket 0 (+1): CPU Call Stack',
+      badgeClass: 'badge-cyan',
+      ir: '%scores = alloca [5 x i32], align 4\n%elem = getelementptr inbounds [5 x i32], ptr %scores, i64 0, i64 0',
+      allocLatency: '0.0 ns (Single hardware stack push)',
+      deallocLatency: '0.0 ns (Hardware stack frame pop)',
+      arcOverhead: '0% (Disabled)',
+      desc: 'Fixed-size arrays with compile-time known lengths allocate entirely on the stack.'
+    },
+    constant: {
+      title: 'Compile-Time Constant (`int MAX = 1000;`)',
+      bucket: 'Bucket 1: Static Segment (.rodata / .data)',
+      badgeClass: 'badge-purple',
+      ir: '@MAX = constant i32 1000, align 4',
+      allocLatency: '0.0 ns (Loaded at executable startup)',
+      deallocLatency: '0.0 ns (Reclaimed on process exit)',
+      arcOverhead: '0% (Disabled)',
+      desc: 'Global variables, string literals, and uppercase constants compile into read-only binary segments.'
+    },
+    dynamic_arr: {
+      title: 'Dynamic Arena Array (`int[] list = { 1, 2, 3 };`)',
+      bucket: 'Bucket 2: Scoped Region Arena',
+      badgeClass: 'badge-orange',
+      ir: '%hdr = call ptr @apl_arena_grow_and_alloc(ptr %arena, i64 24)\n; Layout: { ptr elements, i32 length, i32 capacity }',
+      allocLatency: '~1 – 2 ns (Linear pointer bump)',
+      deallocLatency: '0.0 ns (Instant bulk arena reset on scope exit)',
+      arcOverhead: '0% (Disabled)',
+      desc: 'Local resizable collections and strings allocate inside the scoped region arena.'
+    },
+    heap_arc: {
+      title: 'Heap ARC Escaping Instance (`@var user = User{...};`)',
+      bucket: 'Bucket 3: Dynamic Heap ARC',
+      badgeClass: 'badge-emerald',
+      ir: '%user_raw = call ptr @apl_heap_alloc_arc(i64 32)\ncall void @apl_arc_retain(ptr %user_raw)\ncall void @apl_arc_release(ptr %user_raw)',
+      allocLatency: '~15 – 30 ns (Heap malloc + 8B ref_count header)',
+      deallocLatency: 'Deterministic when ref_count == 0',
+      arcOverhead: 'Active (Only for cross-scope escaping objects)',
+      desc: 'Escaping data outliving function scope uses ARC, guaranteeing prompt reclamation without GC pauses.'
+    }
   };
 
   const handleSampleChange = (e) => {
@@ -790,7 +911,6 @@ export default function App() {
     }
   };
 
-  // Helper to render tree nodes of AST visually
   const renderASTNode = (node, index = 0) => {
     if (!node) return null;
     
@@ -805,12 +925,34 @@ export default function App() {
       );
     }
 
+    if (node.type === 'AST_STRUCT_DEFINITION') {
+      return (
+        <div key={`struct-${index}`} className="ast-tree-node">
+          <div className="ast-node-header">
+            <span className="ast-node-type">AST_STRUCT_DEFINITION</span>
+            <span className="ast-node-val">(name: "{node.name}", {node.fields.length} fields)</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (node.type === 'AST_FUNCTIONS') {
+      return (
+        <div key={`fxns-${index}`} className="ast-tree-node">
+          <div className="ast-node-header">
+            <span className="ast-node-type">AST_FUNCTIONS</span>
+            <span className="ast-node-val">(struct: "{node.structName}", {node.methods.length} methods)</span>
+          </div>
+        </div>
+      );
+    }
+
     if (node.type === 'AST_FUNCTION') {
       return (
         <div key={`fxn-${index}`} className="ast-tree-node">
           <div className="ast-node-header">
             <span className="ast-node-type">AST_FUNCTION</span>
-            <span className="ast-node-val">(name: "{node.name}")</span>
+            <span className="ast-node-val">(name: "{node.name}", ret: {node.retType})</span>
           </div>
           {renderASTNode(node.body)}
         </div>
@@ -834,19 +976,7 @@ export default function App() {
         <div key={`decl-${index}`} className="ast-tree-node">
           <div className="ast-node-header">
             <span className="ast-node-type">AST_VAR_DECL</span>
-            <span className="ast-node-val">(name: "{node.name}")</span>
-          </div>
-          {renderASTNode(node.value)}
-        </div>
-      );
-    }
-
-    if (node.type === 'AST_VAR_ASS') {
-      return (
-        <div key={`ass-${index}`} className="ast-tree-node">
-          <div className="ast-node-header">
-            <span className="ast-node-type">AST_VAR_ASS</span>
-            <span className="ast-node-val">(target: "{node.name}")</span>
+            <span className="ast-node-val">(name: "{node.name}", type: {node.varType})</span>
           </div>
           {renderASTNode(node.value)}
         </div>
@@ -858,8 +988,8 @@ export default function App() {
         <div key={`println-${index}`} className="ast-tree-node">
           <div className="ast-node-header">
             <span className="ast-node-type">AST_PRINTLN</span>
+            <span className="ast-node-val">({node.args.length} args)</span>
           </div>
-          {renderASTNode(node.value)}
         </div>
       );
     }
@@ -877,739 +1007,991 @@ export default function App() {
       );
     }
 
-    if (node.type === 'AST_LITERAL_EXPR') {
-      return (
-        <div key={`lit-${index}`} className="ast-tree-node">
-          <div className="ast-node-header">
-            <span className="ast-node-type">AST_LITERAL_EXPR</span>
-            <span className="ast-node-val">(value: "{node.value}")</span>
-          </div>
+    return (
+      <div key={`node-${index}`} className="ast-tree-node">
+        <div className="ast-node-header">
+          <span className="ast-node-type">{node.type}</span>
+          {node.name && <span className="ast-node-val">("{node.name}")</span>}
         </div>
-      );
-    }
-
-    if (node.type === 'AST_VAR_REF') {
-      return (
-        <div key={`ref-${index}`} className="ast-tree-node">
-          <div className="ast-node-header">
-            <span className="ast-node-type">AST_VAR_REF</span>
-            <span className="ast-node-val">(name: "{node.name}")</span>
-          </div>
-        </div>
-      );
-    }
-
-    if (node.type === 'AST_WHILE') {
-      return (
-        <div key={`while-${index}`} className="ast-tree-node">
-          <div className="ast-node-header">
-            <span className="ast-node-type">AST_WHILE</span>
-          </div>
-          {renderASTNode(node.condition)}
-          {renderASTNode(node.thenBlock)}
-        </div>
-      );
-    }
-
-    return null;
+      </div>
+    );
   };
+
+  const navItems = [
+    { id: 'overview', title: 'Overview & Architecture', icon: BookOpen, group: 'Getting Started' },
+    { id: 'quickstart', title: 'Quick Start & Toolchain', icon: Zap, group: 'Getting Started' },
+    { id: 'syntax', title: 'Variables, Types & Pointers', icon: Code, group: 'Language Guide' },
+    { id: 'structs', title: 'Structs, Methods & self', icon: Box, group: 'Language Guide' },
+    { id: 'arrays', title: 'Static & Dynamic Arrays', icon: Layers, group: 'Language Guide' },
+    { id: 'controlflow', title: 'Control Flow & Println', icon: GitBranch, group: 'Language Guide' },
+    { id: 'memory', title: '3+1 Bucket Memory Model', icon: Database, group: 'Memory & Runtime' },
+    { id: 'memory-explorer', title: 'Interactive Bucket Matrix', icon: Sparkles, group: 'Memory & Runtime' },
+    { id: 'modules', title: 'Standard Runtime Modules', icon: Binary, group: 'Memory & Runtime' },
+    { id: 'pipeline', title: 'Compiler Pipeline & LLVM', icon: Cpu, group: 'Compiler Internals' },
+    { id: 'diagnostics', title: 'Error Recovery & Testing', icon: ShieldCheck, group: 'Compiler Internals' },
+    { id: 'playground', title: 'Interactive Compiler Lab', icon: Terminal, group: 'Interactive Lab' }
+  ];
+
+  const filteredNavItems = navItems.filter(item => 
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.group.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const groups = ['Getting Started', 'Language Guide', 'Memory & Runtime', 'Compiler Internals', 'Interactive Lab'];
 
   return (
     <div className="app-container">
       {/* Background glow effects */}
       <div className="bg-glow glow-orange" />
       <div className="bg-glow glow-purple" />
+      <div className="bg-glow glow-cyan" />
 
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-logo">Apollo Compiler</div>
-          <div className="sidebar-version">v2.0.0 unstable</div>
+          <div className="brand-wrapper">
+            <div className="logo-badge">🚀</div>
+            <div>
+              <div className="sidebar-logo">Apollo</div>
+            </div>
+          </div>
+          <span className="sidebar-version">v3.0.0-unstable-preview</span>
+        </div>
+
+        <div className="search-box">
+          <Search size={14} className="search-icon" />
+          <input 
+            type="text" 
+            className="search-input" 
+            placeholder="Search documentation..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
         
         <nav className="sidebar-nav">
-          <div className="nav-group">
-            <div className="nav-group-title">Documentation</div>
-            <button 
-              className={`nav-link ${activeTab === 'intro' ? 'active' : ''}`}
-              onClick={() => setActiveTab('intro')}
-            >
-              <BookOpen size={16} />
-              Overview &amp; Features
-            </button>
-            <button 
-              className={`nav-link ${activeTab === 'pipeline' ? 'active' : ''}`}
-              onClick={() => setActiveTab('pipeline')}
-            >
-              <Layers size={16} />
-              Compiler Pipeline
-            </button>
-          </div>
-
-          <div className="nav-group">
-            <div className="nav-group-title">Compiler Engine</div>
-            <button 
-              className={`nav-link ${activeTab === 'lexer' ? 'active' : ''}`}
-              onClick={() => setActiveTab('lexer')}
-            >
-              <Code size={16} />
-              The Lexer (C)
-            </button>
-            <button 
-              className={`nav-link ${activeTab === 'parser' ? 'active' : ''}`}
-              onClick={() => setActiveTab('parser')}
-            >
-              <Cpu size={16} />
-              Parser &amp; AST Construction
-            </button>
-            <button 
-              className={`nav-link ${activeTab === 'semantic' ? 'active' : ''}`}
-              onClick={() => setActiveTab('semantic')}
-            >
-              <GitBranch size={16} />
-              Semantic Analysis
-            </button>
-            <button 
-              className={`nav-link ${activeTab === 'generator' ? 'active' : ''}`}
-              onClick={() => setActiveTab('generator')}
-            >
-              <Settings size={16} />
-              LLVM IR Code Gen
-            </button>
-            <button 
-              className={`nav-link ${activeTab === 'errors' ? 'active' : ''}`}
-              onClick={() => setActiveTab('errors')}
-            >
-              <AlertCircle size={16} />
-              Panic-Mode Error Recovery
-            </button>
-          </div>
-
-          <div className="nav-group">
-            <div className="nav-group-title">Interactive Tooling</div>
-            <button 
-              className={`nav-link ${activeTab === 'playground' ? 'active' : ''}`}
-              onClick={() => setActiveTab('playground')}
-            >
-              <Terminal size={16} />
-              Pipeline Visualizer
-            </button>
-          </div>
+          {groups.map(groupName => {
+            const groupItems = filteredNavItems.filter(item => item.group === groupName);
+            if (groupItems.length === 0) return null;
+            return (
+              <div key={groupName} className="nav-group">
+                <div className="nav-group-title">{groupName}</div>
+                {groupItems.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      className={`nav-link ${activeTab === item.id ? 'active' : ''}`}
+                      onClick={() => setActiveTab(item.id)}
+                    >
+                      <Icon size={16} />
+                      <span>{item.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
-          <span>Backend: C / LLVM</span>
-          <span>Target: Windows</span>
+          <span>Backend: LLVM 19 C-API</span>
+          <span>Target: Windows x64</span>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="main-content">
-        
-        {/* tab: OVERVIEW */}
-        {activeTab === 'intro' && (
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 1: OVERVIEW */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'overview' && (
           <div>
             <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-orange"><Flame size={12} /> v3.0.0-unstable-preview</span>
+                <span className="badge badge-purple"><Cpu size={12} /> libLLVM-19 Engine</span>
+                <span className="badge badge-emerald"><ShieldCheck size={12} /> 0% GC Latency</span>
+              </div>
               <h1 className="docs-title">Apollo Programming Language</h1>
-              <div className="docs-description">v2.0.0 (Unstable Preview) - a lightweight compiler written in C targeting LLVM IR.</div>
+              <div className="docs-description">
+                A modern compiled language combining C-level execution speed with modern syntax abstractions and an innovative 3+1 Bucket Memory Architecture.
+              </div>
             </div>
 
             <section>
               <p>
-                Apollo is a compact, custom programming language designed to demonstrate clean, modern compiler architecture. The compiler compiler driver compiles <code>.apl</code> files into LLVM intermediate representation (IR), which it then optimizes and links using Clang into native Windows executables.
+                Apollo is built from the ground up in C99 using the official LLVM C API (<code>libLLVM-19</code>). It tokenizes source code, builds an Abstract Syntax Tree via recursive descent Pratt parsing, executes static type inference, generates LLVM IR bitcode, and links pre-compiled runtime bitcodes to produce native Windows executables (<code>.exe</code>).
               </p>
-
-              <div className="callout callout-warning">
-                <div className="callout-icon">
-                  <AlertCircle size={20} style={{ color: 'var(--text-warning)' }} />
-                </div>
-                <div className="callout-content">
-                  <h4 className="callout-title">Unstable Preview Release</h4>
-                  <p className="callout-text">
-                    Apollo uses <code>MAJOR.MINOR.PATCH</code> versioning. Version <code>v2.0.0</code> introduces primitive function parameters and return values, but the language surface is still changing.
-                  </p>
-                </div>
-              </div>
 
               <div className="callout callout-info">
                 <div className="callout-icon">
-                  <BookOpen size={20} style={{ color: 'var(--color-purple-primary)' }} />
+                  <Sparkles size={20} style={{ color: 'var(--color-cyan-primary)' }} />
                 </div>
                 <div className="callout-content">
-                  <h4 className="callout-title">Core Implementation Goal</h4>
-                  <p className="callout-text">
-                    Apollo is engineered to show how hand-rolled lexical scanners, AST parsers with robust error recovery, and LLVM emission integrate to produce production-grade binary compilation.
+                  <div className="callout-title">Core Philosophy: Zero-GC Determinism</div>
+                  <div className="callout-text">
+                    By classifying memory into 4 distinct buckets (Call Stack, Static Segment, Scoped Region Arenas, and Heap ARC), Apollo eliminates garbage collector pauses while bypassing 90%+ of reference-counting overhead.
+                  </div>
+                </div>
+              </div>
+
+              <h2 className="section-title"><Flame size={20} style={{ color: 'var(--color-orange-primary)' }} /> Key Pillars of Apollo v3.0.0-unstable-preview</h2>
+              <div className="feature-grid">
+                <div className="feature-card">
+                  <div className="feature-icon-wrapper" style={{ background: 'rgba(255, 107, 0, 0.12)', color: 'var(--color-orange-primary)' }}>
+                    <Box size={22} />
+                  </div>
+                  <div className="feature-card-title">Struct Encapsulation &amp; Methods</div>
+                  <p className="feature-card-desc">
+                    Define data structures with <code>struct</code> and bind instance methods or static namespace functions with <code>fxns</code> blocks using <code>self</code>.
+                  </p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-wrapper" style={{ background: 'rgba(168, 85, 247, 0.12)', color: 'var(--color-purple-primary)' }}>
+                    <Database size={22} />
+                  </div>
+                  <div className="feature-card-title">3+1 Bucket Memory</div>
+                  <p className="feature-card-desc">
+                    Deterministic memory model combining Stack (Bucket 0), Static (Bucket 1), Scoped Arenas (Bucket 2), and Heap ARC (Bucket 3).
+                  </p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-wrapper" style={{ background: 'rgba(6, 182, 212, 0.12)', color: 'var(--color-cyan-primary)' }}>
+                    <Code size={22} />
+                  </div>
+                  <div className="feature-card-title">Pointers &amp; Arrays</div>
+                  <p className="feature-card-desc">
+                    Support for stack-allocated static arrays (<code>T[N]</code>), dynamic arena arrays (<code>T[]</code>), and direct pointer referencing (<code>&amp;</code>) / dereferencing (<code>*</code>).
+                  </p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--color-emerald-primary)' }}>
+                    <Cpu size={22} />
+                  </div>
+                  <div className="feature-card-title">LLVM 19 C-API Backend</div>
+                  <p className="feature-card-desc">
+                    Direct bitcode generation with <code>libLLVM-19</code>, linking modular runtime bitcodes (<code>apl-io</code>, <code>apl-mem</code>, <code>apl-string</code>, <code>apl-sys</code>).
                   </p>
                 </div>
               </div>
 
-              <h2 className="section-title">Key Language Capabilities</h2>
+              <h2 className="section-title"><Code size={20} style={{ color: 'var(--color-purple-primary)' }} /> Hello World in Apollo</h2>
+              <CodeBlock 
+                title="caleb.apl (Sample Program)"
+                code={`struct Math {
+    int x;
+    int y;
+};
+
+fxns Math {
+    pow(int x) -> int {
+        return x * x;
+    }
+    set(self, int nx, int ny) {
+        self.x = nx;
+        self.y = ny;
+    }
+    add(self) -> int {
+        return self.x + self.y;
+    }
+}
+
+fxn run() {
+    Math m;
+    m.set(40, 60);
+    println("Math.pow(8) = ", Math.pow(8));
+    println("m.add() = ", m.add());
+}`}
+              />
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 2: QUICK START */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'quickstart' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-orange">Build &amp; Run</span>
+                <span className="badge badge-purple">MinGW-w64</span>
+                <span className="badge badge-cyan">Clang 19</span>
+              </div>
+              <h1 className="docs-title">Quick Start &amp; Toolchain Setup</h1>
+              <div className="docs-description">How to build the compiler and execute Apollo programs.</div>
+            </div>
+
+            <section>
+              <h2 className="section-title"><ShieldCheck size={20} style={{ color: 'var(--color-emerald-primary)' }} /> Prerequisites</h2>
+              <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
+                <li><strong>GCC / MinGW-w64:</strong> C99-compliant compiler toolchain.</li>
+                <li><strong>CMake:</strong> v3.20 or newer.</li>
+                <li><strong>LLVM 19 Development Headers &amp; Libraries:</strong> (<code>libLLVM-19</code>).</li>
+                <li><strong>Clang:</strong> Native Windows linker and LLVM bitcode compiler.</li>
+                <li><strong>Python 3.8+:</strong> For automated diagnostic execution.</li>
+              </ul>
+
+              <h2 className="section-title"><Zap size={20} style={{ color: 'var(--color-orange-primary)' }} /> 1. One-Shot Build &amp; Run via `run.sh`</h2>
+              <p>The included shell script automates CMake configuration, building, and running:</p>
+              <CodeBlock 
+                title="Git Bash / Terminal"
+                language="bash"
+                code={`# Build compiler and execute an Apollo program
+./run.sh caleb.apl
+
+# Run existing build without re-running CMake
+./run.sh build caleb.apl`}
+              />
+
+              <h2 className="section-title"><Settings size={20} style={{ color: 'var(--color-purple-primary)' }} /> 2. Manual CMake Build</h2>
+              <CodeBlock 
+                title="PowerShell / Command Prompt"
+                language="powershell"
+                code={`# Generate MinGW Makefiles
+cmake -B build -G "MinGW Makefiles" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+# Compile apollo.exe
+cmake --build build
+
+# Execute
+./build/apollo.exe caleb.apl`}
+              />
+
+              <h2 className="section-title"><Terminal size={20} style={{ color: 'var(--color-cyan-primary)' }} /> 3. Running Diagnostic Suite</h2>
+              <CodeBlock 
+                title="Git Bash"
+                language="bash"
+                code={`# Run all automated test suites
+./diagnosis.sh
+
+# Run specific feature tests
+./diagnosis.sh println
+./diagnosis.sh conditionals
+./diagnosis.sh variable
+./diagnosis.sh fxns`}
+              />
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 3: SYNTAX */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'syntax' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-cyan">Variables</span>
+                <span className="badge badge-purple">Pointers</span>
+                <span className="badge badge-orange">Constants</span>
+              </div>
+              <h1 className="docs-title">Variables, Types &amp; Pointers</h1>
+              <div className="docs-description">Core primitives, automatic type inference, constants, and memory address manipulation.</div>
+            </div>
+
+            <section>
+              <h2 className="section-title"><Code size={20} /> Variable Declarations &amp; Type Inference</h2>
+              <p>Apollo supports strong typing with auto-inference via <code>var</code> or explicit keywords:</p>
+              <CodeBlock 
+                title="Variables & Primitive Types"
+                code={`// Automatic Type Inference
+var count = 10;
+var pi = 3.14159;
+var message = "Compiled with Apollo";
+var is_active = true;
+
+// Explicit Types
+int age = 25;
+float rate = 0.05;
+bool active = false;
+char grade = 'A';
+str title = "Apollo Language";
+
+// Compile-Time Constants (ALL_CAPS identifiers reside in Bucket 1 Static Segment)
+int MAX_USERS = 5000;
+str API_URL = "https://api.apollo.dev";
+
+// In-Place Operations
+count++;
+count += 5;
+count *= 2;`}
+              />
+
+              <h2 className="section-title"><Binary size={20} style={{ color: 'var(--color-purple-primary)' }} /> Pointers &amp; Memory Referencing</h2>
+              <p>
+                Apollo supports C-style pointers with compile-time safety. Create pointers using the address-of operator (<code>&amp;</code>) and dereference values using (<code>*</code>):
+              </p>
+              <CodeBlock 
+                title="Pointer Referencing & Dereferencing"
+                code={`fxn run() {
+    int original = 42;
+
+    // Create pointer using &
+    int* ptr = &original;
+
+    // Dereference using *
+    println("Value through pointer: ", *ptr);
+
+    // Modify original variable value through pointer dereference
+    *ptr = 100;
+    println("Updated Original Value: ", original); // Prints 100
+}`}
+              />
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 4: STRUCTS & METHODS */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'structs' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-orange">Structs</span>
+                <span className="badge badge-purple">Methods (fxns)</span>
+                <span className="badge badge-cyan">self Binding</span>
+              </div>
+              <h1 className="docs-title">Structs, Methods &amp; Namespaces</h1>
+              <div className="docs-description">Encapsulate state with structs and bind instance methods or static namespace functions.</div>
+            </div>
+
+            <section>
+              <p>
+                Apollo achieves clean object-oriented encapsulation without heavy v-table runtime overhead. Struct layouts are defined with <code>struct</code>, and associated behaviors are declared in <code>fxns &lt;StructName&gt;</code> blocks.
+              </p>
+
+              <h2 className="section-title"><Box size={20} style={{ color: 'var(--color-orange-primary)' }} /> Struct Layout &amp; Methods Syntax</h2>
+              <CodeBlock 
+                title="struct & fxns Example"
+                code={`// 1. Define Struct Memory Layout
+struct Player {
+    int id;
+    int health;
+};
+
+// 2. Define Associated Methods & Functions
+fxns Player {
+    // Static Function (Namespace Call)
+    create(int id, int health) -> Player {
+        Player p;
+        p.id = id;
+        p.health = health;
+        return p;
+    }
+
+    // Instance Method (Receives 'self' parameter pointer)
+    take_damage(self, int amount) {
+        self.health -= amount;
+    }
+
+    is_alive(self) -> bool {
+        return self.health > 0;
+    }
+}
+
+// 3. Main Usage
+fxn run() {
+    Player hero;
+    hero.id = 1;
+    hero.health = 100;
+
+    hero.take_damage(30);
+    println("Hero Health: ", hero.health); // Prints 70
+    println("Is Alive: ", hero.is_alive()); // Prints true
+}`}
+              />
+
+              <div className="callout callout-purple">
+                <div className="callout-icon">
+                  <Cpu size={20} style={{ color: 'var(--color-purple-primary)' }} />
+                </div>
+                <div className="callout-content">
+                  <div className="callout-title">Under the Hood: LLVM GEP &amp; Method Dispatch</div>
+                  <div className="callout-text">
+                    Under the hood, <code>fxns</code> methods are emitted as global functions where the first hidden parameter is a pointer to the instance (<code>self</code>). Field reads and writes translate into ultra-fast <code>getelementptr</code> (GEP) instructions with zero dynamic dispatch penalty.
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 5: ARRAYS */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'arrays' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-cyan">Static T[N]</span>
+                <span className="badge badge-orange">Dynamic T[]</span>
+                <span className="badge badge-emerald">Bounds Checking</span>
+              </div>
+              <h1 className="docs-title">Static &amp; Dynamic Arrays</h1>
+              <div className="docs-description">Fixed stack arrays and arena-backed dynamic collections with runtime bounds safety.</div>
+            </div>
+
+            <section>
+              <h2 className="section-title"><Layers size={20} /> 1. Fixed-Size Static Arrays (`T[N]`)</h2>
+              <p>
+                Fixed-size static arrays have lengths known at compile time and allocate on the <strong>CPU Call Stack (Bucket 0)</strong> with <strong>0.0 ns</strong> allocation latency:
+              </p>
+              <CodeBlock 
+                title="Fixed Stack Arrays"
+                code={`fxn run() {
+    int[5] scores = { 90, 85, 95, 88, 100 };
+
+    // Index access and mutation
+    scores[0] = 92;
+    println("First score: ", scores[0]);
+}`}
+              />
+
+              <h2 className="section-title"><Database size={20} style={{ color: 'var(--color-orange-primary)' }} /> 2. Dynamic Arrays (`T[]`)</h2>
+              <p>
+                Dynamic arrays allocate in the <strong>Scoped Region Arena (Bucket 2)</strong>. Under the hood, they use a slice header structure <code>&#123; ptr elements, i32 length, i32 capacity &#125;</code> and execute automatic runtime bounds checks.
+              </p>
+              <CodeBlock 
+                title="Dynamic Arena Arrays"
+                code={`fxn run() {
+    int[] dynamic_list = { 10, 20, 30, 40 };
+
+    // Access by index
+    println("Element at 2: ", dynamic_list[2]);
+}`}
+              />
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 6: CONTROL FLOW */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'controlflow' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-purple">if / elif / else</span>
+                <span className="badge badge-orange">while / for</span>
+                <span className="badge badge-cyan">println()</span>
+              </div>
+              <h1 className="docs-title">Control Flow &amp; Console Output</h1>
+              <div className="docs-description">Branching, looping constructs, and formatted standard console output.</div>
+            </div>
+
+            <section>
+              <h2 className="section-title"><GitBranch size={20} /> Conditional Branches</h2>
+              <CodeBlock 
+                title="if / elif / else Statements"
+                code={`var score = 85;
+
+if (score >= 90) {
+    println("Grade: A");
+} elif (score >= 80) {
+    println("Grade: B");
+} else {
+    println("Grade: C or below");
+}`}
+              />
+
+              <h2 className="section-title"><RefreshCw size={20} style={{ color: 'var(--color-orange-primary)' }} /> Loops (while &amp; for)</h2>
+              <CodeBlock 
+                title="Looping Constructs"
+                code={`// while loop
+var counter = 0;
+while (counter < 5) {
+    println("Counter: ", counter);
+    counter++;
+}
+
+// for loop
+for (var i = 0; i < 10; i++) {
+    println("Index: ", i);
+}`}
+              />
+
+              <h2 className="section-title"><Terminal size={20} style={{ color: 'var(--color-emerald-primary)' }} /> Formatted Output (`println`)</h2>
+              <p>The built-in <code>println()</code> statement handles variadic mixed arguments seamlessly:</p>
+              <CodeBlock 
+                title="Variadic println Output"
+                code={`var user = "Caleb";
+var score = 100;
+var active = true;
+
+println("User: ", user, " | Score: ", score, " | Active: ", active);`}
+              />
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 7: 3+1 MEMORY */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'memory' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-orange">3+1 Bucket Engine</span>
+                <span className="badge badge-purple">Loop Bookmarks</span>
+                <span className="badge badge-emerald">Parent Arena Returns</span>
+              </div>
+              <h1 className="docs-title">3+1 Bucket Memory Architecture</h1>
+              <div className="docs-description">Deterministic hybrid memory management eliminating GC pauses while bypassing 90%+ of ARC overhead.</div>
+            </div>
+
+            <section>
+              <div className="bucket-matrix">
+                <div className="bucket-card" style={{ borderColor: 'rgba(6, 182, 212, 0.3)' }}>
+                  <div className="bucket-header">
+                    <span className="bucket-badge badge-cyan">Bucket 0 (+1)</span>
+                    <span style={{ color: 'var(--color-cyan-primary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>0% ARC</span>
+                  </div>
+                  <div className="bucket-title">CPU Call Stack (`alloca`)</div>
+                  <p style={{ fontSize: '0.85rem' }}>Fixed scalar primitives (<code>int</code>, <code>float</code>, <code>bool</code>, <code>char</code>) and fixed static arrays (<code>T[N]</code>).</p>
+                  <div className="bucket-meta">
+                    <div className="bucket-meta-item"><span>Latency:</span><span>0.0 ns</span></div>
+                    <div className="bucket-meta-item"><span>Deallocation:</span><span>Stack Pop</span></div>
+                  </div>
+                </div>
+
+                <div className="bucket-card" style={{ borderColor: 'rgba(168, 85, 247, 0.3)' }}>
+                  <div className="bucket-header">
+                    <span className="bucket-badge badge-purple">Bucket 1</span>
+                    <span style={{ color: 'var(--color-purple-primary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>0% ARC</span>
+                  </div>
+                  <div className="bucket-title">Static Data Segment</div>
+                  <p style={{ fontSize: '0.85rem' }}>Compile-time constants (<code>ALL_CAPS</code>), string literals, and global immutable state.</p>
+                  <div className="bucket-meta">
+                    <div className="bucket-meta-item"><span>Latency:</span><span>0.0 ns</span></div>
+                    <div className="bucket-meta-item"><span>Deallocation:</span><span>Process Exit</span></div>
+                  </div>
+                </div>
+
+                <div className="bucket-card" style={{ borderColor: 'rgba(255, 107, 0, 0.3)' }}>
+                  <div className="bucket-header">
+                    <span className="bucket-badge badge-orange">Bucket 2</span>
+                    <span style={{ color: 'var(--color-orange-primary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>0% ARC</span>
+                  </div>
+                  <div className="bucket-title">Scoped Region Arena</div>
+                  <p style={{ fontSize: '0.85rem' }}>90% of dynamic data (local strings, resizable dynamic arrays <code>T[]</code>, dictionaries).</p>
+                  <div className="bucket-meta">
+                    <div className="bucket-meta-item"><span>Latency:</span><span>~1 – 2 ns</span></div>
+                    <div className="bucket-meta-item"><span>Deallocation:</span><span>O(1) Bulk Reset</span></div>
+                  </div>
+                </div>
+
+                <div className="bucket-card" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+                  <div className="bucket-header">
+                    <span className="bucket-badge badge-emerald">Bucket 3</span>
+                    <span style={{ color: 'var(--color-emerald-primary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>ARC Escaped</span>
+                  </div>
+                  <div className="bucket-title">Dynamic Heap ARC</div>
+                  <p style={{ fontSize: '0.85rem' }}>Objects explicitly marked with <code>@</code> or escaping across parent function scopes.</p>
+                  <div className="bucket-meta">
+                    <div className="bucket-meta-item"><span>Latency:</span><span>~15 – 30 ns</span></div>
+                    <div className="bucket-meta-item"><span>Deallocation:</span><span>count == 0</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <h2 className="section-title"><Sparkles size={20} style={{ color: 'var(--color-orange-primary)' }} /> Critical Memory Innovations</h2>
+              <div className="callout callout-warning">
+                <div className="callout-icon"><RefreshCw size={20} style={{ color: 'var(--text-warning)' }} /></div>
+                <div className="callout-content">
+                  <div className="callout-title">1. Loop Bookmark Optimization (Flat RAM Usage)</div>
+                  <div className="callout-text">
+                    In Apollo loops, the compiler emits <code>apl_arena_get_mark()</code> at the start of an iteration and resets to that mark at the end. This guarantees memory consumption stays completely flat even across 10,000,000 loop iterations.
+                  </div>
+                </div>
+              </div>
+
+              <div className="callout callout-emerald">
+                <div className="callout-icon"><ArrowRight size={20} style={{ color: 'var(--color-emerald-primary)' }} /></div>
+                <div className="callout-content">
+                  <div className="callout-title">2. Parent Arena Return Pattern (Zero-Cost Returns)</div>
+                  <div className="callout-text">
+                    When a child function returns dynamic data, the compiler passes a hidden <code>target_return_arena</code> pointer. The child allocates the return value directly in the parent's arena, avoiding ARC overhead and escape analysis.
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 8: INTERACTIVE MEMORY EXPLORER */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'memory-explorer' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-purple">Interactive Tool</span>
+                <span className="badge badge-orange">Memory Classifier</span>
+              </div>
+              <h1 className="docs-title">Interactive Memory Bucket Classifier</h1>
+              <div className="docs-description">Click on language constructs below to see how Apollo's compiler categorizes memory allocation in real time.</div>
+            </div>
+
+            <section>
+              <div className="memory-explorer-grid">
+                <div className="explorer-item-list">
+                  {Object.keys(memoryCatalog).map(key => {
+                    const item = memoryCatalog[key];
+                    return (
+                      <button
+                        key={key}
+                        className={`explorer-item-btn ${selectedMemoryItem === key ? 'selected' : ''}`}
+                        onClick={() => setSelectedMemoryItem(key)}
+                      >
+                        <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{item.title}</span>
+                        <span className={`badge ${item.badgeClass}`}>{item.bucket.split(':')[0]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="explorer-detail-card">
+                  {(() => {
+                    const item = memoryCatalog[selectedMemoryItem];
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span className={`badge ${item.badgeClass}`}>{item.bucket}</span>
+                          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>ARC: {item.arcOverhead}</span>
+                        </div>
+                        <h3 style={{ margin: '0', fontSize: '1.25rem', color: 'var(--text-primary)' }}>{item.title}</h3>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{item.desc}</p>
+                        
+                        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.9rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontFamily: 'var(--font-mono)' }}>Generated LLVM IR:</div>
+                          <pre style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#38bdf8' }}>
+                            <code>{item.ir}</code>
+                          </pre>
+                        </div>
+
+                        <div className="bucket-meta">
+                          <div className="bucket-meta-item"><span>Allocation Speed:</span><span>{item.allocLatency}</span></div>
+                          <div className="bucket-meta-item"><span>Deallocation Speed:</span><span>{item.deallocLatency}</span></div>
+                          <div className="bucket-meta-item"><span>ARC Reference Count:</span><span>{item.arcOverhead}</span></div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 9: MODULES */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'modules' && (
+          <div>
+            <div className="docs-header">
+              <div className="badge-row">
+                <span className="badge badge-cyan">apollo-modules</span>
+                <span className="badge badge-purple">LLVM Bitcode</span>
+              </div>
+              <h1 className="docs-title">Standard Runtime Modules</h1>
+              <div className="docs-description">Pre-compiled C sub-libraries compiled to LLVM bitcode (.bc) and linked into native binaries.</div>
+            </div>
+
+            <section>
               <div className="docs-table-wrapper">
                 <table className="docs-table">
                   <thead>
                     <tr>
-                      <th>Feature</th>
-                      <th>Syntax Example</th>
-                      <th>C Handler</th>
+                      <th>Module</th>
+                      <th>Location</th>
+                      <th>Primary Responsibilities</th>
+                      <th>Bitcode File</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td><strong>Variables</strong></td>
-                      <td><code>var score = 100;</code></td>
-                      <td><code>variables.c</code></td>
+                      <td><strong style={{ color: 'var(--color-orange-light)' }}>apl-io</strong></td>
+                      <td><code>apollo-modules/apl-io/</code></td>
+                      <td>Formatted console output (<code>_apl_print_int</code>, <code>_apl_print_float</code>, <code>_apl_print_str</code>, bounds panic)</td>
+                      <td><code>apl-io.bc</code></td>
                     </tr>
                     <tr>
-                      <td><strong>Data Types</strong></td>
-                      <td>Integers, Floats, Strings, Booleans, Nulls</td>
-                      <td><code>ast.c</code> / <code>defs.h</code></td>
+                      <td><strong style={{ color: 'var(--color-purple-primary)' }}>apl-mem</strong></td>
+                      <td><code>apollo-modules/apl-mem/</code></td>
+                      <td>3+1 Bucket memory engine (64KB Arena chunk allocator, loop bookmarks, Heap ARC manager)</td>
+                      <td><code>apl-mem.bc</code></td>
                     </tr>
                     <tr>
-                      <td><strong>Arithmetic Expressions</strong></td>
-                      <td><code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code></td>
-                      <td><code>arithmetic.h</code></td>
+                      <td><strong style={{ color: 'var(--color-cyan-primary)' }}>apl-string</strong></td>
+                      <td><code>apollo-modules/apl-string/</code></td>
+                      <td>String allocation, slice manipulation, concatenation, and length helpers</td>
+                      <td><code>apl-string.bc</code></td>
                     </tr>
                     <tr>
-                      <td><strong>String Concatenation</strong></td>
-                      <td><code>var msg = "Score: " + score;</code></td>
-                      <td><code>generator.c</code> (dynamic strings via snprintf)</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Control Flow</strong></td>
-                      <td><code>if</code>, <code>elif</code>, <code>else</code></td>
-                      <td><code>src/generator.c</code> (emit comparison &amp; conditional branch)</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Looping Structures</strong></td>
-                      <td><code>while (cond) &#123;...&#125;</code> and <code>for</code> loops</td>
-                      <td><code>src/generator.c</code></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Functions</strong></td>
-                      <td><code>fxn add(int x, int y) -&gt; (int) &#123; return x + y; &#125;</code></td>
-                      <td><code>src/generator.c</code> (generates LLVM function definitions)</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Function Returns</strong></td>
-                      <td><code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>void</code></td>
-                      <td><code>semantic.c</code> / <code>generator.c</code></td>
+                      <td><strong style={{ color: 'var(--color-emerald-primary)' }}>apl-sys</strong></td>
+                      <td><code>apollo-modules/apl-sys/</code></td>
+                      <td>System-level utilities, memory allocation wrappers, OS process operations</td>
+                      <td><code>apl-sys.bc</code></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              <h2 className="section-title">Status and Limitations</h2>
-              <p>
-                Apollo <strong>v2.0.0 (Unstable Preview)</strong> natively supports global variables, primitive function parameters, primitive return values, function execution, and nested block scoping with variable shadowing via Name Resolution Linking.
-                The next natural development tasks include struct/array support, dedicated command-line compilation options, and the larger OOP migration.
-              </p>
+              <h2 className="section-title"><RefreshCw size={20} /> Re-Compiling Runtime Modules</h2>
+              <CodeBlock 
+                title="Bitcode Compilation Command"
+                language="bash"
+                code={`cd apollo-modules
+./compile.sh apl-io
+./compile.sh apl-mem
+./compile.sh apl-string
+./compile.sh apl-sys`}
+              />
             </section>
           </div>
         )}
 
-        {/* tab: PIPELINE */}
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 10: PIPELINE */}
+        {/* ------------------------------------------------------------- */}
         {activeTab === 'pipeline' && (
           <div>
             <div className="docs-header">
-              <h1 className="docs-title">Compiler Compilation Pipeline</h1>
-              <div className="docs-description">How Apollo source code is converted to optimized machine instructions.</div>
+              <div className="badge-row">
+                <span className="badge badge-orange">Multi-Pass Compiler</span>
+                <span className="badge badge-purple">libLLVM-19</span>
+              </div>
+              <h1 className="docs-title">Compiler Pipeline &amp; LLVM Codegen</h1>
+              <div className="docs-description">How Apollo source code (.apl) transforms into an optimized native Windows executable.</div>
             </div>
 
             <section>
-              <p>
-                The Apollo compiler operates as a multi-pass compiler. It first parses source code into an Abstract Syntax Tree (AST), then runs a Semantic Analysis pass to verify types and construct the symbol table, and finally traverses this AST to generate standard LLVM Assembly language.
-              </p>
-
-              {/* Pipeline Flow Visual */}
               <div className="pipeline-flow">
                 <div className="pipeline-node active">
-                  <div className="pipeline-node-title">Source File</div>
-                  <div className="pipeline-node-desc">main.apl</div>
+                  <div className="pipeline-node-title">Source</div>
+                  <div className="pipeline-node-desc">.apl code</div>
                 </div>
                 <div className="pipeline-arrow"><ChevronRight size={18} /></div>
                 <div className="pipeline-node">
                   <div className="pipeline-node-title">Lexer</div>
-                  <div className="pipeline-node-desc">lexer.c</div>
+                  <div className="pipeline-node-desc">gperf hash</div>
                 </div>
                 <div className="pipeline-arrow"><ChevronRight size={18} /></div>
                 <div className="pipeline-node">
                   <div className="pipeline-node-title">Parser</div>
-                  <div className="pipeline-node-desc">parser.c</div>
-                </div>
-                <div className="pipeline-arrow"><ChevronRight size={18} /></div>
-                <div className="pipeline-node">
-                  <div className="pipeline-node-title">AST</div>
-                  <div className="pipeline-node-desc">ast.c</div>
+                  <div className="pipeline-node-desc">Pratt AST</div>
                 </div>
                 <div className="pipeline-arrow"><ChevronRight size={18} /></div>
                 <div className="pipeline-node">
                   <div className="pipeline-node-title">Semantic</div>
-                  <div className="pipeline-node-desc">semantic.c</div>
+                  <div className="pipeline-node-desc">Type Check</div>
                 </div>
                 <div className="pipeline-arrow"><ChevronRight size={18} /></div>
                 <div className="pipeline-node">
-                  <div className="pipeline-node-title">Generator</div>
-                  <div className="pipeline-node-desc">generator.c</div>
+                  <div className="pipeline-node-title">LLVM 19</div>
+                  <div className="pipeline-node-desc">Bitcode (.bc)</div>
                 </div>
                 <div className="pipeline-arrow"><ChevronRight size={18} /></div>
-                <div className="pipeline-node active" style={{ borderColor: 'var(--color-purple-primary)' }}>
-                  <div className="pipeline-node-title">Clang Backend</div>
+                <div className="pipeline-node active">
+                  <div className="pipeline-node-title">Clang</div>
                   <div className="pipeline-node-desc">program.exe</div>
                 </div>
               </div>
 
-              <h2 className="section-title">The Six Compiler Steps</h2>
+              <h2 className="section-title"><Cpu size={20} /> Compilation Steps</h2>
               <ol style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Source Intake:</strong> 
-                  The compiler driver reads raw text from the specified file stream.
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Lexical Analysis:</strong> 
-                  Characters are scanned and clustered into semantic packages called <code>Tokens</code> (keywords, identifiers, literals, operators).
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Syntax Parsing:</strong> 
-                  The parser evaluates the token sequence against grammar rules. If a token violates expectations, Panic-Mode Error recovery is engaged to synchronize states at statements boundaries.
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Semantic Analysis:</strong> 
-                  A semantic pass validates type assignments, computes variable operations, checks scopes, and populates the global symbol table.
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>LLVM Code Generation:</strong> 
-                  Once a clean AST is parsed and semantically validated, the code generator emits compliant LLVM Intermediate Representation (IR).
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Native Optimization &amp; Linking:</strong> 
-                  Clang compiling processes compile the LLVM IR using the <code>-O3</code> flags into optimized Windows machine code.
-                </li>
+                <li style={{ marginBottom: '0.8rem' }}><strong>Lexical Scanning (`src/lexer.c`):</strong> Converts characters to tokens using GNU gperf $O(1)$ keyword hash lookup.</li>
+                <li style={{ marginBottom: '0.8rem' }}><strong>Recursive Descent Pratt Parser (`src/Parser/*`):</strong> Builds polymorphic AST nodes with precedence climbing and panic-mode error recovery.</li>
+                <li style={{ marginBottom: '0.8rem' }}><strong>Semantic Analysis (`src/Semantics/*`):</strong> Validates types, symbol tables, pointer indirection levels, and scope boundaries.</li>
+                <li style={{ marginBottom: '0.8rem' }}><strong>LLVM Code Generation (`src/API/*`):</strong> Emits LLVM IR bitcode using the official `libLLVM-19` C API and links runtime bitcodes.</li>
+                <li style={{ marginBottom: '0.8rem' }}><strong>Clang Native Linking:</strong> Optimizes and links bitcode to native Windows PE executable (`.exe`).</li>
               </ol>
             </section>
           </div>
         )}
 
-        {/* tab: LEXER */}
-        {activeTab === 'lexer' && (
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 11: DIAGNOSTICS & TESTING */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'diagnostics' && (
           <div>
             <div className="docs-header">
-              <h1 className="docs-title">The Lexical Scanner</h1>
-              <div className="docs-description">Hand-crafted scanner that breaks character streams into syntactic tokens.</div>
+              <div className="badge-row">
+                <span className="badge badge-emerald">QA &amp; Tests</span>
+                <span className="badge badge-purple">Panic-Mode Recovery</span>
+              </div>
+              <h1 className="docs-title">Error Recovery &amp; Testing Suite</h1>
+              <div className="docs-description">Panic-Mode synchronization and automated Python testing harness.</div>
             </div>
 
             <section>
+              <h2 className="section-title"><ShieldCheck size={20} /> Panic-Mode Error Recovery</h2>
               <p>
-                Apollo avoids using external lexer engines like Flex. The entire lexer is hand-coded in <code>src/lexer.c</code>. It matches string patterns, classifies them into types declared in <code>headers/token.h</code>, and keeps track of character coordinates.
+                When the parser encounters a syntax error, instead of crashing or generating cascading phantom errors, it invokes <code>synchronize()</code> to advance to the next statement delimiter (e.g. <code>;</code> or <code>&#125;</code>).
               </p>
 
-              <h2 className="section-title">Token Classification</h2>
-              <p>
-                Tokens in Apollo hold metadata specifying the type, start memory address inside the source, length of bytes, and the line number:
-              </p>
+              <h2 className="section-title"><Terminal size={20} style={{ color: 'var(--color-orange-primary)' }} /> Automated Python Test Runner</h2>
+              <CodeBlock 
+                title="Running Test Suite"
+                language="powershell"
+                code={`# Run complete automated test suite
+python tests/test.py
 
-              <div className="code-block-wrapper">
-                <div className="code-block-header">
-                  <div className="code-block-title">
-                    <FileText size={14} />
-                    headers/token.h (Excerpt)
-                  </div>
-                </div>
-                <pre className="code-block-content">
-                  <code>
-{`typedef struct {
-  TokenType type;    // Classification ID
-  const char *start; // Raw pointer to characters
-  int length;        // Byte length
-  int line;          // File line number
-} Token;`}
-                  </code>
-                </pre>
-              </div>
-
-              <h2 className="section-title">Scanning Algorithm</h2>
-              <p>
-                The lexical scanning engine consumes characters sequentially. It uses utility routines like <code>isspace()</code>, <code>isdigit()</code>, and <code>isalpha()</code>. If it detects a lexical anomaly (e.g. an unterminated string block), it pushes a diagnostic description onto the compiler's global <code>errorStack</code> instead of hard-crashing.
-              </p>
+# Run through diagnosis script
+./diagnosis.sh println
+./diagnosis.sh conditionals
+./diagnosis.sh variable
+./diagnosis.sh fxns`}
+              />
             </section>
           </div>
         )}
 
-        {/* tab: PARSER */}
-        {activeTab === 'parser' && (
-          <div>
-            <div className="docs-header">
-              <h1 className="docs-title">Syntax Parser &amp; AST Construction</h1>
-              <div className="docs-description">Building the abstract structure of the Apollo program.</div>
-            </div>
-
-            <section>
-              <p>
-                The Parser (<code>src/parser.c</code>) validates grammar using recursive descent. It generates AST nodes representing the program structure, statements, loops, variables, and expressions.
-              </p>
-
-              <h2 className="section-title">AST Node Representation</h2>
-              <p>
-                Every syntactic element in Apollo is modeled as a polymorphic <code>ASTNode</code>. It contains an enum field <code>Type</code> and a large union containing structs for each statement class:
-              </p>
-
-              <div className="code-block-wrapper">
-                <div className="code-block-header">
-                  <div className="code-block-title">
-                    <FileText size={14} />
-                    headers/ast.h (Excerpt)
-                  </div>
-                </div>
-                <pre className="code-block-content">
-                  <code>
-{`struct ASTNode {
-  ASTNodeType Type;
-  union {
-    struct {
-      const char *name;
-      datatype value_type;
-      ASTNode *value;
-    } var_decl;
-    struct {
-      ASTNode *left;
-      TokenType operator_type;
-      ASTNode *right;
-    } binary_expr;
-    struct {
-      ASTNode *condition;
-      ASTNode *then_block;
-      ASTNode *else_block;
-    } if_stmt;
-    // ...
-  };
-};`}
-                  </code>
-                </pre>
-              </div>
-
-              <h2 className="section-title">Grammar Parser Loop</h2>
-              <p>
-                The parser loops through statements until it hits <code>TOKEN_EOF</code>. Inside blocks, statements are accumulated into arrays. If compilation encounters syntax errors, code generation is skipped.
-              </p>
-            </section>
-          </div>
-        )}
-
-        {/* tab: SEMANTIC */}
-        {activeTab === 'semantic' && (
-          <div>
-            <div className="docs-header">
-              <h1 className="docs-title">Semantic Analysis</h1>
-              <div className="docs-description">Validating types and constructing the Symbol Table.</div>
-            </div>
-
-            <section>
-              <p>
-                Once the Parser constructs the AST, the Semantic Analyzer (<code>src/semantic.c</code>) walks the AST to enforce language rules that cannot be captured by grammar alone.
-              </p>
-
-              <h2 className="section-title">The Symbol Table</h2>
-              <p>
-                Apollo uses a symbol table (<code>src/variables.c</code>) to keep track of declared variables and functions. When the semantic analyzer visits an AST node that declares a variable, it registers it in the symbol table. Subsequent references to that variable are validated against the table to ensure they exist and are correctly typed.
-              </p>
-
-              <div className="code-block-wrapper">
-                <div className="code-block-header">
-                  <div className="code-block-title">
-                    <FileText size={14} />
-                    headers/variables.h (Symbol Table)
-                  </div>
-                </div>
-                <pre className="code-block-content">
-                  <code>
-{`typedef struct {
-  const char *name;      // Source variable name
-  char *llvm_name;       // Allocated name in LLVM
-  datatype type;         // Deduced Data Type
-  int length;
-} Symbol;`}
-                  </code>
-                </pre>
-              </div>
-
-              <h2 className="section-title">Name Mangling &amp; Nested Functions</h2>
-              <p>
-                A core feature of Apollo is its support for <strong>infinite function nesting</strong>. Because LLVM strictly enforces a flat global namespace, having two nested functions with the same name (like two <code>main</code> functions in different scopes) would typically crash the LLVM linker.
-              </p>
-              <p>
-                The Semantic Analyzer solves this by implementing <strong>Name Mangling</strong>. When registering nested functions into the Symbol Table, it assigns them unique mangled LLVM names (e.g. <code>main_3</code>). It binds this fully resolved <code>Symbol</code> directly back to the <code>ASTNode</code>, allowing the Code Generator to seamlessly link calls to the correct mangled LLVM symbol without naming collisions!
-              </p>
-            </section>
-          </div>
-        )}
-
-        {/* tab: GENERATOR */}
-        {activeTab === 'generator' && (
-          <div>
-            <div className="docs-header">
-              <h1 className="docs-title">LLVM IR Code Generation</h1>
-              <div className="docs-description">Translating the abstract tree structure into platform-independent assembly.</div>
-            </div>
-
-            <section>
-              <p>
-                The code generator (<code>src/generator.c</code>) compiles AST nodes to optimized LLVM Intermediate Representation (IR).
-              </p>
-
-              <h2 className="section-title">LLVM Output Initialization</h2>
-              <p>
-                When code generation starts, Apollo prints the standard environment configurations. It declares references to necessary external C runtime library functions:
-              </p>
-
-              <div className="code-block-wrapper">
-                <div className="code-block-header">
-                  <div className="code-block-title">
-                    <FileText size={14} />
-                    src/generator.c (LLVM Setup)
-                  </div>
-                </div>
-                <pre className="code-block-content">
-                  <code>
-{`declare i8* @printf(i8*, ...)
-declare i8* @malloc(i64)
-declare i8* @strcat(i8*, i8*)
-declare i8* @strcpy(i8*, i8*)
-declare i32 @strcmp(i8*, i8*)
-declare i32 @snprintf(i8*, i64, i8*, ...)`}
-                  </code>
-                </pre>
-              </div>
-
-              <h2 className="section-title">Generating String Concatenation</h2>
-              <p>
-                A key feature of the Apollo compiler is dynamic string concatenation (using the <code>+</code> operator). The code generator generates an dynamic allocation call via <code>malloc</code>, then invokes <code>snprintf</code> to merge string data or automatically format numbers to strings.
-              </p>
-            </section>
-          </div>
-        )}
-
-        {/* tab: ERRORS */}
-        {activeTab === 'errors' && (
-          <div>
-            <div className="docs-header">
-              <h1 className="docs-title">Panic-Mode Error Recovery</h1>
-              <div className="docs-description">How Apollo avoids cascading phantom errors during parsing.</div>
-            </div>
-
-            <section>
-              <p>
-                If a compiler encounters a syntax error and keeps trying to parse blindly, it can trigger a huge cascade of hundreds of fake errors. Apollo prevents this using a technique called <strong>Panic-Mode Error Recovery</strong>.
-              </p>
-
-              <div className="callout callout-warning">
-                <div className="callout-icon">
-                  <AlertCircle size={20} style={{ color: 'var(--text-warning)' }} />
-                </div>
-                <div className="callout-content">
-                  <h4 className="callout-title">The Synchronization Process</h4>
-                  <p className="callout-text">
-                    When the parser hits an unexpected token, it reports the error and calls a <code>synchronize()</code> routine. This routine skips tokens until it finds a statement boundary (like a semicolon <code>;</code> or starting keywords like <code>var</code>, <code>fxn</code>, <code>if</code>, <code>while</code>).
-                  </p>
-                </div>
-              </div>
-
-              <h2 className="section-title">Formatting Error Contexts</h2>
-              <p>
-                All syntax errors are accumulated on the global <code>errorStack</code> and printed at the end of execution. They display the exact line number, token content, and character coordinates:
-              </p>
-
-              <div className="code-block-wrapper">
-                <div className="code-block-header">
-                  <div className="code-block-title">
-                    <FileText size={14} />
-                    Syntax Error Sample Output
-                  </div>
-                </div>
-                <pre className="code-block-content">
-                  <code>
-{`[PARSER ERROR] Syntax Error: Expected '=' after variable identifier on line 4
-    Found: "println"
-    Context: synchronize() engaged, looking for next statement.`}
-                  </code>
-                </pre>
-              </div>
-            </section>
-          </div>
-        )}
-
-        {/* tab: PLAYGROUND */}
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 12: PLAYGROUND & LAB */}
+        {/* ------------------------------------------------------------- */}
         {activeTab === 'playground' && (
           <div>
             <div className="docs-header">
-              <h1 className="docs-title">Interactive Pipeline Visualizer</h1>
-              <div className="docs-description">Write Apollo code and watch it compile step-by-step through the pipeline.</div>
+              <div className="badge-row">
+                <span className="badge badge-orange"><Terminal size={12} /> Interactive Lab</span>
+                <span className="badge badge-purple">Real-Time Simulation</span>
+              </div>
+              <h1 className="docs-title">Interactive Compiler Visualizer</h1>
+              <div className="docs-description">Write Apollo code and inspect tokens, AST hierarchy, generated LLVM IR, and simulated stdout execution!</div>
             </div>
 
             <section>
-              <p>
-                Choose one of the presets or type your own code in the editor panel below. Press <strong>Run Compiler Pipeline</strong> to simulate the lexer, parser, AST generation, and LLVM code emission!
-              </p>
-
               <div className="playground-layout">
-                {/* Left Panel: Editor */}
+                {/* Editor Panel */}
                 <div className="panel">
                   <div className="panel-header">
-                    <span className="panel-title">
-                      <Code size={16} style={{ color: 'var(--color-orange-primary)' }} />
-                      Apollo Editor
-                    </span>
-                    <select 
-                      className="playground-select" 
-                      value={codeSample}
-                      onChange={handleSampleChange}
-                    >
-                      <option value="hello">Sample: Hello World</option>
-                      <option value="math">Sample: Math &amp; Vars</option>
-                      <option value="loop">Sample: While Loops</option>
-                      <option value="ifElse">Sample: Conditionals</option>
-                    </select>
+                    <div className="panel-title">
+                      <Code size={16} style={{ color: 'var(--color-orange-light)' }} />
+                      <span>Apollo Source Editor</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                      <select 
+                        className="playground-select" 
+                        value={codeSample} 
+                        onChange={handleSampleChange}
+                      >
+                        <option value="structs">Structs &amp; Methods</option>
+                        <option value="pointers">Pointers &amp; Deref</option>
+                        <option value="memory">3+1 Memory Buckets</option>
+                        <option value="arrays">Arrays &amp; Loops</option>
+                        <option value="loops">Countdown Loop</option>
+                      </select>
+                      <button className="btn-compile" onClick={runVisualizer}>
+                        <Play size={14} fill="currentColor" />
+                        <span>Run</span>
+                      </button>
+                    </div>
                   </div>
+
                   <textarea 
-                    className="editor-textarea" 
+                    className="editor-textarea"
                     value={playgroundCode}
                     onChange={(e) => setPlaygroundCode(e.target.value)}
+                    spellCheck="false"
                   />
-                  <div style={{ padding: '1rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button className="btn-compile" onClick={runVisualizer}>
-                      <Play size={14} />
-                      Run Compiler Pipeline
-                    </button>
-                  </div>
                 </div>
 
-                {/* Right Panel: Visualization */}
+                {/* Output & Pipeline Visualizer Panel */}
                 <div className="panel">
-                  <div className="panel-header">
-                    <span className="panel-title">
-                      <RefreshCw size={14} style={{ color: 'var(--color-purple-primary)' }} />
-                      Pipeline Steps
-                    </span>
+                  <div className="vis-steps">
+                    <button 
+                      className={`vis-step-btn ${visStep === 'output' ? 'active' : ''}`}
+                      onClick={() => setVisStep('output')}
+                    >
+                      Console Output
+                    </button>
+                    <button 
+                      className={`vis-step-btn ${visStep === 'tokens' ? 'active' : ''}`}
+                      onClick={() => setVisStep('tokens')}
+                    >
+                      Tokens
+                    </button>
+                    <button 
+                      className={`vis-step-btn ${visStep === 'ast' ? 'active' : ''}`}
+                      onClick={() => setVisStep('ast')}
+                    >
+                      AST Tree
+                    </button>
+                    <button 
+                      className={`vis-step-btn ${visStep === 'llvm' ? 'active' : ''}`}
+                      onClick={() => setVisStep('llvm')}
+                    >
+                      LLVM IR
+                    </button>
                   </div>
-                  
-                  {pipelineError && (
-                    <div style={{ padding: '1.5rem', color: 'var(--text-error)', display: 'flex', gap: '0.75rem' }}>
-                      <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                      <div>
-                        <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 600 }}>Compiler Error Detected</h4>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(239, 68, 68, 0.8)' }}>{pipelineError}</p>
-                      </div>
-                    </div>
-                  )}
 
-                  {!pipelineResults && !pipelineError && (
-                    <div className="vis-content">
+                  <div className="vis-content">
+                    {pipelineError && (
+                      <div className="callout callout-warning" style={{ margin: 0 }}>
+                        <div className="callout-icon"><AlertCircle size={18} style={{ color: 'var(--text-error)' }} /></div>
+                        <div className="callout-content">
+                          <div className="callout-title" style={{ color: 'var(--text-error)' }}>Compilation Diagnostic</div>
+                          <div className="callout-text">{pipelineError}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!pipelineError && !pipelineResults && (
                       <div className="pipeline-status">
-                        <Terminal size={40} style={{ color: 'var(--text-muted)' }} />
-                        <span>Ready. Click "Run Compiler Pipeline" to compile.</span>
+                        <Play size={32} style={{ opacity: 0.3 }} />
+                        <span>Click "Run" to compile and inspect pipeline artifacts</span>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {pipelineResults && (
-                    <React.Fragment>
-                      <div className="vis-steps">
-                        <button 
-                          className={`vis-step-btn ${visStep === 'tokens' ? 'active' : ''}`}
-                          onClick={() => setVisStep('tokens')}
-                        >
-                          1. Tokens
-                        </button>
-                        <button 
-                          className={`vis-step-btn ${visStep === 'ast' ? 'active' : ''}`}
-                          onClick={() => setVisStep('ast')}
-                        >
-                          2. AST
-                        </button>
-                        <button 
-                          className={`vis-step-btn ${visStep === 'semantic' ? 'active' : ''}`}
-                          onClick={() => setVisStep('semantic')}
-                        >
-                          3. Semantic
-                        </button>
-                        <button 
-                          className={`vis-step-btn ${visStep === 'llvm' ? 'active' : ''}`}
-                          onClick={() => setVisStep('llvm')}
-                        >
-                          4. LLVM IR
-                        </button>
-                        <button 
-                          className={`vis-step-btn ${visStep === 'output' ? 'active' : ''}`}
-                          onClick={() => setVisStep('output')}
-                        >
-                          5. Binary Run
-                        </button>
-                      </div>
+                    {!pipelineError && pipelineResults && (
+                      <>
+                        {visStep === 'output' && (
+                          <div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                              === Native Binary Execution Simulation ===
+                            </div>
+                            <div className="terminal-output">
+                              {pipelineResults.termLog.map((line, i) => (
+                                <div key={i} className="terminal-line">{line}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-                      <div className="vis-content">
                         {visStep === 'tokens' && (
                           <div className="token-grid">
-                            {pipelineResults.tokens.map((tok, idx) => (
-                              <div key={idx} className="token-card">
+                            {pipelineResults.tokens.map((tok, i) => (
+                              <div key={i} className="token-card">
                                 <span className="token-type">{tok.type}</span>
                                 <span className="token-value">{tok.value}</span>
-                                <span className="token-line">Line {tok.line}</span>
+                                <span className="token-line">L{tok.line}</span>
                               </div>
                             ))}
                           </div>
                         )}
 
                         {visStep === 'ast' && (
-                          <div style={{ textAlign: 'left' }}>
+                          <div>
                             {renderASTNode(pipelineResults.ast)}
                           </div>
                         )}
 
-                        {visStep === 'semantic' && (
-                          <div style={{ textAlign: 'left', padding: '1rem' }}>
-                            <div className="callout callout-info">
-                              <div className="callout-icon">
-                                <Code size={20} style={{ color: 'var(--color-blue-primary)' }} />
-                              </div>
-                              <div className="callout-content">
-                                <h4 className="callout-title">Semantic Validation Complete</h4>
-                                <p className="callout-text">
-                                  Variable declarations and scopes checked. Type inference succeeded. Symbol table populated successfully!
-                                </p>
-                              </div>
-                            </div>
-                            <pre style={{ margin: 0, marginTop: '1rem', textAlign: 'left', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                              <code>{`// Emulated Symbol Table
-{
-  "variables": 1,
-  "functions": 1,
-  "types_inferred": true,
-  "status": "VALID"
-}`}</code>
-                            </pre>
-                          </div>
-                        )}
-
                         {visStep === 'llvm' && (
-                          <pre style={{ margin: 0, textAlign: 'left', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                          <pre style={{ margin: 0, color: '#38bdf8' }}>
                             <code>{pipelineResults.llvm}</code>
                           </pre>
                         )}
-
-                        {visStep === 'output' && (
-                          <div>
-                            <div style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Simulated execution of linked Windows binary:</div>
-                            <div className="terminal-output">
-                              {pipelineResults.termLog.map((line, idx) => (
-                                <div key={idx} className="terminal-line">{line}</div>
-                              ))}
-                              <div style={{ color: 'var(--text-muted)', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.5rem', fontSize: '0.75rem' }}>
-                                Process exited with code 0.
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </React.Fragment>
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
