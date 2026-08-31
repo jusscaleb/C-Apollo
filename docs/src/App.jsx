@@ -1050,7 +1050,9 @@ fxn run() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="brand-wrapper">
-            <div className="logo-badge">🚀</div>
+            <div className="logo-badge">
+              <img src="/favicon.svg" alt="Apollo Logo" className="logo-img" />
+            </div>
             <div>
               <div className="sidebar-logo">Apollo</div>
             </div>
