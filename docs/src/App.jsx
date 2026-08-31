@@ -1051,7 +1051,7 @@ fxn run() {
         <div className="sidebar-header">
           <div className="brand-wrapper">
             <div className="logo-badge">
-              <img src="/favicon.svg" alt="Apollo Logo" className="logo-img" />
+              <img src="/favicon.png" alt="Apollo Logo" className="logo-img" />
             </div>
             <div>
               <div className="sidebar-logo">Apollo</div>
@@ -1110,15 +1110,20 @@ fxn run() {
         {/* ------------------------------------------------------------- */}
         {activeTab === 'overview' && (
           <div>
-            <div className="docs-header">
-              <div className="badge-row">
-                <span className="badge badge-orange"><Flame size={12} /> v3.0.0-unstable-preview</span>
-                <span className="badge badge-purple"><Cpu size={12} /> libLLVM-19 Engine</span>
-                <span className="badge badge-emerald"><ShieldCheck size={12} /> 0% GC Latency</span>
+            <div className="docs-header hero-docs-header">
+              <div className="hero-header-content">
+                <div className="badge-row">
+                  <span className="badge badge-orange"><Flame size={12} /> v3.0.0-unstable-preview</span>
+                  <span className="badge badge-purple"><Cpu size={12} /> libLLVM-19 Engine</span>
+                  <span className="badge badge-emerald"><ShieldCheck size={12} /> 0% GC Latency</span>
+                </div>
+                <h1 className="docs-title">Apollo Programming Language</h1>
+                <div className="docs-description">
+                  A modern compiled language combining C-level execution speed with modern syntax abstractions and an innovative 3+1 Bucket Memory Architecture.
+                </div>
               </div>
-              <h1 className="docs-title">Apollo Programming Language</h1>
-              <div className="docs-description">
-                A modern compiled language combining C-level execution speed with modern syntax abstractions and an innovative 3+1 Bucket Memory Architecture.
+              <div className="hero-logo-container">
+                <img src="/favicon.png" alt="Apollo Logo" className="hero-logo-img" />
               </div>
             </div>
 
