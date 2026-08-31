@@ -36,11 +36,13 @@ jobs:
       - name: Build Apollo Compiler
         shell: msys2 {0}
         run: |
-          cmake -B build -G "MinGW Makefiles"
+          cd "${{ github.workspace }}"
+          cmake -B build -G "MinGW Makefiles" -S .
           cmake --build build
 
       - name: Run Test Runner
         shell: msys2 {0}
         run: |
+          cd "${{ github.workspace }}"
           python tests/test.py
 
