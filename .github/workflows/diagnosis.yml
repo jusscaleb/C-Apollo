@@ -33,6 +33,12 @@ jobs:
             mingw-w64-x86_64-ninja
             make
 
+      - name: Build Apollo Compiler
+        shell: msys2 {0}
+        run: |
+          cd "${{ github.workspace }}"
+          bash run.sh
+
       - name: Run Diagnosis Suite
         shell: msys2 {0}
         run: |
