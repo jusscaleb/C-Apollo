@@ -33,6 +33,13 @@ jobs:
             mingw-w64-x86_64-ninja
             make
 
+      - name: Build Apollo Compiler
+        shell: msys2 {0}
+        run: |
+          cd "${{ github.workspace }}"
+          cmake -B build -G "MinGW Makefiles" -S .
+          cmake --build build
+
       - name: Run Diagnosis Suite
         shell: msys2 {0}
         run: |
