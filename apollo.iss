@@ -1,10 +1,10 @@
 [Setup]
 AppName=Apollo Compiler
-AppVersion=1.0
+AppVersion=3.0.0
 AppPublisher=SCXRPIUS
 DefaultDirName={autopf}\Apollo
 DefaultGroupName=Apollo
-OutputBaseFilename=Apollo_Setup_v1.0
+OutputBaseFilename=Apollo_Setup_v3.0.0
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64
@@ -14,7 +14,7 @@ PrivilegesRequired=admin
 ChangesEnvironment=yes
 
 [Files]
-Source: "apollo.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "build\apollo.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Registry]
 ; Add Apollo to system PATH safely
