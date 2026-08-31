@@ -2,30 +2,45 @@ name: Python CI
 
 on:
   push:
-    branches: [ $default-branch ]
+    branches: [ "main", "dev", "MAJOR/REFACTOR/C-API-LLVM" ]
   pull_request:
-    branches: [ $default-branch ]
+    branches: [ "main", "dev" ]
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    name: Run Python Test Suite
+    runs-on: windows-latest
 
     steps:
-      # 1. Checkout your repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3. Install dependencies
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
+      - name: Set up MSYS2 with MinGW and LLVM
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-clang
+            mingw-w64-x86_64-llvm
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            make
 
-      # 4. Run your test runner script
-      - name: Run diagnosis.sh
-        run: bash diagnosis.sh
+      - name: Build Apollo Compiler
+        shell: msys2 {0}
+        run: |
+          cmake -B build -G "MinGW Makefiles"
+          cmake --build build
+
+      - name: Run Test Runner
+        shell: msys2 {0}
+        run: |
+          python tests/test.py
+

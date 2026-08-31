@@ -2,7 +2,7 @@ name: Apollo Diagnosis & Tests
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main", "dev", "MAJOR/REFACTOR/C-API-LLVM" ]
   pull_request:
     branches: [ "main", "dev" ]
 
@@ -11,10 +11,6 @@ jobs:
     name: Run Diagnosis Suite
     runs-on: windows-latest
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,12 +18,29 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.11'
+
+      - name: Set up MSYS2 with MinGW and LLVM
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-clang
+            mingw-w64-x86_64-llvm
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            make
 
       - name: Build Apollo Compiler
+        shell: msys2 {0}
         run: |
-          gcc apl.c -o apl.exe
+          cmake -B build -G "MinGW Makefiles"
+          cmake --build build
 
-      - name: Run Diagnosis Script
+      - name: Run Diagnosis Suite
+        shell: msys2 {0}
         run: |
-          printf "Y\n" | bash -e ./diagnosis.sh
+          printf "Y\n" | bash ./diagnosis.sh
+
