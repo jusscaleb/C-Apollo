@@ -337,9 +337,19 @@ ASTNode *parse_condition(Parser *parser, CodegenContext *context) {
   if (parser->current.type == TOKEN_FOR) {
     advance(parser);
     consume(parser, TOKEN_LPARETH, "Expected '('");
-    ASTNode *variable = var(parser, context, TYPE_NULL, 0);
+    ASTNode *variable;
+    if(parser->current.type != TOKEN_IDENTIFIER){
+          variable = var(parser, context, TYPE_NULL, 0);
     consume(parser, TOKEN_SEMICOLON,
             "Expected ';' after for-loop variable initialization.");
+
+    }else{
+      variable = identifier(parser, context);
+
+    }
+
+
+
     ASTNode *condition = parse_logical_or(parser, context);
     consume(parser, TOKEN_SEMICOLON, "Expected ';' after for-loop condition.");
 
