@@ -134,7 +134,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
           break;
         }
 
-        char str[expr->literal_expr.token.length + 1];
+        char str[256];
 
         slice_string(expr->literal_expr.token, str);
         println_args =

@@ -2,7 +2,7 @@
 
 set -eu
 
-export PATH="/mingw64/bin:/c/msys64/mingw64/bin:/c/msys64/clang64/bin:$PATH"
+export PATH="/c/Program Files/CMake/bin:/c/Program Files (x86)/CMake/bin:/c/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/c/Program Files/Microsoft Visual Studio/2022/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/c/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/c/msys64/mingw64/bin:/c/msys64/ucrt64/bin:/c/msys64/usr/bin:/mingw64/bin:$PATH"
 
 args="${1:-}"
 

@@ -67,7 +67,7 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
       s_count /= 10;
     }
 
-    char mangled[NAME_LENGTH + n_digits + 2];
+    char mangled[NAME_LENGTH + 32];
 
     memcpy(mangled, name, NAME_LENGTH);
     mangled[NAME_LENGTH] = '_';
@@ -168,7 +168,7 @@ void symbol_table_resize(SymbolTable *table, Arena *a) {
   }
 }
 
-__attribute__((always_inline)) uint32_t hash_string(const char *key,
+ALWAYS_INLINE uint32_t hash_string(const char *key,
                                                     uint32_t length) {
   uint32_t hash = 2166136261u;
 

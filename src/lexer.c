@@ -18,7 +18,7 @@ const char *TokenNames[] = {
 };
 
 // FOR ERROR HANDLING
-__attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
+ALWAYS_INLINE void lex_error(Lexer *lexer, const char *message,
                                               const char *got) {
   Error *e = (Error *)alloc_space(1, sizeof(Error));
   e->message = _strdup(message);
@@ -35,7 +35,7 @@ __attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
  *Checks if the keyword is reserved using gperf pre-hashed lookup table.
  *If not it is a user-defined keyword
  */
-__attribute__((always_inline)) TokenType check_keyword(const char *start,
+ALWAYS_INLINE TokenType check_keyword(const char *start,
                                                        int length) {
   const struct KeywordEntry *entry = in_word_set(start, length);
   return entry ? entry->type : TOKEN_IDENTIFIER;
@@ -356,7 +356,7 @@ Token next_token(Lexer *lexer) {
   return token;
 }
 
-__attribute__((always_inline)) Token check_number(Lexer *lexer,
+ALWAYS_INLINE Token check_number(Lexer *lexer,
                                                   const char *start) {
   bool is_float = false;
   while (_IS_DIGIT_((unsigned char)*lexer->current)) {
@@ -371,7 +371,8 @@ __attribute__((always_inline)) Token check_number(Lexer *lexer,
 
     if (!_IS_DIGIT_((unsigned char)*lexer->current)) {
       int len = (int)(lexer->current - start);
-      char temp[len + 1];
+      char temp[256];
+      if (len >= 256) len = 255;
       memcpy(temp, start, len);
       temp[len] = '\0';
       lex_error(lexer, "Expected value int after '.' ", temp);
@@ -389,7 +390,7 @@ __attribute__((always_inline)) Token check_number(Lexer *lexer,
   return token;
 }
 
-__attribute__((always_inline)) Token check_string_or_char(Lexer *lexer,
+ALWAYS_INLINE Token check_string_or_char(Lexer *lexer,
                                                           const char *start,
                                                           bool is_str) {
 
@@ -414,7 +415,8 @@ __attribute__((always_inline)) Token check_string_or_char(Lexer *lexer,
       // If it reaches \0 that means it's an unterminated string.
       if (*lexer->current == '\0') {
         int len = (int)(lexer->current - start);
-        char temp[len + 1];
+        char temp[256];
+        if (len >= 256) len = 255;
         memcpy(temp, start, len);
         temp[len] = '\0';
         lex_error(lexer, err_msg, temp);
@@ -433,7 +435,8 @@ __attribute__((always_inline)) Token check_string_or_char(Lexer *lexer,
 
   if (*lexer->current == '\0') {
     int len = (int)(lexer->current - start);
-    char temp[len + 1];
+    char temp[256];
+    if (len >= 256) len = 255;
     memcpy(temp, start, len);
     temp[len] = '\0';
     lex_error(lexer, err_msg, temp);

@@ -33,7 +33,7 @@ void slice_string(Token string, char *clean_str) {
   *dst = '\0';
 }
 
-__attribute__((always_inline)) float str_to_int_k(const char *s, int k) {
+ALWAYS_INLINE float str_to_int_k(const char *s, int k) {
   int result = 0;
   float final;
   int dp = 1;
@@ -443,17 +443,18 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
   return NULL;
 }
 
-__attribute__((always_inline)) float return_eval_int(ASTNode* expr){
-    char int_str[expr->literal_expr.token.length + 1];
-    memcpy(int_str, expr->literal_expr.token.start,
-           expr->literal_expr.token.length + 1);
-    int_str[expr->literal_expr.token.length] = '\0';
+ALWAYS_INLINE float return_eval_int(ASTNode* expr){
+    char int_str[256];
+    int len = expr->literal_expr.token.length;
+    if (len >= 256) len = 255;
+    memcpy(int_str, expr->literal_expr.token.start, len);
+    int_str[len] = '\0';
    
     return str_to_int_k(int_str, expr->literal_expr.token.length);
 
 }
 
-__attribute__((always_inline)) LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
+LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
       if (!node) return NULL;
 
       LLVMValueRef the_fxn = NULL;
@@ -594,7 +595,7 @@ uint32_t _apl_get_n_args(LLVMComponents *components, Args *a){
 }
 
 
-__attribute__((always_inline)) LLVMTypeRef _apl_get_llvm_type(LLVMComponents*components, DataType dt){
+ALWAYS_INLINE LLVMTypeRef _apl_get_llvm_type(LLVMComponents*components, DataType dt){
   switch(dt){
     case TYPE_INT: return I32(components->ctx);
     case TYPE_FLOAT: return F32(components->ctx);
