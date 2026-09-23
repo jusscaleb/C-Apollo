@@ -151,6 +151,7 @@ typedef struct {
   int column;
   int scope_level;
   Fxn *fxn;
+  Fxns *fxns;
   ErrorStack *errors;
 } Lexer;
 

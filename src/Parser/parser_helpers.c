@@ -29,10 +29,9 @@ ALWAYS_INLINE void consume(Parser *parser, TokenType type, const char *errorMess
   synchronize(parser, TOKEN_SEMICOLON);
 }
 
-ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
+ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context){
 
   Token name_token = parser->current;
-
   const int NAME_LENGTH = name_token.length;
   char *name = (char *)arena_alloc(context->a, NAME_LENGTH+1);
   memcpy(name, name_token.start, NAME_LENGTH);
@@ -47,6 +46,7 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   fxn->line = parser->lexer->line;
   fxn->parent_fxn = parent;
   fxn->return_type = TYPE_NULL;
+  fxn->fxns = parser->lexer->fxns;
 
   parser->lexer->fxn = fxn;
 
@@ -78,6 +78,7 @@ ASTNode *register_and_form_method(Parser *parser, CodegenContext *context, const
   ASTNode *node = function(parser, context);
 
   parser->lexer->fxn = parent;
+
   return node;
 }
 

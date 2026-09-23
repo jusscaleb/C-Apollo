@@ -67,7 +67,7 @@ Symbol *register_fxn(CodegenContext *context, const char *name,
       s_count /= 10;
     }
 
-    char mangled[NAME_LENGTH + 32];
+    char mangled[256];
 
     memcpy(mangled, name, NAME_LENGTH);
     mangled[NAME_LENGTH] = '_';

@@ -143,7 +143,7 @@ Struct *parse_struct_fields(Parser *parser, CodegenContext *context) {
 }
 
 ASTNode *parse_fxns_block(Parser *parser, CodegenContext *context) {
-  advance(parser); // Advance past 'fxns'
+  advance(parser); 
 
   if (parser->current.type != TOKEN_IDENTIFIER) {
     error(parser, "Expected identifier for namespace/struct after 'fxns'.", SYNTAXERROR);
@@ -163,6 +163,8 @@ ASTNode *parse_fxns_block(Parser *parser, CodegenContext *context) {
   fxns->parent_fxn = parser->lexer->fxn;
   fxns->parent = NULL;
   fxns->bucket = BUCKET_ONE;
+
+  parser->lexer->fxns = fxns;
 
   ASTNode *fxns_node = create_fxns_node(name, name_length, parser->lexer->scope_level, fxns, context->a);
 
@@ -188,5 +190,6 @@ ASTNode *parse_fxns_block(Parser *parser, CodegenContext *context) {
   }
 
   consume(parser, TOKEN_RBRACE, "Expected '}' to close 'fxns' block.");
+  parser->lexer->fxns = NULL;
   return fxns_node;
 }

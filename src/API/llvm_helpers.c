@@ -250,6 +250,9 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
   }
 
   if (node->Type == AST_ACCESS) {
+    if (node->access.target && node->access.target->Type == AST_CALL_FXN) {
+      return _apl_eval_function_call(components, node->access.target);
+    }
     return _apl_gen_struct_access_load(components, node);
   }
 
@@ -479,11 +482,11 @@ LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
       bool is_b2_ret = (node->call_fxn.fxn.bucket == BUCKET_TWO) ||
                        (node->call_fxn.resolved_symbol && (node->call_fxn.resolved_symbol->bucket == BUCKET_TWO || (node->call_fxn.resolved_symbol->fxn && node->call_fxn.resolved_symbol->fxn->bucket == BUCKET_TWO)));
       uint32_t total_args = a_numbers + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);
-      LLVMValueRef args[total_args > 0 ? total_args : 1];
+      LLVMValueRef args[256];
 
       Args *a = node->call_fxn.args;
 
-      for(int i = 0; i < a_numbers && a != NULL; i++){
+      for(int i = 0; i < a_numbers && a != NULL && i < 256; i++){
         if (!a->arg) {
           args[i] = LLVMConstNull(_apl_get_llvm_type(components, a->datatype));
           a = a->next;
@@ -510,8 +513,7 @@ LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
                 break;
               }
               case TYPE_STRING: {
-                const uint32_t LENGTH = a->arg->literal_expr.token.length;
-                char str[LENGTH + 1];
+                char str[512];
                 slice_string(a->arg->literal_expr.token, str);
                 args[i] = LLVMBuildGlobalStringPtr(components->builder, str, "");
                 break;
@@ -541,7 +543,7 @@ LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
             args[i] = _apl_eval_function_call(components, a->arg);
             break;
           default:
-            args[i] = load_variable(components, a->arg);
+            args[i] = arihmetics(components, a->arg, "");
             break;
         }
         a = a->next;

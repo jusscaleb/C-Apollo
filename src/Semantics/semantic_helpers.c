@@ -191,8 +191,11 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
   }
 
   if (expr->Type == AST_ACCESS) {
-    if (expr->access.datatype != TYPE_NULL && expr->access.fields != NULL) {
+    if (expr->access.datatype != TYPE_NULL) {
       return expr->access.datatype;
+    }
+    if (expr->access.target && expr->access.target->Type == AST_CALL_FXN) {
+      return expr->access.target->call_fxn.return_type;
     }
     Struct *fields = get_struct_fields_from_expr(context, expr->access.src);
     expr->access.fields = fields;

@@ -79,14 +79,13 @@ ASTNode *parse_primary(Parser *parser, CodegenContext *context) {
           }
           consume(parser, TOKEN_RPARETH, "Expected ')' after method arguments.");
 
-          const char *rec_name = (node && node->Type == AST_VAR_REF) ? node->var_ref.name : "";
-          int rec_len = (node && node->Type == AST_VAR_REF) ? node->var_ref.name_length : 0;
-          int call_name_len = rec_len + 1 + field_token.length;
-          char *call_name = (char *)arena_alloc(context->a, call_name_len + 1);
-          snprintf(call_name, call_name_len + 1, "%.*s_%.*s", rec_len, rec_name, field_token.length, field_token.start);
+          char *method_name = (char *)arena_alloc(context->a, field_token.length + 1);
+          memcpy(method_name, field_token.start, field_token.length);
+          method_name[field_token.length] = '\0';
 
-          node = create_fxn_call_node(call_name, call_name_len, *parser->lexer->fxn,
-                                      parser->lexer->scope_level, args, context->a);
+          ASTNode *target = create_fxn_call_node(method_name, field_token.length, *parser->lexer->fxn,
+                                                parser->lexer->scope_level, args, context->a);
+          node = create_access_node(node, target, TYPE_NULL, context->a);
         } else {
           ASTNode *target = create_var_ref_node(field_token.start, field_token.length,
                                                *parser->lexer->fxn,
