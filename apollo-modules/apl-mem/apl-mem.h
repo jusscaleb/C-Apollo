@@ -57,7 +57,10 @@ int64_t apl_arc_ref_count(const void *ptr);
 // HOT PATH ALWAYS-INLINED FUNCTIONS
 // =========================================================================
 
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(_MSC_VER)
+#define APL_INLINE __forceinline
+#define APL_UNLIKELY(x) (x)
+#elif defined(__GNUC__) || defined(__clang__)
 #define APL_INLINE __attribute__((always_inline))
 #define APL_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else

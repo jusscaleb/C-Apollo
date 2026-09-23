@@ -228,14 +228,13 @@ ASTNode *identifier(Parser *parser, CodegenContext *context) {
           consume(parser, TOKEN_RPARETH, "Expected ')' after method arguments.");
           consume(parser, TOKEN_SEMICOLON, "Expected ';' after method call.");
 
-          const char *rec_name = (target_node && target_node->Type == AST_VAR_REF) ? target_node->var_ref.name : "";
-          int rec_len = (target_node && target_node->Type == AST_VAR_REF) ? target_node->var_ref.name_length : 0;
-          int call_name_len = rec_len + 1 + field_token.length;
-          char *call_name = (char *)arena_alloc(context->a, call_name_len + 1);
-          snprintf(call_name, call_name_len + 1, "%.*s_%.*s", rec_len, rec_name, field_token.length, field_token.start);
+          char *method_name = (char *)arena_alloc(context->a, field_token.length + 1);
+          memcpy(method_name, field_token.start, field_token.length);
+          method_name[field_token.length] = '\0';
 
-          return create_fxn_call_node(call_name, call_name_len, *parser->lexer->fxn,
-                                      parser->lexer->scope_level, args, context->a);
+          ASTNode *call_node = create_fxn_call_node(method_name, field_token.length, *parser->lexer->fxn,
+                                                    parser->lexer->scope_level, args, context->a);
+          return create_access_node(target_node, call_node, TYPE_NULL, context->a);
         }
         ASTNode *field_target = create_var_ref_node(field_token.start, field_token.length,
                                                    *parser->lexer->fxn,

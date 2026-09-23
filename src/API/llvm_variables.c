@@ -53,7 +53,7 @@ static void _apl_populate_struct_from_literal(LLVMComponents *components,
         int b = (elements[i]->literal_expr.token.length == 5) ? 0 : 1;
         elem_val = LLVMConstInt(I1(components->ctx), b, 0);
       } else if (tt == TOKEN_STRING) {
-        char str[elements[i]->literal_expr.token.length + 1];
+        char str[256];
         slice_string(elements[i]->literal_expr.token, str);
         LLVMTypeRef str_members[] = {LLVMPointerType(I8(components->ctx), 0),
                                      I32(components->ctx)};
@@ -86,9 +86,10 @@ static void _apl_populate_struct_from_literal(LLVMComponents *components,
 
 void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
 
-  char var_name[var_node->var_decl.name_length + 1];
-  memcpy(var_name, var_node->var_decl.name, var_node->var_decl.name_length);
-  var_name[var_node->var_decl.name_length] = '\0';
+  char var_name[256];
+  int len_vname = var_node->var_decl.name_length < 255 ? var_node->var_decl.name_length : 255;
+  memcpy(var_name, var_node->var_decl.name, len_vname);
+  var_name[len_vname] = '\0';
 
   ASTNode *expr = var_node->var_decl.value;
   const DataType VAR_TYPE = var_node->var_decl.value_type;
@@ -226,7 +227,7 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
           _apl_allocate_variable_by_bucket(components, sym, string_struct_type);
 
       if (expr) {
-        char str[expr->literal_expr.token.length + 1];
+        char str[256];
         slice_string(expr->literal_expr.token, str);
         if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
           size_t str_len = strlen(str);
@@ -488,7 +489,7 @@ void _apl_reassign_variable(LLVMComponents *components, ASTNode *node) {
 
   case TYPE_STRING: {
 
-    char str[value_node->literal_expr.token.length + 1];
+    char str[256];
 
     slice_string(value_node->literal_expr.token, str);
     LLVMTypeRef str_members[] = {LLVMPointerType(I8(components->ctx), 0),

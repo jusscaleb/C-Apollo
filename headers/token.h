@@ -13,12 +13,17 @@
 #ifndef APOLLO_TOKEN_H
 #define APOLLO_TOKEN_H
 
+
 #include "defs.h"
 #include "functions.h"
 #include <stdbool.h>
 #include <string.h>
 
+
 typedef struct ErrorStack ErrorStack;
+
+
+
 
 #define _IS_DIGIT_(c) ((unsigned)((c) - '0') <= 9)
 #define _IS_ALPHA_(c) (((unsigned)((c) | 32) - 'a') <= 25)
@@ -147,6 +152,7 @@ typedef struct {
   int column;
   int scope_level;
   Fxn *fxn;
+  Fxns *fxns;
   ErrorStack *errors;
 } Lexer;
 
@@ -163,7 +169,7 @@ Token next_token(Lexer *lexer);
  * @param message Description of lexical error.
  * @param got Character/string text received when error occurred.
  */
-__attribute__((always_inline)) void lex_error(Lexer *lexer, const char *message,
+ALWAYS_INLINE void lex_error(Lexer *lexer, const char *message,
                                               const char *got);
 
 // Tracks the internal stream state of parser.

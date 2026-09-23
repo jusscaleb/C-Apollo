@@ -2,7 +2,7 @@
 
 
 // move on to next token
-__attribute__((always_inline)) void advance(Parser *parser) {
+ALWAYS_INLINE void advance(Parser *parser) {
   parser->previous = parser->current;
   parser->current = next_token(parser->lexer);
 }
@@ -16,7 +16,7 @@ void synchronize(Parser *parser, TokenType safe_token) {
     advance(parser);
 }
 
-__attribute__((always_inline)) void consume(Parser *parser, TokenType type, const char *errorMessage) {
+ALWAYS_INLINE void consume(Parser *parser, TokenType type, const char *errorMessage) {
   if (parser->current.type == type) {
     advance(parser);
     return;
@@ -29,10 +29,9 @@ __attribute__((always_inline)) void consume(Parser *parser, TokenType type, cons
   synchronize(parser, TOKEN_SEMICOLON);
 }
 
-ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
+ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context){
 
   Token name_token = parser->current;
-
   const int NAME_LENGTH = name_token.length;
   char *name = (char *)arena_alloc(context->a, NAME_LENGTH+1);
   memcpy(name, name_token.start, NAME_LENGTH);
@@ -47,6 +46,7 @@ ASTNode *register_and_form_fxn(Parser *parser, CodegenContext *context) {
   fxn->line = parser->lexer->line;
   fxn->parent_fxn = parent;
   fxn->return_type = TYPE_NULL;
+  fxn->fxns = parser->lexer->fxns;
 
   parser->lexer->fxn = fxn;
 
@@ -78,6 +78,7 @@ ASTNode *register_and_form_method(Parser *parser, CodegenContext *context, const
   ASTNode *node = function(parser, context);
 
   parser->lexer->fxn = parent;
+
   return node;
 }
 
@@ -201,7 +202,7 @@ Args *get_args(CodegenContext *context, Parser *parser) {
 }
 
 
-__attribute__((always_inline))Token parser_get_var_token(Parser *parser, DataType dt){
+ALWAYS_INLINE Token parser_get_var_token(Parser *parser, DataType dt){
     switch (dt) {
     case TYPE_INT:    return (Token){TOKEN_INT, "0", 1, parser->current.line};
     case TYPE_STRING: return (Token){TOKEN_STRING, "", 4, parser->current.line};
@@ -244,7 +245,7 @@ ASTNode *parse_deref_assignment(Parser *parser, CodegenContext *context) {
       parser->lexer->scope_level, context->a, deref_level);
 }
 
-__attribute__((always_inline)) bool is_all_caps(const char *name, int length) {
+ALWAYS_INLINE bool is_all_caps(const char *name, int length) {
     if (!name || length <= 0) return false;
     bool has_alpha = false;
     for (int i = 0; i < length; i++) {
@@ -255,7 +256,7 @@ __attribute__((always_inline)) bool is_all_caps(const char *name, int length) {
     return has_alpha; 
 }
 
-__attribute__((always_inline)) int token_to_int(Token token) {
+ALWAYS_INLINE int token_to_int(Token token) {
   int result = 0;
   for (int i = 0; i < token.length; i++) {
     result = result * 10 + (token.start[i] - '0');

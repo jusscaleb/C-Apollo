@@ -134,7 +134,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
           break;
         }
 
-        char str[expr->literal_expr.token.length + 1];
+        char str[256];
 
         slice_string(expr->literal_expr.token, str);
         println_args =
@@ -202,11 +202,11 @@ void _apl_gen_function_start(LLVMComponents *components,
             ? _apl_get_n_params(components, block_node->function.fxn.params)
             : 0;
     uint32_t total_params = user_params + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);
-    LLVMTypeRef param_types[total_params > 0 ? total_params : 1];
+    LLVMTypeRef param_types[256];
 
     Params *p = block_node->function.fxn.params;
 
-    for (uint32_t i = 0; i < user_params; i++) {
+    for (uint32_t i = 0; i < user_params && i < 256; i++) {
       if (p && p->param && p->param->var_decl.pointer_level > 0) {
         param_types[i] = LLVMPointerType(I8(components->ctx), 0);
       } else {
@@ -216,10 +216,10 @@ void _apl_gen_function_start(LLVMComponents *components,
     }
 
     uint32_t curr_idx = user_params;
-    if (is_nested) {
+    if (is_nested && curr_idx < 256) {
       param_types[curr_idx++] = LLVMPointerType(I8(components->ctx), 0);
     }
-    if (is_b2_ret) {
+    if (is_b2_ret && curr_idx < 256) {
       param_types[curr_idx++] = LLVMPointerType(I8(components->ctx), 0);
     }
 
@@ -263,9 +263,10 @@ void _apl_gen_function_start(LLVMComponents *components,
     for (uint32_t i = 0; i < user_params; i++) {
       if (p && p->param && p->param->var_decl.resolved_symbol) {
         Symbol *sym = p->param->var_decl.resolved_symbol;
-        char p_name[p->param->var_decl.name_length + 1];
-        memcpy(p_name, p->param->var_decl.name, p->param->var_decl.name_length);
-        p_name[p->param->var_decl.name_length] = '\0';
+        char p_name[256];
+        int p_len = p->param->var_decl.name_length < 255 ? p->param->var_decl.name_length : 255;
+        memcpy(p_name, p->param->var_decl.name, p_len);
+        p_name[p_len] = '\0';
 
         LLVMValueRef param_val = LLVMGetParam(fxn, i);
         LLVMValueRef alloc = LLVMBuildAlloca(components->builder, param_types[i], p_name);
@@ -349,8 +350,7 @@ void _apl_gen_return(LLVMComponents *components,
         break;
       }
       case TYPE_STRING: {
-        const uint32_t LENGTH = val_node->literal_expr.token.length;
-        char str[LENGTH + 1];
+        char str[512];
         slice_string(val_node->literal_expr.token, str);
         ret_val = LLVMBuildGlobalStringPtr(components->builder, str, "");
         break;
@@ -394,7 +394,12 @@ void _apl_gen_return(LLVMComponents *components,
 
 void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
                                  ASTNode *stmt) {
+  if (!stmt) return;
 
+  if (stmt->Type == AST_ACCESS && stmt->access.target && stmt->access.target->Type == AST_CALL_FXN) {
+    _apl_gen_fxn_call_from_ast(components, stmt->access.target);
+    return;
+  }
 
   if (memcmp(stmt->call_fxn.name, "println", 7) == 0) {
     _apl_gen_println_ir(components, stmt->call_fxn.args);

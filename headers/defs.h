@@ -20,6 +20,12 @@
 #include <stdio.h>
 
 
+#ifdef _MSC_VER
+  #define ALWAYS_INLINE __forceinline
+#else
+  #define ALWAYS_INLINE __attribute__((always_inline)) inline
+#endif
+
 #define _DB 0
 #define _DEBUG(prompt)                                                         \
   do {                                                                         \

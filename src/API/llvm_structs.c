@@ -58,7 +58,8 @@ LLVMTypeRef _apl_get_field_llvm_type(LLVMComponents *components, ASTNode *field_
     case TYPE_STRUCT: {
       const char *type_name = field_decl->var_decl.struct_type_name ? field_decl->var_decl.struct_type_name : field_decl->var_decl.name;
       int name_len = field_decl->var_decl.struct_type_name ? field_decl->var_decl.struct_type_name_len : field_decl->var_decl.name_length;
-      char s_name[name_len + 1];
+      char s_name[256];
+      if (name_len >= 256) name_len = 255;
       memcpy(s_name, type_name, name_len);
       s_name[name_len] = '\0';
       LLVMTypeRef nested = LLVMGetTypeByName(components->module, s_name);
@@ -77,9 +78,10 @@ LLVMTypeRef _apl_gen_struct_definition(LLVMComponents *components, ASTNode *stru
   }
 
   const int NAME_LENGTH = struct_node->struct_expr.name_length;
-  char name[NAME_LENGTH + 1];
-  memcpy(name, struct_node->struct_expr.name, NAME_LENGTH);
-  name[NAME_LENGTH] = '\0';
+  char name[256];
+  int len_n = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+  memcpy(name, struct_node->struct_expr.name, len_n);
+  name[len_n] = '\0';
 
   // 1. Create or retrieve named LLVM struct
   LLVMTypeRef struct_type = LLVMGetTypeByName(components->module, name);
@@ -96,10 +98,10 @@ LLVMTypeRef _apl_gen_struct_definition(LLVMComponents *components, ASTNode *stru
   }
 
   // 3. Collect LLVM types for all fields
-  LLVMTypeRef field_types[field_count > 0 ? field_count : 1];
+  LLVMTypeRef field_types[256];
   uint32_t idx = 0;
   f = struct_node->struct_expr.fields;
-  while (f) {
+  while (f && idx < 256) {
     if (f->field) {
       field_types[idx++] = _apl_get_field_llvm_type(components, f->field);
     }
@@ -108,12 +110,6 @@ LLVMTypeRef _apl_gen_struct_definition(LLVMComponents *components, ASTNode *stru
 
   // 4. Set struct body with natural memory alignment (isPacked = false) for maximum CPU efficiency
   LLVMStructSetBody(struct_type, field_types, field_count, false);
-
-  // 5. Store type reference in symbol table
-  if (struct_node->struct_expr.sym) {
-    struct_node->struct_expr.sym->llvm_struct_type = struct_type;
-  }
-
   return struct_type;
 }
 
@@ -212,7 +208,8 @@ LLVMValueRef _apl_get_struct_access_ptr(LLVMComponents *components, ASTNode *acc
     f = f->next;
   }
 
-  char f_name[field_len + 1];
+  char f_name[256];
+  if (field_len >= 256) field_len = 255;
   memcpy(f_name, field_name, field_len);
   f_name[field_len] = '\0';
 

@@ -18,12 +18,14 @@
 
 typedef struct CodegenContext CodegenContext;
 typedef Fxn Fxn;
+typedef struct Fxns Fxns;
 typedef struct Params Params;
 
 typedef struct Fxn {
   int length;
   int line;
   int level;
+  Fxns *fxns;
   DataType return_type;
   const char *name;
   struct Fxn *parent_fxn;
@@ -41,6 +43,7 @@ typedef struct Fxns {
       Fxn *parent_fxn;
       struct Fxns *parent;
       MemoryBucket bucket;
+      const char *name;
 }Fxns;
 
 /**

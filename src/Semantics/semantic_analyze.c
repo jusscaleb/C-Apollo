@@ -75,9 +75,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
   case AST_VAR_DECL: {
     const int NAME_LENGTH = node->var_decl.name_length;
-    char name[NAME_LENGTH + 1];
-    memcpy(name, node->var_decl.name, NAME_LENGTH);
-    name[NAME_LENGTH] = '\0';
+    char name[256];
+    int len_d = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+    memcpy(name, node->var_decl.name, len_d);
+    name[len_d] = '\0';
     Symbol *sym = lookup_token(context->codegen, name, &node->var_decl.fxn,
                                node->var_decl.level);
     if (sym && sym->fxn && sym->fxn->name && node->var_decl.fxn.name &&
@@ -193,9 +194,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     }
 
     const int NAME_LENGTH = node->var_assign.name_length;
-    char name[NAME_LENGTH + 1];
-    memcpy(name, node->var_assign.name, NAME_LENGTH);
-    name[NAME_LENGTH] = '\0';
+    char name[256];
+    int len_name = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+    memcpy(name, node->var_assign.name, len_name);
+    name[len_name] = '\0';
 
     Symbol *sym = lookup_token(context->codegen, name, &node->var_assign.fxn,
                                node->var_assign.level);
@@ -391,9 +393,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
   case AST_CALL_FXN: {
     const int NAME_LENGTH = node->call_fxn.name_length;
-    char fn_name[NAME_LENGTH + 1];
-    memcpy(fn_name, node->call_fxn.name, NAME_LENGTH);
-    fn_name[NAME_LENGTH] = '\0';
+    char fn_name[256];
+    int len_fn = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+    memcpy(fn_name, node->call_fxn.name, len_fn);
+    fn_name[len_fn] = '\0';
 
     bool is_println = (memcmp(fn_name, "println", 7) == 0);
     Symbol *sym = NULL;
@@ -407,7 +410,8 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         char *underscore = strchr(fn_name, '_');
         if (underscore) {
           int rec_len = (int)(underscore - fn_name);
-          char rec_name[rec_len + 1];
+          char rec_name[256];
+          if (rec_len >= 256) rec_len = 255;
           memcpy(rec_name, fn_name, rec_len);
           rec_name[rec_len] = '\0';
           Symbol *rec_sym = lookup_token(context->codegen, rec_name, &node->call_fxn.fxn, node->call_fxn.level);
@@ -540,9 +544,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   case AST_VAR_REF: {
 
     const int NAME_LENGTH = node->var_ref.name_length;
-    char name[NAME_LENGTH + 1];
-    memcpy(name, node->var_ref.name, NAME_LENGTH);
-    name[NAME_LENGTH] = '\0';
+    char name[256];
+    int len_ref = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+    memcpy(name, node->var_ref.name, len_ref);
+    name[len_ref] = '\0';
 
     Symbol *sym = lookup_token(context->codegen, name, &node->var_ref.fxn,
                                node->var_ref.level);
@@ -659,8 +664,47 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
   case AST_ACCESS: {
     analyze_node(context, node->access.src);
-    node->access.datatype = infer_expr_type(context, node);
-    node->access.fields = get_struct_fields_from_expr(context, node->access.src);
+    if (node->access.target) {
+      if (node->access.target->Type == AST_CALL_FXN) {
+        Symbol *src_sym = NULL;
+        if (node->access.src->Type == AST_VAR_REF) {
+          src_sym = node->access.src->var_ref.resolved_symbol;
+        }
+        const char *struct_name = (src_sym && src_sym->struct_type_name) ? src_sym->struct_type_name : (src_sym ? src_sym->name : NULL);
+        if (struct_name) {
+          char mangled[256];
+          snprintf(mangled, sizeof(mangled), "%s_%s", struct_name, node->access.target->call_fxn.name);
+          Symbol *sym = lookup_token(context->codegen, mangled, &node->access.target->call_fxn.fxn, node->access.target->call_fxn.level);
+          if (sym) {
+            Params *fp = (sym->fxn) ? sym->fxn->params : NULL;
+            if (fp && fp->param && strcmp(fp->param->var_decl.name, "self") == 0) {
+              Args *this_arg = (Args *)arena_alloc(context->codegen->a, sizeof(Args));
+              this_arg->arg = node->access.src;
+              this_arg->datatype = TYPE_STRUCT;
+              this_arg->next = node->access.target->call_fxn.args;
+              node->access.target->call_fxn.args = this_arg;
+            }
+            int mangled_len = strlen(mangled);
+            char *mangled_dup = (char *)arena_alloc(context->codegen->a, mangled_len + 1);
+            memcpy(mangled_dup, mangled, mangled_len);
+            mangled_dup[mangled_len] = '\0';
+            node->access.target->call_fxn.name = mangled_dup;
+            node->access.target->call_fxn.name_length = mangled_len;
+          } else {
+            report_semantic_error(context, "Method not found on struct.");
+            break;
+          }
+        }
+        analyze_node(context, node->access.target);
+        node->access.datatype = node->access.target->call_fxn.return_type;
+      } else {
+        node->access.datatype = infer_expr_type(context, node);
+        node->access.fields = get_struct_fields_from_expr(context, node->access.src);
+      }
+    } else {
+      node->access.datatype = infer_expr_type(context, node);
+      node->access.fields = get_struct_fields_from_expr(context, node->access.src);
+    }
     break;
   }
 
