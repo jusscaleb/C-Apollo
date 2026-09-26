@@ -18,14 +18,17 @@ const char *TokenNames[] = {
 };
 
 // FOR ERROR HANDLING
-ALWAYS_INLINE void lex_error(Lexer *lexer, const char *message,
+ALWAYS_INLINE void lex_error(Lexer *lexer, const char *message, int got_len,
                                               const char *got) {
   Error *e = (Error *)alloc_space(1, sizeof(Error));
   e->message = _strdup(message);
   e->type = LEXERROR;
   e->line = lexer->line;
   e->column = lexer->column;
-  e->got = _strdup(got);
+  
+  e->got = (char *)alloc_space(got_len + 1, sizeof(char));
+  memcpy(e->got, got, got_len);
+  e->got[got_len] = '\0';
 
   errorStack_push(lexer->errors, e);
 }
@@ -201,7 +204,7 @@ Token next_token(Lexer *lexer) {
         }
         lexer->current++;
       }
-      lex_error(lexer, "Unterminated block comment.", "");
+      lex_error(lexer, "Unterminated block comment.", 0 ,"");
       return next_token(lexer);
     }
     if (*lexer->current == '=') {
@@ -258,7 +261,7 @@ Token next_token(Lexer *lexer) {
       return token;
     }
 
-    lex_error(lexer, "Unrecognized Token. Did you mean '!='?", "!");
+    lex_error(lexer, "Unrecognized Token. Did you mean '!='?", 1, "!");
     Token token = {TOKEN_EOF, start, 1, lexer->line};
     lexer->column += token.length;
     return token;
@@ -317,7 +320,7 @@ Token next_token(Lexer *lexer) {
       return token;
     }
 
-    lex_error(lexer, "Could not recognize token. Did you mean '||'?", "|");
+    lex_error(lexer, "Could not recognize token. Did you mean '||'?", 1,  "|");
     Token token = {TOKEN_EOF, start, 1, lexer->line};
     return token;
   }
@@ -385,7 +388,7 @@ Token next_token(Lexer *lexer) {
   }
 
   char temp[2] = {c, '\0'};
-  lex_error(lexer, "Undefined string.", temp);
+  lex_error(lexer, "Undefined string.",2, temp);
   Token token = {TOKEN_EOF, start, 1, lexer->line};
   return token;
 }
@@ -405,13 +408,12 @@ ALWAYS_INLINE Token check_number(Lexer *lexer,
 
     if (!_IS_DIGIT_((unsigned char)*lexer->current)) {
       int len = (int)(lexer->current - start);
-      char temp[256];
-      if (len >= 256) len = 255;
-      memcpy(temp, start, len);
-      temp[len] = '\0';
-      lex_error(lexer, "Expected value int after '.' ", temp);
+      /*char temp[len+1];
+          memcpy(temp, start, len);
+          temp[len] = '\0';*/
+          lex_error(lexer, "Expected value int after '.'", len, start);
     }
-  }
+      }
   while (_IS_DIGIT_((unsigned char)*lexer->current)) {
     lexer->current++;
     lexer->column++;
@@ -449,11 +451,11 @@ ALWAYS_INLINE Token check_string_or_char(Lexer *lexer,
       // If it reaches \0 that means it's an unterminated string.
       if (*lexer->current == '\0') {
         int len = (int)(lexer->current - start);
-        char temp[256];
+        /*char temp[256];
         if (len >= 256) len = 255;
         memcpy(temp, start, len);
-        temp[len] = '\0';
-        lex_error(lexer, err_msg, temp);
+        temp[len] = '\0';*/
+        lex_error(lexer, err_msg, len, start);
         Token token = {TOKEN_EOF, start, len, lexer->line};
         return token;
       }
@@ -469,11 +471,11 @@ ALWAYS_INLINE Token check_string_or_char(Lexer *lexer,
 
   if (*lexer->current == '\0') {
     int len = (int)(lexer->current - start);
-    char temp[256];
+    /*char temp[256];
     if (len >= 256) len = 255;
     memcpy(temp, start, len);
-    temp[len] = '\0';
-    lex_error(lexer, err_msg, temp);
+    temp[len] = '\0';*/
+    lex_error(lexer, err_msg, len, start);
     Token token = {TOKEN_EOF, start, len, lexer->line};
     return token;
   }
@@ -482,7 +484,7 @@ ALWAYS_INLINE Token check_string_or_char(Lexer *lexer,
 
   if (!is_str) {
     if (length + 1 < 3 || length + 1 > 4) {
-      lex_error(lexer, "Character literal must contain exactly one character",
+      lex_error(lexer, "Character literal must contain exactly one character", length,
                 start);
     }
   }

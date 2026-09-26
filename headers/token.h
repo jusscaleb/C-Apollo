@@ -169,8 +169,8 @@ Token next_token(Lexer *lexer);
  * @param message Description of lexical error.
  * @param got Character/string text received when error occurred.
  */
-ALWAYS_INLINE void lex_error(Lexer *lexer, const char *message,
-                                              const char *got);
+void lex_error(Lexer *lexer, const char *message, int got_len,
+                                              const char *got) ;
 
 // Tracks the internal stream state of parser.
 typedef struct {
