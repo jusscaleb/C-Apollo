@@ -25,7 +25,7 @@ ALWAYS_INLINE void lex_error(Lexer *lexer, const char *message, int got_len,
   e->type = LEXERROR;
   e->line = lexer->line;
   e->column = lexer->column;
-  
+
   e->got = (char *)alloc_space(got_len + 1, sizeof(char));
   memcpy(e->got, got, got_len);
   e->got[got_len] = '\0';
@@ -451,10 +451,6 @@ ALWAYS_INLINE Token check_string_or_char(Lexer *lexer,
       // If it reaches \0 that means it's an unterminated string.
       if (*lexer->current == '\0') {
         int len = (int)(lexer->current - start);
-        /*char temp[256];
-        if (len >= 256) len = 255;
-        memcpy(temp, start, len);
-        temp[len] = '\0';*/
         lex_error(lexer, err_msg, len, start);
         Token token = {TOKEN_EOF, start, len, lexer->line};
         return token;
@@ -471,10 +467,6 @@ ALWAYS_INLINE Token check_string_or_char(Lexer *lexer,
 
   if (*lexer->current == '\0') {
     int len = (int)(lexer->current - start);
-    /*char temp[256];
-    if (len >= 256) len = 255;
-    memcpy(temp, start, len);
-    temp[len] = '\0';*/
     lex_error(lexer, err_msg, len, start);
     Token token = {TOKEN_EOF, start, len, lexer->line};
     return token;

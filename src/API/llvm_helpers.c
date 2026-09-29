@@ -447,9 +447,8 @@ LLVMValueRef arihmetics(LLVMComponents *components, ASTNode *node,
 }
 
 ALWAYS_INLINE float return_eval_int(ASTNode* expr){
-    char int_str[256];
     int len = expr->literal_expr.token.length;
-    if (len >= 256) len = 255;
+    char int_str[len + 1];
     memcpy(int_str, expr->literal_expr.token.start, len);
     int_str[len] = '\0';
    
@@ -482,11 +481,11 @@ LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
       bool is_b2_ret = (node->call_fxn.fxn.bucket == BUCKET_TWO) ||
                        (node->call_fxn.resolved_symbol && (node->call_fxn.resolved_symbol->bucket == BUCKET_TWO || (node->call_fxn.resolved_symbol->fxn && node->call_fxn.resolved_symbol->fxn->bucket == BUCKET_TWO)));
       uint32_t total_args = a_numbers + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);
-      LLVMValueRef args[256];
+      LLVMValueRef args[total_args];
 
       Args *a = node->call_fxn.args;
 
-      for(int i = 0; i < a_numbers && a != NULL && i < 256; i++){
+      for(int i = 0; i < a_numbers && a != NULL; i++){
         if (!a->arg) {
           args[i] = LLVMConstNull(_apl_get_llvm_type(components, a->datatype));
           a = a->next;

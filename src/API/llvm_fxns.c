@@ -1,5 +1,6 @@
 #include "../../headers/llvm_backend.h"
 #include "llvm-c/Core.h"
+#include <malloc.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -134,7 +135,7 @@ void _apl_gen_println_ir(LLVMComponents *components,
           break;
         }
 
-        char str[256];
+        char str[expr->literal_expr.token.length+1];
 
         slice_string(expr->literal_expr.token, str);
         println_args =
@@ -202,7 +203,7 @@ void _apl_gen_function_start(LLVMComponents *components,
             ? _apl_get_n_params(components, block_node->function.fxn.params)
             : 0;
     uint32_t total_params = user_params + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);
-    LLVMTypeRef param_types[256];
+    LLVMTypeRef *param_types = alloca(total_params * sizeof(LLVMTypeRef));
 
     Params *p = block_node->function.fxn.params;
 
@@ -263,10 +264,11 @@ void _apl_gen_function_start(LLVMComponents *components,
     for (uint32_t i = 0; i < user_params; i++) {
       if (p && p->param && p->param->var_decl.resolved_symbol) {
         Symbol *sym = p->param->var_decl.resolved_symbol;
-        char p_name[256];
-        int p_len = p->param->var_decl.name_length < 255 ? p->param->var_decl.name_length : 255;
-        memcpy(p_name, p->param->var_decl.name, p_len);
-        p_name[p_len] = '\0';
+        int len = p->param->var_decl.name_length;
+        char p_name[len + 1];
+        //int p_len = p->param->var_decl.name_length < 255 ? p->param->var_decl.name_length : 255;
+        memcpy(p_name, p->param->var_decl.name, len);
+        p_name[len] = '\0';
 
         LLVMValueRef param_val = LLVMGetParam(fxn, i);
         LLVMValueRef alloc = LLVMBuildAlloca(components->builder, param_types[i], p_name);
