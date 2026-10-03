@@ -5,6 +5,48 @@ All notable changes to the Apollo Programming Language project will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-09-23 (Unstable Preview)
+
+### Added
+- **LLVM C API Backend Pipeline**: Completely transitioned compiler code generation from manual string-based LLVM IR formatting to the native LLVM C API (`headers/llvm_backend.h` and modular `src/API/llvm_*.c`), providing robust AST-to-IR generation, type verification, and native optimization.
+- **3+1 Bucket Memory Architecture**: Implemented Apollo's deterministic memory management model across four tiers:
+  - **Bucket 0 (+1) - CPU Call Stack (`alloca`)**: Zero-overhead allocation for fixed scalar primitives and static fixed-size arrays.
+  - **Bucket 1 - Static Bucket**: Compile-time constant allocation in the global data segment for immutable strings and globals.
+  - **Bucket 2 - Scoped Region Arena**: Bump-allocated scoped regions with instantaneous $O(1)$ bulk resets on scope exit and loop bookmarking.
+  - **Bucket 3 - Dynamic Heap ARC**: Prepend-header automatic reference counting for escaping or dynamically allocated objects.
+- **Apollo Runtime Modules (`apollo-modules/`)**: Modular precompiled LLVM bitcode runtime libraries linked during native binary creation:
+  - `apl-mem`: Runtime bucket allocation and memory management routines.
+  - `apl-io`: High-performance formatted console I/O, `println`, and stdin input (`__apl_input__`).
+  - `apl-string`: Dynamic string concatenation (`__apl_str_concat__`), conversions, and formatting.
+  - `apl-sys`: Platform system calls and process execution utilities.
+- **Arrays & Indexing**: Native support for static fixed-size arrays (`int[N]`) and dynamic arrays (`T[]`), including element indexing (`arr[i]`), mutation (`arr[i] = val`), and bounds-checking infrastructure.
+- **Structs**: First-class user-defined composite data structures (`struct Point { int x; int y; }`) with member initialization, stack/heap layout, and dot-access operator (`p.x`).
+- **Pointers & References**: First-class pointer declaration, address-of (`&`), and dereference (`*`) operators.
+- **Character Datatype (`char`)**: Added dedicated `char` primitive type support with single-quote character literal parsing (`'a'`).
+- **Variable Reassignment**: Full support for mutable variables and post-declaration assignment statements (`x = 20;`, string reassignment).
+- **Parenthesized Arithmetic Expressions**: Support for grouped arithmetic operations with correct operator precedence (e.g. `(a + b) * c`).
+- **Looping Constructs**: Native `while` and `for` loop control flow constructs with loop-level scoped arena resets.
+- **Gperf Perfect Keyword Hashing**: Implemented compile-time keyword hash lookup via `src/gperf/keywords.gperf` and `headers/keywords_hash.h` for $O(1)$ keyword identification.
+- **Hash Map Symbol Table**: Replaced linear symbol lookup tables with an efficient bucketed hash map implementation for constant-time variable and function resolution.
+- **Fast Character Classification Macros**: Replaced standard C library functions (`isdigit`, `isalpha`, `isalnum`) with inlined bitwise macros in `headers/token.h` for faster lexing.
+- **Compiler Arena Allocator**: Built an internal bump allocator (`src/memory.c`) for internal compiler data structures and AST nodes to eliminate per-node `malloc`/`free` overhead.
+- **Target Machine & Host CPU Tuning**: Added CPU feature detection (`LLVMGetHostCPUName`, `LLVMGetHostCPUFeatures`) and SSA optimization pass pipelines.
+
+
+### Changed
+- **Modularized Parser**: Refactored monolithic `src/parser.c` into dedicated submodules under `src/Parser/` (`parser_entry.c`, `parser_expr.c`, `parser_functions.c`, `parser_data_structures.c`, `parser_var.c`, `parser_helpers.c`).
+- **Modularized Semantic Analysis**: Refactored `src/semantic.c` into specialized semantic analyzers under `src/Semantics/` (`semantic_analyze.c`, `semantic_helpers.c`).
+- **Modularized Backend Code Generation**: Replaced monolithic text emitter `src/generator.c` with modular LLVM C API modules under `src/API/` (`llvm_main.c`, `llvm_variables.c`, `llvm_fxns.c`, `llvm_condbr.c`, `llvm_arrays.c`, `llvm_structs.c`, `llvm_memory.c`, `llvm_helpers.c`).
+- **Nested Function Upvalue Handling**: Improved function builder state stacking and safe upvalue scoping for nested functions.
+- **Driver Build Process**: Upgraded driver scripts (`run.sh`, `compiler.sh`) and build configurations (`CMakeLists.txt`) for LLVM 19 and MSYS2 MinGW toolchains.
+
+### Removed
+- **Monolithic Text Generator (`src/generator.c`)**: Removed legacy 1,700+ line textual LLVM IR string generation in favor of the LLVM C API.
+- **Monolithic Parser & Semantic Files**: Removed legacy single-file `src/parser.c` and `src/semantic.c`.
+- **Legacy Driver Helper (`apl.c`)**: Removed obsolete driver helper in favor of direct CLI compiler build flow.
+
+---
+
 ## [2.0.0] - 2026-07-21 (Unstable Preview)
 
 ### Added
