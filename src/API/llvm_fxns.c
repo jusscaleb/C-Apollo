@@ -396,8 +396,10 @@ void _apl_gen_fxn_call_from_ast(LLVMComponents *components,
                                  ASTNode *stmt) {
   if (!stmt) return;
 
-  if (stmt->Type == AST_ACCESS && stmt->access.target && stmt->access.target->Type == AST_CALL_FXN) {
-    _apl_gen_fxn_call_from_ast(components, stmt->access.target);
+  if (stmt->Type == AST_ACCESS) {
+    if (stmt->access.target && stmt->access.target->Type == AST_CALL_FXN) {
+      _apl_gen_fxn_call_from_ast(components, stmt->access.target);
+    }
     return;
   }
 
