@@ -1,7 +1,7 @@
 # Apollo Programming Language
 
-**Version:** `v3.0.0-unstable-preview`  
-**Release Channel:** Active Development / Unstable Preview  
+**Version:** `v3.0.1-preview`  
+**Release Channel:** Active Development / Preview  
 **Target Architecture:** `x86_64-w64-windows-gnu` / Windows Native  
 **Compiler Backend:** LLVM 19 C-API (`libLLVM-19`) + Clang Linker
 
