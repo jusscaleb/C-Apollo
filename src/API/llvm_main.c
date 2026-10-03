@@ -225,6 +225,9 @@ void _apl_gen_block_from_ast(LLVMComponents *components, ASTNode *block_node) {
     case AST_CALL_FXN:
       _apl_gen_fxn_call_from_ast(components, stmt);
       break;
+    case AST_ACCESS:
+      _apl_gen_fxn_call_from_ast(components, stmt);
+      break;
     case AST_RET_NODE:
       _apl_gen_return(components, stmt);
       break;
