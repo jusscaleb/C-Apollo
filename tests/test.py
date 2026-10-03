@@ -67,7 +67,7 @@ def test_n(test_type, num, name, code, expected):
 
 if __name__ == '__main__':
     print("==================================================")
-    print("      APOLLO v3.0.0-unstable-preview TEST SUITE   ")
+    print("      APOLLO v3.0.x TEST SUITE   ")
     print("==================================================")
 
     # Import test modules
