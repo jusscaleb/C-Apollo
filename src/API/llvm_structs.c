@@ -58,8 +58,8 @@ LLVMTypeRef _apl_get_field_llvm_type(LLVMComponents *components, ASTNode *field_
     case TYPE_STRUCT: {
       const char *type_name = field_decl->var_decl.struct_type_name ? field_decl->var_decl.struct_type_name : field_decl->var_decl.name;
       int name_len = field_decl->var_decl.struct_type_name ? field_decl->var_decl.struct_type_name_len : field_decl->var_decl.name_length;
-      char s_name[256];
-      if (name_len >= 256) name_len = 255;
+      char s_name[name_len + 1];
+      //if (name_len >= 256) name_len = 255;
       memcpy(s_name, type_name, name_len);
       s_name[name_len] = '\0';
       LLVMTypeRef nested = LLVMGetTypeByName(components->module, s_name);
