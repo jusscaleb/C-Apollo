@@ -207,7 +207,6 @@ ASTNode *identifier(Parser *parser, CodegenContext *context) {
     var_node->var_decl.struct_type_name_len = NAME_LENGTH;
     return var_node;
   }
-
   if (parser->current.type == TOKEN_ACCESS) {
     ASTNode *target_node = create_var_ref_node(potential_name, NAME_LENGTH,
                                               *parser->lexer->fxn,
@@ -287,14 +286,25 @@ ASTNode *identifier(Parser *parser, CodegenContext *context) {
     return create_target_assign_node(target_node, value, *parser->lexer->fxn,
                                     parser->lexer->scope_level, context->a);
   }
-
   if (parser->current.type == TOKEN_LSQUARE_BRACE) {
     ASTNode *var_ref =
         create_var_ref_node(potential_name, NAME_LENGTH, *parser->lexer->fxn,
                             parser->lexer->scope_level, context->a);
     ASTNode *expr_index = parse_index_expr(parser, context, var_ref);
-    consume(parser, TOKEN_SEMICOLON,
+
+    if(parser->current.type == TOKEN_ASSIGN){
+      ASTNode* value;
+      advance(parser);
+      value = parse_logical_or(parser, context);
+          consume(parser, TOKEN_SEMICOLON,
             "Expected trailing semicolon ';' after expression statement.");
+      return create_target_assign_node(expr_index, value, *parser->lexer->fxn, parser->lexer->scope_level, context->a);
+    }
+
+
+      consume(parser, TOKEN_SEMICOLON,
+            "Expected trailing semicolon ';' after expression statement.");
+
     return expr_index;
   }
   if (parser->current.type == TOKEN_LPARETH) {
