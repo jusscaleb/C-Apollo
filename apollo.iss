@@ -1,10 +1,10 @@
 [Setup]
 AppName=Apollo Compiler
-AppVersion=3.0.0
+AppVersion=3.0.1
 AppPublisher=SCXRPIUS
 DefaultDirName={autopf}\Apollo
 DefaultGroupName=Apollo
-OutputBaseFilename=Apollo_Setup_v3.0.0
+OutputBaseFilename=Apollo_Setup_v3.0.1
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64
