@@ -716,6 +716,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     }
     Symbol *res_symbol = register_variable(context->codegen, node->struct_expr.name, TYPE_STRUCT, node->struct_expr.fxn, node->struct_expr.level, node->struct_expr.name_length);
     res_symbol->struct_fields = node->struct_expr.fields;
+    res_symbol->assigned = true;
     node->struct_expr.sym = res_symbol;
 
     Struct *field = node->struct_expr.fields;
