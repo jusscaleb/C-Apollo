@@ -188,6 +188,19 @@ void _apl_optimize_module(LLVMComponents *components) {
   }
 
   LLVMDisposePassBuilderOptions(options);
+
+  // Emit native object file directly from the optimized module.
+  char *obj_err = NULL;
+  if (LLVMTargetMachineEmitToFile(target_machine, components->module,
+                                   "temp\\output.o", LLVMObjectFile,
+                                   &obj_err)) {
+    fprintf(stderr, "[LLVM Backend Error] Failed to emit object file: %s\n",
+            obj_err ? obj_err : "(unknown)");
+    if (obj_err) LLVMDisposeMessage(obj_err);
+  } else {
+    _DEBUG("Native object file emitted to temp/output.o")
+  }
+
   LLVMDisposeTargetMachine(target_machine);
   LLVMDisposeMessage(target_triple);
   LLVMDisposeMessage(cpu);

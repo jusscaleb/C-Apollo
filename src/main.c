@@ -63,19 +63,20 @@ void llvm_compilation() {
   }
   size_t cwd_len = strlen(cwd);
 
-  char bc_path[1024];
+  char obj_path[1024];
   char exe_path[1024];
 
-  memcpy(bc_path, cwd, cwd_len);
-  memcpy(bc_path + cwd_len, "\\temp\\output.bc", sizeof("\\temp\\output.bc"));
+  memcpy(obj_path, cwd, cwd_len);
+  memcpy(obj_path + cwd_len, "\\temp\\output.o", sizeof("\\temp\\output.o"));
 
   memcpy(exe_path, cwd, cwd_len);
   memcpy(exe_path + cwd_len, "\\temp\\program.exe", sizeof("\\temp\\program.exe"));
 
+  // Link the native object file directly — no bitcode re-parsing needed.
   const char *clang_bin = "C:\\msys64\\clang64\\bin\\clang.exe";
-  int result = _spawnl(_P_WAIT, clang_bin, "clang", "--target=x86_64-w64-windows-gnu", "-O3", bc_path, "-o", exe_path, NULL);
+  int result = _spawnl(_P_WAIT, clang_bin, "clang", "--target=x86_64-w64-windows-gnu", "-fuse-ld=lld", obj_path, "-o", exe_path, NULL);
   if (result != 0) {
-    result = _spawnlp(_P_WAIT, "clang", "clang", "--target=x86_64-w64-windows-gnu", "-O3", bc_path, "-o", exe_path, NULL);
+    result = _spawnlp(_P_WAIT, "clang", "clang", "--target=x86_64-w64-windows-gnu", "-fuse-ld=lld", obj_path, "-o", exe_path, NULL);
   }
 
   if (result == 0) {
@@ -86,7 +87,7 @@ void llvm_compilation() {
     exit(EXIT_SUCCESS);
   } else {
     fprintf(stderr,
-            "[DRIVER] Compilation Error: Clang failed to build the IR.\n");
+            "[DRIVER] Compilation Error: Linker failed to build executable.\n");
     exit(EXIT_FAILURE);
   }
 }
@@ -139,7 +140,7 @@ int main(int argc, char **argv) {
   compiler_context.a = &arena;
 
 
-  compiler_context.t = symbol_table_init(compiler_context.a, 32);
+  compiler_context.t = symbol_table_init(compiler_context.a, 256);
   {
     char cwd[512];
     if (_getcwd(cwd, sizeof(cwd)) == NULL) {

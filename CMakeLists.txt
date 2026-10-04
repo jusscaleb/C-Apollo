@@ -5,6 +5,12 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+# Default to Release for optimized Apollo compiler binary
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+
 # Include header directories
 include_directories(src src/API)
 include_directories(src src/Semantics)
