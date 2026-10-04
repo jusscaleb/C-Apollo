@@ -78,10 +78,10 @@ LLVMTypeRef _apl_gen_struct_definition(LLVMComponents *components, ASTNode *stru
   }
 
   const int NAME_LENGTH = struct_node->struct_expr.name_length;
-  char name[256];
-  int len_n = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-  memcpy(name, struct_node->struct_expr.name, len_n);
-  name[len_n] = '\0';
+  char name[NAME_LENGTH+1];
+  //int len_n = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+  memcpy(name, struct_node->struct_expr.name, NAME_LENGTH);
+  name[NAME_LENGTH] = '\0';
 
   // 1. Create or retrieve named LLVM struct
   LLVMTypeRef struct_type = LLVMGetTypeByName(components->module, name);
@@ -208,11 +208,9 @@ LLVMValueRef _apl_get_struct_access_ptr(LLVMComponents *components, ASTNode *acc
     f = f->next;
   }
 
-  char f_name[256];
-  if (field_len >= 256) field_len = 255;
+  char f_name[field_len + 1];
   memcpy(f_name, field_name, field_len);
   f_name[field_len] = '\0';
-
   return LLVMBuildStructGEP2(components->builder, struct_type, struct_ptr,
                              target_index, f_name);
 }

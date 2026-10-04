@@ -75,10 +75,9 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
   case AST_VAR_DECL: {
     const int NAME_LENGTH = node->var_decl.name_length;
-    char name[256];
-    int len_d = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(name, node->var_decl.name, len_d);
-    name[len_d] = '\0';
+    char name[NAME_LENGTH+1];
+    memcpy(name, node->var_decl.name, NAME_LENGTH);
+    name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, name, &node->var_decl.fxn,
                                node->var_decl.level);
     if (sym && sym->fxn && sym->fxn->name && node->var_decl.fxn.name &&
@@ -194,10 +193,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     }
 
     const int NAME_LENGTH = node->var_assign.name_length;
-    char name[256];
-    int len_name = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(name, node->var_assign.name, len_name);
-    name[len_name] = '\0';
+    char name[NAME_LENGTH+1];
+    //int len_name = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+    memcpy(name, node->var_assign.name, NAME_LENGTH);
+    name[NAME_LENGTH] = '\0';
 
     Symbol *sym = lookup_token(context->codegen, name, &node->var_assign.fxn,
                                node->var_assign.level);
@@ -393,10 +392,10 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
 
   case AST_CALL_FXN: {
     const int NAME_LENGTH = node->call_fxn.name_length;
-    char fn_name[256];
-    int len_fn = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(fn_name, node->call_fxn.name, len_fn);
-    fn_name[len_fn] = '\0';
+    char fn_name[NAME_LENGTH];
+    //int len_fn = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
+    memcpy(fn_name, node->call_fxn.name, NAME_LENGTH);
+    fn_name[NAME_LENGTH] = '\0';
 
     bool is_println = (memcmp(fn_name, "println", 7) == 0);
     Symbol *sym = NULL;
@@ -410,8 +409,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
         char *underscore = strchr(fn_name, '_');
         if (underscore) {
           int rec_len = (int)(underscore - fn_name);
-          char rec_name[256];
-          if (rec_len >= 256) rec_len = 255;
+          char rec_name[rec_len + 1];
           memcpy(rec_name, fn_name, rec_len);
           rec_name[rec_len] = '\0';
           Symbol *rec_sym = lookup_token(context->codegen, rec_name, &node->call_fxn.fxn, node->call_fxn.level);
@@ -544,10 +542,9 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
   case AST_VAR_REF: {
 
     const int NAME_LENGTH = node->var_ref.name_length;
-    char name[256];
-    int len_ref = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(name, node->var_ref.name, len_ref);
-    name[len_ref] = '\0';
+    char name[NAME_LENGTH+1];
+    memcpy(name, node->var_ref.name, NAME_LENGTH);
+    name[NAME_LENGTH] = '\0';
 
     Symbol *sym = lookup_token(context->codegen, name, &node->var_ref.fxn,
                                node->var_ref.level);

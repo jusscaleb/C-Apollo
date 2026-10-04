@@ -125,10 +125,9 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
 
   if (expr->Type == AST_VAR_REF) {
     const int NAME_LENGTH = expr->var_ref.name_length;
-    char var_name[256];
-    int len_v = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(var_name, expr->var_ref.name, len_v);
-    var_name[len_v] = '\0';
+    char var_name[NAME_LENGTH];
+    memcpy(var_name, expr->var_ref.name, NAME_LENGTH);
+    var_name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, var_name, &expr->var_ref.fxn,
                                expr->var_ref.level);
     if (sym) {
@@ -141,10 +140,9 @@ DataType infer_expr_type(SemanticContext *context, ASTNode *expr) {
 
   if (expr->Type == AST_CALL_FXN) {
     const int NAME_LENGTH = expr->call_fxn.name_length;
-    char fn_name[256];
-    int len_f = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(fn_name, expr->call_fxn.name, len_f);
-    fn_name[len_f] = '\0';
+    char fn_name[NAME_LENGTH+1];
+    memcpy(fn_name, expr->call_fxn.name, NAME_LENGTH);
+    fn_name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, fn_name, &expr->call_fxn.fxn,
                                expr->call_fxn.level);
     if (sym) {
@@ -233,10 +231,9 @@ Struct *get_struct_fields_from_expr(SemanticContext *context, ASTNode *expr) {
   if (!expr) return NULL;
   if (expr->Type == AST_VAR_REF) {
     const int NAME_LENGTH = expr->var_ref.name_length;
-    char var_name[256];
-    int len_v2 = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(var_name, expr->var_ref.name, len_v2);
-    var_name[len_v2] = '\0';
+    char var_name[NAME_LENGTH+1];
+    memcpy(var_name, expr->var_ref.name, NAME_LENGTH);
+    var_name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, var_name, &expr->var_ref.fxn,
                                expr->var_ref.level);
     if (sym && (sym->type == TYPE_STRUCT || sym->struct_fields)) {
@@ -245,10 +242,9 @@ Struct *get_struct_fields_from_expr(SemanticContext *context, ASTNode *expr) {
   } else if (expr->Type == AST_INDEX_EXPR) {
     if (expr->index_expr.target && expr->index_expr.target->Type == AST_VAR_REF) {
       const int NAME_LENGTH = expr->index_expr.target->var_ref.name_length;
-      char var_name[256];
-      int len_v3 = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-      memcpy(var_name, expr->index_expr.target->var_ref.name, len_v3);
-      var_name[len_v3] = '\0';
+      char var_name[NAME_LENGTH+1];
+      memcpy(var_name, expr->index_expr.target->var_ref.name, NAME_LENGTH);
+      var_name[NAME_LENGTH] = '\0';
       Symbol *sym = lookup_token(context->codegen, var_name, &expr->index_expr.target->var_ref.fxn,
                                  expr->index_expr.target->var_ref.level);
       if (sym && sym->struct_fields) {
@@ -309,10 +305,9 @@ int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr) {
 
   if (expr->Type == AST_VAR_REF) {
     const int NAME_LENGTH = expr->var_ref.name_length;
-    char var_name[256];
-    int len_v4 = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(var_name, expr->var_ref.name, len_v4);
-    var_name[len_v4] = '\0';
+    char var_name[NAME_LENGTH+1];
+    memcpy(var_name, expr->var_ref.name, NAME_LENGTH);
+    var_name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, var_name, &expr->var_ref.fxn,
                                expr->var_ref.level);
     if (sym) {
@@ -322,10 +317,9 @@ int infer_expr_pointer_level(SemanticContext *context, ASTNode *expr) {
 
   if (expr->Type == AST_CALL_FXN) {
     const int NAME_LENGTH = expr->call_fxn.name_length;
-    char fn_name[256];
-    int len_f2 = NAME_LENGTH < 255 ? NAME_LENGTH : 255;
-    memcpy(fn_name, expr->call_fxn.name, len_f2);
-    fn_name[len_f2] = '\0';
+    char fn_name[NAME_LENGTH+1];
+    memcpy(fn_name, expr->call_fxn.name, NAME_LENGTH);
+    fn_name[NAME_LENGTH] = '\0';
     Symbol *sym = lookup_token(context->codegen, fn_name, &expr->call_fxn.fxn,
                                expr->call_fxn.level);
     if (sym) {
