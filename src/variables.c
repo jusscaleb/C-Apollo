@@ -115,7 +115,7 @@ Symbol *lookup_token(CodegenContext *context, const char *name, Fxn *fxn,
 
 Symbol *get_token(CodegenContext *context, const char *name) {
   for (int i = 0; i < context->symbol_count; i++) {
-    if (strcmp(context->symbols[i].name, name) == 0) {
+    if (memcmp(context->symbols[i].name, name, context->symbols[i].name_length) == 0) {
       return &context->symbols[i];
     }
   }

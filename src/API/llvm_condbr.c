@@ -126,14 +126,28 @@ void _apl_gen_for_loop(LLVMComponents *components,
   LLVMPositionBuilderAtEnd(components->builder, bodyBB);
   LLVMValueRef mark_val = _apl_emit_arena_get_mark(components, components->current_arena_ptr);
   if (body != NULL) {
-    if (body->Type == AST_BLOCK) {
-      _apl_gen_block_from_ast(components, body);
-    } else if (body->Type == AST_VAR_DECL) {
-      _apl_create_local_variable(components, body);
-    } else if (body->Type == AST_VAR_ASS) {
-      _apl_reassign_variable(components, body);
-    } else if (body->Type == AST_CALL_FXN) {
-      _apl_gen_fxn_call_from_ast(components, body);
+    switch (body->Type){
+      case AST_BLOCK:{
+        _apl_gen_block_from_ast(components, body);
+        break;
+      }
+      case AST_VAR_DECL:{
+        _apl_create_local_variable(components, body);
+        break;
+      }
+
+      case AST_VAR_ASS: {
+          _apl_reassign_variable(components, body);
+          break;
+      }
+      case AST_CALL_FXN: {
+        _apl_gen_fxn_call_from_ast(components, body);
+        break;
+      }
+
+      default: 
+        break;
+
     }
   }
   _apl_emit_arena_set_mark(components, components->current_arena_ptr, mark_val);

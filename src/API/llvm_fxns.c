@@ -194,7 +194,7 @@ void _apl_gen_function_start(LLVMComponents *components,
     components->current_fxn_ast = &block_node->function.fxn;
     bool is_nested = (block_node->function.fxn.parent_fxn != NULL &&
                       block_node->function.fxn.parent_fxn->name != NULL &&
-                      strcmp(block_node->function.fxn.parent_fxn->name, "global") != 0);
+                      memcmp(block_node->function.fxn.parent_fxn->name, "global", 6) != 0);
     bool is_b2_ret = (block_node->function.fxn.bucket == BUCKET_TWO) || 
                      (block_node->function.resolved_symbol && block_node->function.resolved_symbol->bucket == BUCKET_TWO);
 
@@ -309,23 +309,33 @@ void _apl_gen_return(LLVMComponents *components,
   ASTNode *val_node = node->ret_node.value;
 
   if (val_node) {
-    if (val_node->Type == AST_VAR_REF) {
+    switch(val_node->Type){
+      case AST_VAR_REF: {
       ret_val = load_variable(components, val_node);
-    } else if (val_node->Type == AST_ACCESS) {
+      break;
+    } 
+    case AST_ACCESS: {
       ret_val = _apl_gen_struct_access_load(components, val_node);
-    } else if (val_node->Type == AST_INDEX_EXPR) {
+      break;
+    } case AST_INDEX_EXPR: {
       ret_val = _apl_gen_array_index_expr(components, val_node);
-    } else if (val_node->Type == AST_CALL_FXN) {
+      break;
+    } case AST_CALL_FXN: {
       ret_val = _apl_eval_function_call(components, val_node);
-    } else if (val_node->Type == AST_BINARY_EXPR || val_node->Type == AST_URINARY_EXPR) {
+      break;
+    } case AST_BINARY_EXPR:
+      case AST_URINARY_EXPR: {
       ret_val = arihmetics(components, val_node, "");
-    } else if (val_node->Type == AST_ARRAY_LITERAL) {
+      break;
+    } case AST_ARRAY_LITERAL: {
       ret_val = _apl_gen_array_literal(components, val_node);
       if (ret_val) {
         ret_val = LLVMBuildBitCast(components->builder, ret_val, LLVMPointerType(I8(components->ctx), 0), "");
       }
-    } else {
-      switch (node->ret_node.fxn.return_type) {
+      break;
+    }
+    default: {
+            switch (node->ret_node.fxn.return_type) {
       case TYPE_INT_ARRAY:
       case TYPE_FLOAT_ARRAY:
       case TYPE_BOOL_ARRAY:
@@ -370,6 +380,9 @@ void _apl_gen_return(LLVMComponents *components,
       default:
         break;
       }
+
+      break;
+    }
     }
   }
 

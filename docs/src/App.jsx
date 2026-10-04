@@ -1057,7 +1057,7 @@ fxn run() {
               <div className="sidebar-logo">Apollo</div>
             </div>
           </div>
-          <span className="sidebar-version">v3.0.0-unstable-preview</span>
+          <span className="sidebar-version">v3.0.x</span>
         </div>
 
         <div className="search-box">
@@ -1113,7 +1113,7 @@ fxn run() {
             <div className="docs-header hero-docs-header">
               <div className="hero-header-content">
                 <div className="badge-row">
-                  <span className="badge badge-orange"><Flame size={12} /> v3.0.0-unstable-preview</span>
+                  <span className="badge badge-orange"><Flame size={12} /> v3.0.x</span>
                   <span className="badge badge-purple"><Cpu size={12} /> libLLVM-19 Engine</span>
                   <span className="badge badge-emerald"><ShieldCheck size={12} /> 0% GC Latency</span>
                 </div>
@@ -1144,7 +1144,7 @@ fxn run() {
                 </div>
               </div>
 
-              <h2 className="section-title"><Flame size={20} style={{ color: 'var(--color-orange-primary)' }} /> Key Pillars of Apollo v3.0.0-unstable-preview</h2>
+              <h2 className="section-title"><Flame size={20} style={{ color: 'var(--color-orange-primary)' }} /> Key Pillars of Apollo v3.0.x</h2>
               <div className="feature-grid">
                 <div className="feature-card">
                   <div className="feature-icon-wrapper" style={{ background: 'rgba(255, 107, 0, 0.12)', color: 'var(--color-orange-primary)' }}>

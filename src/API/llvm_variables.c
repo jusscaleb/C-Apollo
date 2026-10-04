@@ -38,35 +38,54 @@ static void _apl_populate_struct_from_literal(LLVMComponents *components,
     }
 
     LLVMValueRef elem_val = NULL;
+
     if (elements[i]->Type == AST_LITERAL_EXPR) {
       TokenType tt = elements[i]->literal_expr.token.type;
-      if (tt == TOKEN_INT) {
-        elem_val = LLVMConstInt(I32(components->ctx),
+
+      switch (tt) {
+        case TOKEN_INT: {
+           elem_val = LLVMConstInt(I32(components->ctx),
                                 (int)return_eval_int(elements[i]), 0);
-      } else if (tt == TOKEN_FLOAT) {
-        elem_val =
+          break;
+        }
+        case TOKEN_FLOAT: {
+          elem_val =
             LLVMConstReal(F32(components->ctx), return_eval_int(elements[i]));
-      } else if (tt == TOKEN_CHAR) {
-        uint8_t c = parse_char_literal(elements[i]->literal_expr.token);
+            break;
+        }
+
+        case TOKEN_CHAR: {
+          uint8_t c = parse_char_literal(elements[i]->literal_expr.token);
         elem_val = LLVMConstInt(I8(components->ctx), c, false);
-      } else if (tt == TOKEN_BOOL) {
-        int b = (elements[i]->literal_expr.token.length == 5) ? 0 : 1;
-        elem_val = LLVMConstInt(I1(components->ctx), b, 0);
-      } else if (tt == TOKEN_STRING) {
-        char str[elements[i]->literal_expr.token.length +1];
+          break;
+        }
+
+        case TOKEN_BOOL: {
+          int b = (elements[i]->literal_expr.token.length == 5) ? 0 : 1;
+          elem_val = LLVMConstInt(I1(components->ctx), b, 0);
+          break;
+        }
+ 
+        case TOKEN_STRING: {
+           char str[elements[i]->literal_expr.token.length +1];
         slice_string(elements[i]->literal_expr.token, str);
         LLVMTypeRef str_members[] = {LLVMPointerType(I8(components->ctx), 0),
                                      I32(components->ctx)};
         LLVMTypeRef string_struct_type =
             LLVMStructTypeInContext(components->ctx, str_members, 2, false);
         LLVMValueRef str_alloc =
-            LLVMBuildAlloca(components->builder, string_struct_type, "str_alloc");
+            LLVMBuildAlloca(components->builder, string_struct_type, "");
         _apl_build_string_reassign(components, str_alloc, str,
                                    string_struct_type);
         elem_val = LLVMBuildLoad2(components->builder, string_struct_type,
-                                  str_alloc, "str_load");
-      } else {
-        elem_val = arihmetics(components, elements[i], "");
+                                  str_alloc, "");
+          break;
+        }
+
+        default: {
+            elem_val = arihmetics(components, elements[i], "");
+            break;
+        }
       }
     } else if (elements[i]->Type == AST_VAR_REF) {
       elem_val = load_variable(components, elements[i]);
@@ -421,7 +440,7 @@ void _apl_reassign_variable(LLVMComponents *components, ASTNode *node) {
       (var_sym && var_sym->fxn && components->current_fxn_ast &&
        var_sym->fxn->name[0] != '\0' &&
        components->current_fxn_ast->name[0] != '\0' &&
-       strcmp(var_sym->fxn->name, components->current_fxn_ast->name) != 0 &&
+       memcmp(var_sym->fxn->name, components->current_fxn_ast->name, components->current_fxn_ast->length) != 0 &&
        components->current_parent_frame != NULL);
   if (is_parent_env) {
     int idx = var_sym->frame_index;
@@ -580,7 +599,7 @@ LLVMValueRef load_variable(LLVMComponents *components, ASTNode *var_ref_node) {
       (var_sym && var_sym->fxn && components->current_fxn_ast &&
        var_sym->fxn->name[0] != '\0' &&
        components->current_fxn_ast->name[0] != '\0' &&
-       strcmp(var_sym->fxn->name, components->current_fxn_ast->name) != 0 &&
+       memcmp(var_sym->fxn->name, components->current_fxn_ast->name, components->current_fxn_ast->length) != 0 &&
        components->current_parent_frame != NULL);
   if (is_parent_env) {
     int idx = var_sym->frame_index;

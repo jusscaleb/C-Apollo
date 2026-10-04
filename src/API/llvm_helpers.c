@@ -477,7 +477,7 @@ LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
       Fxn *target_fxn = (node->call_fxn.resolved_symbol && node->call_fxn.resolved_symbol->fxn) ? node->call_fxn.resolved_symbol->fxn : &node->call_fxn.fxn;
       bool is_nested = (target_fxn && target_fxn->parent_fxn != NULL &&
                         target_fxn->parent_fxn->name != NULL &&
-                        strcmp(target_fxn->parent_fxn->name, "global") != 0);
+                        memcmp(target_fxn->parent_fxn->name, "global", 6) != 0);
       bool is_b2_ret = (node->call_fxn.fxn.bucket == BUCKET_TWO) ||
                        (node->call_fxn.resolved_symbol && (node->call_fxn.resolved_symbol->bucket == BUCKET_TWO || (node->call_fxn.resolved_symbol->fxn && node->call_fxn.resolved_symbol->fxn->bucket == BUCKET_TWO)));
       uint32_t total_args = a_numbers + (is_nested ? 1 : 0) + (is_b2_ret ? 1 : 0);

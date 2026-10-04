@@ -49,6 +49,8 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
       node->function.resolved_symbol->bucket = node->function.fxn.bucket;
     }
 
+    int initial_param_count = context->codegen->symbol_count;
+
     // Analyze Parameters.
     Params *param = node->function.fxn.params;
     int p_idx = 0;
@@ -65,6 +67,12 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
     // Analyze Function Body.
     if (node->function.body) {
       analyze_node(context, node->function.body);
+    }
+
+    for (int i = initial_param_count; i < context->codegen->symbol_count; ++i) {
+      if (context->codegen->symbols[i].t_type != FUNC && context->codegen->symbols[i].type != TYPE_STRUCT) {
+        context->codegen->symbols[i].is_active = false;
+      }
     }
 
     break;
@@ -445,7 +453,7 @@ static void analyze_node(SemanticContext *context, ASTNode *node) {
             Symbol *s = &context->codegen->symbols[s_idx];
             if (s->is_active && s->t_type == FUNC && s->name) {
               const char *m_suffix = strchr(s->name, '_');
-              if (m_suffix && strcmp(m_suffix + 1, fn_name) == 0) {
+              if (m_suffix && memcmp(m_suffix + 1, fn_name, NAME_LENGTH) == 0) {
                 sym = s;
                 node->call_fxn.name = s->name;
                 node->call_fxn.name_length = s->name_length;

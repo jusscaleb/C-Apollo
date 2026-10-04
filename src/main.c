@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 
   const char *ext = strrchr(filename, '.');
 
-  if (ext == NULL || strcmp(ext, EXPECTED_EXTENSION) != 0) {
+  if (ext == NULL || memcmp(ext, EXPECTED_EXTENSION, 3) != 0) {
     if(_DB) trace("bad extension");
     perror("Expected an .apl file...");
     exit(EXIT_FAILURE);
