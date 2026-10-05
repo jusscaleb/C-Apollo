@@ -2,7 +2,7 @@ name: Package Windows Installer
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   workflow_dispatch:
 
 jobs:

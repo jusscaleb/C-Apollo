@@ -2,9 +2,9 @@ name: Apollo Diagnosis & Tests
 
 on:
   push:
-    branches: [ "main", "dev", "MAJOR/REFACTOR/C-API-LLVM" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: [ "master" ]
 
 jobs:
   diagnosis-tests:
