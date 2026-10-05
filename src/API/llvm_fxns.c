@@ -362,7 +362,7 @@ void _apl_gen_return(LLVMComponents *components,
         break;
       }
       case TYPE_STRING: {
-        char str[512];
+        char str[val_node->literal_expr.token.length + 1];
         slice_string(val_node->literal_expr.token, str);
         ret_val = LLVMBuildGlobalStringPtr(components->builder, str, "");
         break;

@@ -512,7 +512,7 @@ LLVMValueRef _apl_eval_function_call(LLVMComponents *components, ASTNode *node){
                 break;
               }
               case TYPE_STRING: {
-                char str[512];
+                char str[a->arg->literal_expr.token.length + 1];
                 slice_string(a->arg->literal_expr.token, str);
                 args[i] = LLVMBuildGlobalStringPtr(components->builder, str, "");
                 break;

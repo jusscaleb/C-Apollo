@@ -1,5 +1,6 @@
 #include <direct.h>
 #include "../headers/token.h"
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,32 @@
 
 
 ASTNode *compile_parse(Lexer *lexer, ErrorStack *s, CodegenContext *context);
+
+static char *path_from_cwd(const char *suffix) {
+  char *cwd = _getcwd(NULL, 0);
+  if (cwd == NULL) {
+    return NULL;
+  }
+
+  size_t cwd_len = strlen(cwd);
+  size_t suffix_len = strlen(suffix);
+  if (suffix_len > (size_t)-1 - cwd_len - 1) {
+    free(cwd);
+    errno = ENOMEM;
+    return NULL;
+  }
+
+  char *path = (char *)malloc(cwd_len + suffix_len + 1);
+  if (path == NULL) {
+    free(cwd);
+    return NULL;
+  }
+
+  memcpy(path, cwd, cwd_len);
+  memcpy(path + cwd_len, suffix, suffix_len + 1);
+  free(cwd);
+  return path;
+}
 
 static FILE *trace_file = NULL;
 
@@ -56,21 +83,14 @@ static char *read_file(const char *filename) {
 
 // Automatically runs the program after successful compilation.
 void llvm_compilation() {
-  char cwd[512];
-  if (_getcwd(cwd, sizeof(cwd)) == NULL) {
+  char *obj_path = path_from_cwd("\\temp\\output.o");
+  char *exe_path = path_from_cwd("\\temp\\program.exe");
+  if (obj_path == NULL || exe_path == NULL) {
     perror("Could not resolve current working directory");
+    free(obj_path);
+    free(exe_path);
     exit(EXIT_FAILURE);
   }
-  size_t cwd_len = strlen(cwd);
-
-  char obj_path[1024];
-  char exe_path[1024];
-
-  memcpy(obj_path, cwd, cwd_len);
-  memcpy(obj_path + cwd_len, "\\temp\\output.o", sizeof("\\temp\\output.o"));
-
-  memcpy(exe_path, cwd, cwd_len);
-  memcpy(exe_path + cwd_len, "\\temp\\program.exe", sizeof("\\temp\\program.exe"));
 
   // Link the native object file directly — no bitcode re-parsing needed.
   const char *clang_bin = "C:\\msys64\\clang64\\bin\\clang.exe";
@@ -79,13 +99,15 @@ void llvm_compilation() {
     result = _spawnlp(_P_WAIT, "clang", "clang", "--target=x86_64-w64-windows-gnu", "-fuse-ld=lld", obj_path, "-o", exe_path, NULL);
   }
 
+  free(obj_path);
+
   if (result == 0) {
-    printf("=== Running Apollo Program Output ===\n");
     _spawnl(_P_WAIT, exe_path, exe_path, NULL);
-    printf("=====================================\n");
+    free(exe_path);
 
     exit(EXIT_SUCCESS);
   } else {
+    free(exe_path);
     fprintf(stderr,
             "[DRIVER] Compilation Error: Linker failed to build executable.\n");
     exit(EXIT_FAILURE);
@@ -142,18 +164,14 @@ int main(int argc, char **argv) {
 
   compiler_context.t = symbol_table_init(compiler_context.a, 256);
   {
-    char cwd[512];
-    if (_getcwd(cwd, sizeof(cwd)) == NULL) {
+    char *output_path = path_from_cwd("\\temp\\output.bc");
+    if (output_path == NULL) {
       perror("Could not resolve current working directory");
       free(source);
       exit(EXIT_FAILURE);
     }
-    size_t cwd_len = strlen(cwd);
-
-    char output_path[1024];
-    memcpy(output_path, cwd, cwd_len);
-    memcpy(output_path + cwd_len, "\\temp\\output.bc", sizeof("\\temp\\output.bc"));
     codegen_init(&compiler_context, output_path);
+    free(output_path);
   }
   _DEBUG("[DRIVER] Codegen context initialized.");
   fflush(stderr);

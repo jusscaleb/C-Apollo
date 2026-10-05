@@ -4,6 +4,12 @@ This document tracks fixes identified during the codebase review for the next pa
 
 ## Compiler
 
+- [ ] **Prevent collisions between method and function names** (`src/Semantics/semantic_analyze.c`, method registration and lookup)
+  - Method calls are resolved by combining the struct and method names with an underscore (for example, `Point.move` becomes `Point_move`). A user-defined function can have that same valid identifier, so the two symbols collide and a method call can resolve to the wrong function.
+  - Use a compiler-only representation for method symbols and make both registration and lookup use it. Do not rely on a separator that Apollo identifiers can also contain.
+  - **Regression case:** define `Point.move(self) -> int` to return `1` and a free `Point_move() -> int` to return `99`; call both from `run()`.
+  - **Acceptance:** both declarations can coexist, `p.move()` returns `1`, and `Point_move()` returns `99`.
+
 - [ ] **Tokenize minus consistently** (`src/lexer.c`, `src/Parser/parser_expr.c`)
   - Always emit `-` as a subtraction token, including when it is immediately followed by a digit.
   - Parse negative values as unary minus so `x-5`, `x - 5`, and `-5` all work consistently.

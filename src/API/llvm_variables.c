@@ -252,9 +252,7 @@ void _apl_create_local_variable(LLVMComponents *components, ASTNode *var_node) {
         if (sym && (sym->scope_level == 0 || sym->bucket == BUCKET_ONE)) {
           size_t str_len = strlen(str);
           LLVMValueRef str_const = LLVMConstStringInContext(components->ctx, str, (unsigned)str_len, false);
-          char g_name[64];
-          snprintf(g_name, sizeof(g_name), ".gstr_%s", sym->name ? sym->name : "anon");
-          LLVMValueRef g_lit = LLVMAddGlobal(components->module, LLVMTypeOf(str_const), g_name);
+          LLVMValueRef g_lit = LLVMAddGlobal(components->module, LLVMTypeOf(str_const), "");
           LLVMSetInitializer(g_lit, str_const);
           LLVMSetGlobalConstant(g_lit, true);
           LLVMSetLinkage(g_lit, LLVMPrivateLinkage);
